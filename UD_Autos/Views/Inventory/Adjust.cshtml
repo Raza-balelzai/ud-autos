@@ -1,0 +1,35 @@
+@model StockAdjustmentViewModel
+@{
+    var products = ViewBag.Products as IReadOnlyList<Product> ?? Array.Empty<Product>();
+    var batches = ViewBag.Batches as IReadOnlyList<InventoryBatch> ?? Array.Empty<InventoryBatch>();
+}
+
+<form asp-action="Adjust" method="post" class="card-panel">
+    @Html.AntiForgeryToken()
+    <div class="form-grid">
+        <div class="field">
+            <label asp-for="ProductId">Product</label>
+            <select asp-for="ProductId" class="select-app" asp-items="@(new SelectList(products.Select(p => new { p.Id, Label = p.Sku + " — " + p.Name }), "Id", "Label"))">
+                <option value="">— Select —</option>
+            </select>
+        </div>
+        <div class="field">
+            <label asp-for="BatchId">Batch (optional)</label>
+            <select asp-for="BatchId" class="select-app" asp-items="@(new SelectList(batches, "Id", "BatchNumber"))">
+                <option value="">— Product level only —</option>
+            </select>
+        </div>
+        <div class="field">
+            <label asp-for="QuantityDelta">Quantity (+ increase / − decrease)</label>
+            <input asp-for="QuantityDelta" class="input-app" />
+        </div>
+        <div class="field form-grid--full">
+            <label asp-for="Reason">Reason</label>
+            <textarea asp-for="Reason" class="textarea-app"></textarea>
+        </div>
+    </div>
+    <div class="form-actions">
+        <button type="submit" class="btn-app btn-app--primary">Post adjustment</button>
+        <a class="btn-app btn-app--outline" asp-action="Index">Cancel</a>
+    </div>
+</form>

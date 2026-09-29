@@ -1,0 +1,138 @@
+@model DashboardVm
+
+@section PageActions {
+    <a class="btn-app btn-app--outline" asp-controller="Sales" asp-action="Daily">Daily Sales</a>
+    <a class="btn-app btn-app--outline" asp-controller="Reports" asp-action="Index">Reports</a>
+}
+
+@if (Model.Alerts.Count > 0)
+{
+    <div class="alert-list">
+        @foreach (var a in Model.Alerts)
+        {
+            <div class="alert-app alert-app--warning">@a</div>
+        }
+    </div>
+}
+
+<div class="kpi-grid">
+    <div class="kpi-card">
+        <div class="kpi-card__icon kpi-card__icon--blue"><svg viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="M7 14l4-4 3 3 5-6"/></svg></div>
+        <p class="kpi-card__label">Today's Sales</p>
+        <p class="kpi-card__value">Rs. @Model.TodaySales.ToString("N0")</p>
+        <p class="kpi-card__meta">Invoice bill totals</p>
+    </div>
+    <div class="kpi-card">
+        <div class="kpi-card__icon kpi-card__icon--green"><svg viewBox="0 0 24 24"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div>
+        <p class="kpi-card__label">Today's Collections</p>
+        <p class="kpi-card__value">Rs. @Model.TodayCollections.ToString("N0")</p>
+        <p class="kpi-card__meta">Separate from sales</p>
+    </div>
+    <div class="kpi-card">
+        <div class="kpi-card__icon kpi-card__icon--red"><svg viewBox="0 0 24 24"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div>
+        <p class="kpi-card__label">Today's Expenses</p>
+        <p class="kpi-card__value">Rs. @Model.TodayExpenses.ToString("N0")</p>
+        <p class="kpi-card__meta">Operating expenses only</p>
+    </div>
+    <div class="kpi-card">
+        <div class="kpi-card__icon kpi-card__icon--purple"><svg viewBox="0 0 24 24"><path d="M12 20V10M18 20V4M6 20v-4"/></svg></div>
+        <p class="kpi-card__label">Today's Profit</p>
+        <p class="kpi-card__value">@(Model.CanViewProfit ? $"Rs. {Model.TodayNetProfit:N0}" : "—")</p>
+        <p class="kpi-card__meta">@(Model.CanViewProfit ? "Gross − opex" : "Permission required")</p>
+    </div>
+</div>
+
+<div class="kpi-grid">
+    <div class="kpi-card">
+        <p class="kpi-card__label">Inventory Value</p>
+        <p class="kpi-card__value">Rs. @Model.InventoryValue.ToString("N0")</p>
+        <p class="kpi-card__meta">@Model.InventoryQty.ToString("N0") pcs on hand</p>
+    </div>
+    <div class="kpi-card">
+        <p class="kpi-card__label">Total Receivable</p>
+        <p class="kpi-card__value">Rs. @Model.TotalReceivable.ToString("N0")</p>
+        <p class="kpi-card__meta">Customer Khata balances</p>
+    </div>
+    <div class="kpi-card">
+        <p class="kpi-card__label">Overdue Receivable</p>
+        <p class="kpi-card__value">Rs. @Model.OverdueReceivable.ToString("N0")</p>
+        <p class="kpi-card__meta">Invoices 30+ days unpaid</p>
+    </div>
+    <div class="kpi-card">
+        <p class="kpi-card__label">Month Sales / Net</p>
+        <p class="kpi-card__value">Rs. @Model.MonthSales.ToString("N0")</p>
+        <p class="kpi-card__meta">@(Model.CanViewProfit ? $"Net Rs. {Model.MonthNetProfit:N0}" : "Profit hidden")</p>
+    </div>
+</div>
+
+<div class="card-panel">
+    <div class="card-panel__header">
+        <h2 class="card-panel__title">Stock Status (Goods in Flow)</h2>
+    </div>
+    <div class="flow-strip">
+        <div class="flow-step"><div class="flow-step__label">In China / Production</div><div class="flow-step__value">@Model.FlowChinaProduction.ToString("N0")</div></div>
+        <div class="flow-step"><div class="flow-step__label">China Warehouse</div><div class="flow-step__value">@Model.FlowChinaWarehouse.ToString("N0")</div></div>
+        <div class="flow-step"><div class="flow-step__label">In Transit</div><div class="flow-step__value">@Model.FlowInTransit.ToString("N0")</div></div>
+        <div class="flow-step"><div class="flow-step__label">Karachi</div><div class="flow-step__value">@Model.FlowKarachi.ToString("N0")</div></div>
+        <div class="flow-step"><div class="flow-step__label">Tarnol</div><div class="flow-step__value">@Model.FlowTarnol.ToString("N0")</div></div>
+    </div>
+</div>
+
+<div class="dashboard-split">
+    <div class="card-panel">
+        <h2 class="card-panel__title">Sales trend (30d)</h2>
+        <div class="chart-bars" aria-label="Sales trend">
+            @{
+                var maxSales = Model.SalesTrend.DefaultIfEmpty().Max(p => p?.Value ?? 0);
+                if (maxSales <= 0) { maxSales = 1; }
+            }
+            @foreach (var p in Model.SalesTrend.Where((_, i) => i % 3 == 0))
+            {
+                var pct = (int)Math.Round(100m * p.Value / maxSales);
+                <div class="chart-bar" title="@p.Label: Rs. @p.Value.ToString("N0")">
+                    <div class="chart-bar__fill chart-bar__h-@Math.Clamp(pct / 10 * 10, 10, 100)"></div>
+                    <span class="chart-bar__label">@p.Label.Split(' ')[0]</span>
+                </div>
+            }
+        </div>
+    </div>
+    <div class="card-panel">
+        <h2 class="card-panel__title">Top products (month)</h2>
+        <ul class="rank-list">
+            @foreach (var p in Model.TopProducts)
+            {
+                <li><span>@p.Name</span><strong>Rs. @p.Amount.ToString("N0")</strong></li>
+            }
+            @if (Model.TopProducts.Count == 0)
+            {
+                <li class="empty-state">No sales this month.</li>
+            }
+        </ul>
+    </div>
+    <div class="card-panel">
+        <h2 class="card-panel__title">Top customers (month)</h2>
+        <ul class="rank-list">
+            @foreach (var p in Model.TopCustomers)
+            {
+                <li><span>@p.Name</span><strong>Rs. @p.Amount.ToString("N0")</strong></li>
+            }
+            @if (Model.TopCustomers.Count == 0)
+            {
+                <li class="empty-state">No sales this month.</li>
+            }
+        </ul>
+    </div>
+    <div class="card-panel">
+        <h2 class="card-panel__title">Incoming shipments</h2>
+        <ul class="rank-list">
+            @foreach (var p in Model.IncomingShipments)
+            {
+                <li><span>@p.Name <em>@p.Meta</em></span><strong>@p.Amount.ToString("N0") pcs</strong></li>
+            }
+            @if (Model.IncomingShipments.Count == 0)
+            {
+                <li class="empty-state">No active inbound shipments.</li>
+            }
+        </ul>
+    </div>
+</div>

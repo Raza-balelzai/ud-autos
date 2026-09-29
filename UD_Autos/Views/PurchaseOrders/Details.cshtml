@@ -1,0 +1,48 @@
+@model PurchaseOrder
+
+@section PageActions {
+    <a class="btn-app btn-app--outline" asp-action="Edit" asp-route-id="@Model.Id">Edit</a>
+    <a class="btn-app btn-app--primary" asp-controller="HawalaPayments" asp-action="Create" asp-route-supplierId="@Model.SupplierId">+ Hawala</a>
+}
+
+<div class="card-panel">
+    <div class="detail-grid">
+        <div class="detail-item"><dt>PO No</dt><dd>@Model.PoNumber</dd></div>
+        <div class="detail-item"><dt>Supplier</dt><dd>@Model.Supplier.Name</dd></div>
+        <div class="detail-item"><dt>Date</dt><dd>@Model.OrderDate.ToString("dd MMM yyyy")</dd></div>
+        <div class="detail-item"><dt>Status</dt><dd><span class="badge-app badge-app--primary">@Model.Status</span></dd></div>
+        <div class="detail-item"><dt>Total RMB</dt><dd>¥ @Model.TotalRmb.ToString("N4")</dd></div>
+        <div class="detail-item"><dt>Estimated PKR</dt><dd>Rs. @Model.EstimatedPkr.ToString("N2")</dd></div>
+        <div class="detail-item"><dt>Paid RMB</dt><dd>¥ @Model.PaidRmb.ToString("N4")</dd></div>
+        <div class="detail-item"><dt>Paid PKR</dt><dd>Rs. @Model.PaidPkr.ToString("N2")</dd></div>
+        <div class="detail-item"><dt>Balance RMB</dt><dd>¥ @Model.BalanceRmb.ToString("N4")</dd></div>
+    </div>
+
+    <h3 class="card-panel__title">Items</h3>
+    <div class="table-wrap">
+        <table class="table-app">
+            <thead><tr><th>SKU</th><th>Product</th><th>Qty</th><th>Unit RMB</th><th>Line RMB</th></tr></thead>
+            <tbody>
+            @foreach (var item in Model.Items)
+            {
+                <tr>
+                    <td>@item.Product.Sku</td>
+                    <td>@item.Product.Name</td>
+                    <td>@item.Quantity.ToString("N2")</td>
+                    <td>¥ @item.UnitPriceRmb.ToString("N4")</td>
+                    <td>¥ @item.LineTotalRmb.ToString("N4")</td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+
+    <h3 class="card-panel__title">Update status</h3>
+    <form asp-action="ChangeStatus" method="post" class="table-toolbar">
+        @Html.AntiForgeryToken()
+        <input type="hidden" name="id" value="@Model.Id" />
+        <select class="select-app" name="status" asp-items="Html.GetEnumSelectList<PurchaseOrderStatus>()"></select>
+        <input class="input-app" name="reason" placeholder="Reason (required for rollback)" />
+        <button type="submit" class="btn-app btn-app--outline">Apply status</button>
+    </form>
+</div>

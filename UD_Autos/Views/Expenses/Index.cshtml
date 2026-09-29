@@ -1,0 +1,59 @@
+@model PagedResult<OperatingExpense>
+@{
+    var categories = (IReadOnlyList<ExpenseCategory>)(ViewBag.Categories ?? Array.Empty<ExpenseCategory>());
+    var pager = PagerViewModel.From(Model, "Index", new { search = Model.Search });
+}
+
+@section PageActions {
+    <a class="btn-app btn-app--primary" asp-action="Create">+ Add Expense</a>
+}
+
+<div class="card-panel">
+    <form method="get" class="table-toolbar">
+        <input class="input-app" name="search" value="@Model.Search" placeholder="Search expense / category..." />
+        <select class="select-app" name="categoryId">
+            <option value="">All categories</option>
+            @foreach (var c in categories)
+            {
+                <option value="@c.Id">@c.Name@(c.IsDirectImportCost ? " (import flag)" : "")</option>
+            }
+        </select>
+        <input class="input-app" type="date" name="from" />
+        <input class="input-app" type="date" name="to" />
+        <button type="submit" class="btn-app btn-app--outline">Filter</button>
+    </form>
+    <p class="dashboard-note">Categories marked as direct import cost require acknowledgement on create to avoid double-counting with shipment landed cost.</p>
+    <div class="table-wrap">
+        <table class="table-app">
+            <thead><tr><th>#</th><th>Date</th><th>Category</th><th>Account</th><th>Amount</th><th>Reference</th><th></th></tr></thead>
+            <tbody>
+            @if (Model.Items.Count == 0)
+            {
+                <tr><td colspan="7"><div class="empty-state">No operating expenses yet.</div></td></tr>
+            }
+            else
+            {
+                foreach (var e in Model.Items)
+                {
+                    <tr>
+                        <td>@e.ExpenseNumber</td>
+                        <td>@e.ExpenseDate.ToString("dd MMM yyyy")</td>
+                        <td>@e.Category.Name @(e.Category.IsDirectImportCost ? "⚠" : "")</td>
+                        <td>@e.Account</td>
+                        <td>Rs. @e.Amount.ToString("N2")</td>
+                        <td>@e.Reference</td>
+                        <td>
+                            <form asp-action="Delete" method="post">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="id" value="@e.Id" />
+                                <button type="submit" class="btn-app btn-app--ghost btn-app--sm">Remove</button>
+                            </form>
+                        </td>
+                    </tr>
+                }
+            }
+            </tbody>
+        </table>
+    </div>
+    <partial name="_Pager" model="pager" />
+</div>

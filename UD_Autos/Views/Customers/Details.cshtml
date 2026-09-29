@@ -1,0 +1,31 @@
+@model Customer
+
+@section PageActions {
+    <a class="btn-app btn-app--outline" asp-action="Khata" asp-route-id="@Model.Id">Open Khata</a>
+    <a class="btn-app btn-app--outline" asp-controller="Sales" asp-action="Create" asp-route-customerId="@Model.Id">New Invoice</a>
+    <a class="btn-app btn-app--outline" asp-action="Edit" asp-route-id="@Model.Id">Edit</a>
+    <form asp-action="Delete" method="post">
+        @Html.AntiForgeryToken()
+        <input type="hidden" name="id" value="@Model.Id" />
+        <button type="submit" class="btn-app btn-app--danger" onclick="return confirm('Deactivate this customer?');">Deactivate</button>
+    </form>
+}
+
+<div class="card-panel">
+    <div class="detail-grid">
+        <div class="detail-item"><dt>Customer ID</dt><dd>@Model.CustomerCode</dd></div>
+        <div class="detail-item"><dt>Name</dt><dd>@Model.Name</dd></div>
+        <div class="detail-item"><dt>Shop</dt><dd>@(Model.ShopName ?? "—")</dd></div>
+        <div class="detail-item"><dt>Phone</dt><dd>@(Model.Phone ?? "—")</dd></div>
+        <div class="detail-item"><dt>City</dt><dd>@(Model.City ?? "—")</dd></div>
+        <div class="detail-item"><dt>Type</dt><dd>@Model.CustomerType</dd></div>
+        <div class="detail-item"><dt>Credit Limit</dt><dd>@(Model.CreditLimit.HasValue ? $"Rs. {Model.CreditLimit:N2}" : "—")</dd></div>
+        <div class="detail-item"><dt>Opening Balance</dt><dd>Rs. @Model.OpeningBalance.ToString("N2")</dd></div>
+        <div class="detail-item"><dt>Current Balance</dt><dd>Rs. @Model.CurrentBalance.ToString("N2")</dd></div>
+        <div class="detail-item"><dt>Total Purchases</dt><dd>Rs. @Model.TotalPurchases.ToString("N2")</dd></div>
+        <div class="detail-item"><dt>Total Payments</dt><dd>Rs. @Model.TotalPayments.ToString("N2")</dd></div>
+        <div class="detail-item"><dt>Last Purchase</dt><dd>@(Model.LastPurchaseAt?.ToLocalTime().ToString("dd MMM yyyy") ?? "—")</dd></div>
+        <div class="detail-item"><dt>Last Payment</dt><dd>@(Model.LastPaymentAt?.ToLocalTime().ToString("dd MMM yyyy") ?? "—")</dd></div>
+    </div>
+    <p class="dashboard-note">Current balance and purchase/payment totals are driven by Khata ledger postings — not free-edited here.</p>
+</div>

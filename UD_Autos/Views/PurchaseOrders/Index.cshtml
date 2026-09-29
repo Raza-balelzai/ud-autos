@@ -1,0 +1,86 @@
+@model PagedResult<PurchaseOrder>
+@{
+    var pager = PagerViewModel.From(Model, "Index", new
+    {
+        search = Model.Search,
+        supplierId = Context.Request.Query["supplierId"].ToString(),
+        status = Context.Request.Query["status"].ToString(),
+        from = Context.Request.Query["from"].ToString(),
+        to = Context.Request.Query["to"].ToString()
+    });
+}
+
+@section PageActions {
+    <a class="btn-app btn-app--primary" asp-action="Create">+ New Purchase Order</a>
+}
+
+<div class="card-panel">
+    <form method="get" class="table-toolbar">
+        <input class="input-app" name="search" value="@Model.Search" placeholder="Search PO / supplier..." />
+        <select class="select-app" name="supplierId" asp-items="ViewBag.Suppliers">
+            <option value="">All suppliers</option>
+        </select>
+        <select class="select-app" name="status" asp-items="Html.GetEnumSelectList<PurchaseOrderStatus>()">
+            <option value="">All statuses</option>
+        </select>
+        <input class="input-app" type="date" name="from" value="@((ViewBag.From as DateTime?)?.ToString("yyyy-MM-dd"))" />
+        <input class="input-app" type="date" name="to" value="@((ViewBag.To as DateTime?)?.ToString("yyyy-MM-dd"))" />
+        <button type="submit" class="btn-app btn-app--outline">Filter</button>
+    </form>
+
+    <div class="table-wrap">
+        <table class="table-app">
+            <thead>
+            <tr>
+                <th>PO No</th>
+                <th>Supplier</th>
+                <th>Date</th>
+                <th>Total (RMB)</th>
+                <th>Est. PKR</th>
+                <th>Balance RMB</th>
+                <th>Status</th>
+                <th></th>
+            </tr>
+            </thead>
+            <tbody>
+            @if (Model.Items.Count == 0)
+            {
+                <tr><td colspan="8"><div class="empty-state">No purchase orders yet.</div></td></tr>
+            }
+            else
+            {
+                foreach (var po in Model.Items)
+                {
+                    <tr>
+                        <td>@po.PoNumber</td>
+                        <td>@po.Supplier.Name</td>
+                        <td>@po.OrderDate.ToString("dd MMM yyyy")</td>
+                        <td>¥ @po.TotalRmb.ToString("N2")</td>
+                        <td>Rs. @po.EstimatedPkr.ToString("N2")</td>
+                        <td>¥ @po.BalanceRmb.ToString("N2")</td>
+                        <td><span class="badge-app @StatusClass(po.Status)">@po.Status</span></td>
+                        <td class="actions">
+                            <a class="btn-app btn-app--outline btn-app--sm" asp-action="Details" asp-route-id="@po.Id">View</a>
+                            <a class="btn-app btn-app--outline btn-app--sm" asp-action="Edit" asp-route-id="@po.Id">Edit</a>
+                        </td>
+                    </tr>
+                }
+            }
+            </tbody>
+        </table>
+    </div>
+    <partial name="_Pager" model="pager" />
+</div>
+
+@functions {
+    string StatusClass(PurchaseOrderStatus s) => s switch
+    {
+        PurchaseOrderStatus.Draft => "badge-app--neutral",
+        PurchaseOrderStatus.Ordered => "badge-app--primary",
+        PurchaseOrderStatus.Production => "badge-app--warning",
+        PurchaseOrderStatus.Ready => "badge-app--info",
+        PurchaseOrderStatus.Shipped or PurchaseOrderStatus.SentToAgent => "badge-app--info",
+        PurchaseOrderStatus.Completed => "badge-app--success",
+        _ => "badge-app--neutral"
+    };
+}

@@ -1,0 +1,67 @@
+@model Invoice
+@{
+    Layout = null;
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <title>@Model.InvoiceNumber</title>
+    <link rel="stylesheet" href="~/css/theme.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/app.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/print.css" asp-append-version="true" />
+</head>
+<body class="print-page">
+    <div class="print-sheet">
+        <header class="print-header">
+            <div>
+                <h1>Auto Parts Business Solution</h1>
+                <p>Invoice</p>
+            </div>
+            <div class="print-meta">
+                <div><strong>@Model.InvoiceNumber</strong></div>
+                <div>@Model.InvoiceDate.ToString("dd MMM yyyy")</div>
+            </div>
+        </header>
+
+        <section class="print-customer">
+            <div><strong>@(Model.Customer.ShopName ?? Model.Customer.Name)</strong></div>
+            <div>@Model.Customer.Phone</div>
+            <div>@Model.Customer.Address</div>
+            <div>@Model.Customer.City</div>
+        </section>
+
+        <table class="table-app">
+            <thead>
+            <tr><th>#</th><th>Product</th><th>Qty</th><th>Rate</th><th>Amount</th></tr>
+            </thead>
+            <tbody>
+            @{ var i = 1; }
+            @foreach (var item in Model.Items)
+            {
+                <tr>
+                    <td>@(i++)</td>
+                    <td>@item.Product.Name</td>
+                    <td>@item.Quantity.ToString("N2")</td>
+                    <td>@item.UnitPrice.ToString("N2")</td>
+                    <td>@item.LineTotal.ToString("N2")</td>
+                </tr>
+            }
+            </tbody>
+        </table>
+
+        <div class="print-totals">
+            <div>Subtotal <span>Rs. @Model.Subtotal.ToString("N2")</span></div>
+            <div>Discount <span>Rs. @Model.DiscountAmount.ToString("N2")</span></div>
+            <div>Delivery / Other <span>Rs. @((Model.DeliveryCharge + Model.OtherCharge).ToString("N2"))</span></div>
+            <div class="is-strong">Bill Total <span>Rs. @Model.BillTotal.ToString("N2")</span></div>
+            <div>Previous Balance <span>Rs. @Model.PreviousBalance.ToString("N2")</span></div>
+            <div>Payment Received <span>Rs. @Model.PaymentReceived.ToString("N2")</span></div>
+            <div class="is-strong">New Balance <span>Rs. @Model.NewBalance.ToString("N2")</span></div>
+        </div>
+
+        <p class="print-hint">Use browser Print → Save as PDF for PDF output. WhatsApp/share can wrap this URL later without changing accounting logic.</p>
+        <button type="button" class="btn-app btn-app--primary no-print" onclick="window.print()">Print / Save PDF</button>
+    </div>
+</body>
+</html>

@@ -1,0 +1,53 @@
+@model IReadOnlyList<AgingRow>
+
+@section PageActions {
+    <a class="btn-app btn-app--outline" asp-action="Aging" asp-route-days="30">30+</a>
+    <a class="btn-app btn-app--outline" asp-action="Aging" asp-route-days="60">60+</a>
+    <a class="btn-app btn-app--outline" asp-action="Aging" asp-route-days="90">90+</a>
+    <a class="btn-app btn-app--outline" asp-action="Aging" asp-route-days="120">120+</a>
+}
+
+<div class="card-panel">
+    <form method="get" class="table-toolbar">
+        <input class="input-app" type="number" name="days" value="@ViewBag.Days" placeholder="Min age days" />
+        <input class="input-app" type="date" name="before" value="@((ViewBag.Before as DateTime?)?.ToString("yyyy-MM-dd"))" />
+        <button type="submit" class="btn-app btn-app--outline">Filter</button>
+    </form>
+    <p class="dashboard-note">“Before date” returns unpaid invoice amounts originating before that date.</p>
+    <div class="table-wrap">
+        <table class="table-app">
+            <thead>
+            <tr>
+                <th>Customer</th>
+                <th>Invoice</th>
+                <th>Invoice Date</th>
+                <th>Original</th>
+                <th>Paid</th>
+                <th>Outstanding</th>
+                <th>Age</th>
+            </tr>
+            </thead>
+            <tbody>
+            @if (Model.Count == 0)
+            {
+                <tr><td colspan="7"><div class="empty-state">No matching receivables.</div></td></tr>
+            }
+            else
+            {
+                foreach (var row in Model)
+                {
+                    <tr>
+                        <td>@row.CustomerName</td>
+                        <td><a asp-controller="Sales" asp-action="Details" asp-route-id="@row.InvoiceId">@row.InvoiceNumber</a></td>
+                        <td>@row.InvoiceDate.ToString("dd MMM yyyy")</td>
+                        <td>Rs. @row.Original.ToString("N2")</td>
+                        <td>Rs. @row.Paid.ToString("N2")</td>
+                        <td>Rs. @row.Outstanding.ToString("N2")</td>
+                        <td><span class="badge-app badge-app--warning">@row.AgeDays d</span></td>
+                    </tr>
+                }
+            }
+            </tbody>
+        </table>
+    </div>
+</div>

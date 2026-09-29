@@ -1,0 +1,217 @@
+@model Shipment
+@{
+    var weightDiff = (Model.AgentBilledWeightKg ?? 0) - Model.WarehouseWeightKg;
+    var cbmDiff = (Model.AgentBilledCbm ?? 0) - Model.WarehouseCbm;
+    var weightImpact = Model.FreightMethod == FreightMethod.ByKg && Model.RatePerKg is > 0
+        ? weightDiff * Model.RatePerKg.Value : 0m;
+    var cbmImpact = Model.FreightMethod == FreightMethod.ByCbm && Model.RatePerCbm is > 0
+        ? cbmDiff * Model.RatePerCbm.Value : 0m;
+}
+
+@section PageActions {
+    <a class="btn-app btn-app--outline" asp-action="Edit" asp-route-id="@Model.Id">Edit</a>
+    <a class="btn-app btn-app--outline" asp-controller="LandedCost" asp-action="Index" asp-route-shipmentId="@Model.Id">Landed Cost</a>
+    <a class="btn-app btn-app--primary" asp-controller="LandedCost" asp-action="Receiving" asp-route-shipmentId="@Model.Id">Final Receiving</a>
+    <a class="btn-app btn-app--primary" asp-action="AddSlip" asp-route-id="@Model.Id">+ Warehouse Slip</a>
+}
+
+<div class="card-panel">
+    <div class="detail-grid">
+        <div class="detail-item"><dt>Shipment</dt><dd>@Model.ShipmentNumber</dd></div>
+        <div class="detail-item"><dt>Agent</dt><dd>@Model.ShippingAgent</dd></div>
+        <div class="detail-item"><dt>Status</dt><dd><span class="badge-app badge-app--primary">@Model.Status</span></dd></div>
+        <div class="detail-item"><dt>Cartons</dt><dd>@Model.TotalCartons</dd></div>
+        <div class="detail-item"><dt>Units</dt><dd>@Model.TotalUnits.ToString("N2")</dd></div>
+        <div class="detail-item"><dt>China→Karachi days</dt><dd>@(Model.ChinaToKarachiTransitDays?.ToString() ?? "—")</dd></div>
+        <div class="detail-item"><dt>WH→Tarnol days</dt><dd>@(Model.WarehouseToTarnolTransitDays?.ToString() ?? "—")</dd></div>
+        <div class="detail-item"><dt>Finalized</dt><dd>@(Model.IsFinalized ? "Yes" : "No (Phase 3)")</dd></div>
+    </div>
+
+    <h3 class="card-panel__title">Items</h3>
+    <div class="table-wrap">
+        <table class="table-app">
+            <thead><tr><th>SKU</th><th>Product</th><th>PO</th><th>Supplier</th><th>Expected Qty</th></tr></thead>
+            <tbody>
+            @foreach (var i in Model.Items)
+            {
+                <tr>
+                    <td>@i.Product.Sku</td>
+                    <td>@i.Product.Name</td>
+                    <td>@(i.PurchaseOrder?.PoNumber ?? "—")</td>
+                    <td>@(i.Supplier?.Name ?? "—")</td>
+                    <td>@i.ExpectedQuantity.ToString("N2")</td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+
+    <h3 class="card-panel__title">China warehouse receiving slips</h3>
+    <div class="table-wrap">
+        <table class="table-app">
+            <thead><tr><th>Slip</th><th>Date</th><th>Factory</th><th>Cartons</th><th>Kg</th><th>CBM</th><th>File</th></tr></thead>
+            <tbody>
+            @if (Model.ReceivingSlips.Count == 0)
+            {
+                <tr><td colspan="7">No slips yet.</td></tr>
+            }
+            else
+            {
+                foreach (var slip in Model.ReceivingSlips)
+                {
+                    <tr>
+                        <td>@slip.SlipNumber</td>
+                        <td>@slip.ReceivingDate.ToString("dd MMM yyyy")</td>
+                        <td>@slip.Supplier.Name</td>
+                        <td>@slip.Cartons</td>
+                        <td>@slip.WeightKg.ToString("N2")</td>
+                        <td>@slip.Cbm.ToString("N4")</td>
+                        <td>
+                            @if (!string.IsNullOrEmpty(slip.FilePath))
+                            {
+                                <a href="@slip.FilePath" target="_blank" rel="noopener">View</a>
+                            }
+                            else { <text>—</text> }
+                        </td>
+                    </tr>
+                }
+            }
+            </tbody>
+        </table>
+    </div>
+
+    <h3 class="card-panel__title">Freight (KG / CBM) &amp; variance</h3>
+    <form asp-action="UpdateFreight" method="post" class="form-grid form-grid--3">
+        @Html.AntiForgeryToken()
+        <input type="hidden" name="Id" value="@Model.Id" />
+        <div class="field">
+            <label>Freight method</label>
+            <select class="select-app" name="FreightMethod">
+                @foreach (FreightMethod method in Enum.GetValues<FreightMethod>())
+                {
+                    if (method == Model.FreightMethod)
+                    {
+                        <option value="@((int)method)" selected>@method</option>
+                    }
+                    else
+                    {
+                        <option value="@((int)method)">@method</option>
+                    }
+                }
+            </select>
+        </div>
+        <div class="field">
+            <label>Warehouse weight (Kg)</label>
+            <input class="input-app" value="@Model.WarehouseWeightKg.ToString("N4")" readonly />
+        </div>
+        <div class="field">
+            <label>Warehouse CBM</label>
+            <input class="input-app" value="@Model.WarehouseCbm.ToString("N6")" readonly />
+        </div>
+        <div class="field">
+            <label>Agent billed weight (Kg)</label>
+            <input class="input-app" name="AgentBilledWeightKg" value="@Model.AgentBilledWeightKg" />
+        </div>
+        <div class="field">
+            <label>Rate per Kg</label>
+            <input class="input-app" name="RatePerKg" value="@Model.RatePerKg" />
+        </div>
+        <div class="field">
+            <label>Agent billed CBM</label>
+            <input class="input-app" name="AgentBilledCbm" value="@Model.AgentBilledCbm" />
+        </div>
+        <div class="field">
+            <label>Rate per CBM</label>
+            <input class="input-app" name="RatePerCbm" value="@Model.RatePerCbm" />
+        </div>
+        <div class="field">
+            <label>Freight amount (calc)</label>
+            <input class="input-app" value="Rs. @Model.FreightAmountPkr.ToString("N2")" readonly />
+        </div>
+
+        <div class="field form-grid--full">
+            <div class="variance-box">
+                <div class="variance-item @(Math.Abs(weightDiff) > 0.01m ? "is-warning" : null)">
+                    <div class="variance-item__label">Weight variance (billed − warehouse)</div>
+                    <div class="variance-item__value">@weightDiff.ToString("N3") Kg</div>
+                </div>
+                <div class="variance-item @(Math.Abs(cbmDiff) > 0.0001m ? "is-warning" : null)">
+                    <div class="variance-item__label">CBM variance</div>
+                    <div class="variance-item__value">@cbmDiff.ToString("N4")</div>
+                </div>
+                <div class="variance-item">
+                    <div class="variance-item__label">Freight cost impact</div>
+                    <div class="variance-item__value">Rs. @((Model.FreightMethod == FreightMethod.ByKg ? weightImpact : cbmImpact).ToString("N2"))</div>
+                </div>
+            </div>
+        </div>
+
+        <h3 class="card-panel__title form-grid--full">Karachi → Tarnol</h3>
+        <div class="field"><label>Transporter</label><input class="input-app" name="Transporter" value="@Model.Transporter" /></div>
+        <div class="field"><label>Bilty No</label><input class="input-app" name="BiltyNumber" value="@Model.BiltyNumber" /></div>
+        <div class="field"><label>Tarnol Dispatch</label><input class="input-app" type="date" name="TarnolDispatchDate" value="@Model.TarnolDispatchDate?.ToString("yyyy-MM-dd")" /></div>
+        <div class="field"><label>Tarnol Arrival</label><input class="input-app" type="date" name="TarnolArrivalDate" value="@Model.TarnolArrivalDate?.ToString("yyyy-MM-dd")" /></div>
+        <div class="field"><label>Transport Cost</label><input class="input-app" name="TransportCostPkr" value="@Model.TransportCostPkr" /></div>
+        <div class="field"><label>Loading</label><input class="input-app" name="LoadingCostPkr" value="@Model.LoadingCostPkr" /></div>
+        <div class="field"><label>Unloading</label><input class="input-app" name="UnloadingCostPkr" value="@Model.UnloadingCostPkr" /></div>
+        <div class="field"><label>Other Direct</label><input class="input-app" name="OtherDirectCostPkr" value="@Model.OtherDirectCostPkr" /></div>
+        <div class="form-actions form-grid--full">
+            <button type="submit" class="btn-app btn-app--primary">Save freight &amp; local costs</button>
+        </div>
+    </form>
+
+    <h3 class="card-panel__title">Status workflow</h3>
+    <form asp-action="ChangeStatus" method="post" class="table-toolbar">
+        @Html.AntiForgeryToken()
+        <input type="hidden" name="id" value="@Model.Id" />
+        <select class="select-app" name="status" asp-items="Html.GetEnumSelectList<ShipmentStatus>()"></select>
+        <input class="input-app" name="reason" placeholder="Reason for rollback" />
+        <button type="submit" class="btn-app btn-app--outline">Apply status</button>
+    </form>
+    <p class="dashboard-note">Use <strong>Final Receiving</strong> to finalize &amp; post inventory (Phase 3). Manual status “Received” remains blocked outside finalization.</p>
+
+    <h3 class="card-panel__title">Documents</h3>
+    <form asp-action="UploadDocument" method="post" enctype="multipart/form-data" class="table-toolbar">
+        @Html.AntiForgeryToken()
+        <input type="hidden" name="ShipmentId" value="@Model.Id" />
+        <select class="select-app" name="DocumentType" asp-items="Html.GetEnumSelectList<ShipmentDocumentType>()"></select>
+        <input class="input-app" type="file" name="File" accept=".pdf,.jpg,.jpeg,.png,.webp,.gif" />
+        <input class="input-app" name="Notes" placeholder="Notes" />
+        <button type="submit" class="btn-app btn-app--outline">Upload</button>
+    </form>
+    <div class="table-wrap">
+        <table class="table-app">
+            <thead><tr><th>Type</th><th>File</th><th>Size</th><th>Notes</th></tr></thead>
+            <tbody>
+            @foreach (var d in Model.Documents)
+            {
+                <tr>
+                    <td>@d.DocumentType</td>
+                    <td><a href="@d.StoragePath" target="_blank" rel="noopener">@d.OriginalFileName</a></td>
+                    <td>@((d.FileSizeBytes / 1024d).ToString("N0")) KB</td>
+                    <td>@d.Notes</td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+
+    <h3 class="card-panel__title">Timeline</h3>
+    <form asp-action="AddTimeline" method="post" class="table-toolbar">
+        @Html.AntiForgeryToken()
+        <input type="hidden" name="shipmentId" value="@Model.Id" />
+        <select class="select-app" name="eventType" asp-items="Html.GetEnumSelectList<ShipmentTimelineEventType>()"></select>
+        <input class="input-app" type="datetime-local" name="occurredAt" value="@DateTime.Now.ToString("yyyy-MM-ddTHH:mm")" />
+        <input class="input-app" name="notes" placeholder="Notes" />
+        <button type="submit" class="btn-app btn-app--outline">Add event</button>
+    </form>
+    <ul class="timeline-list">
+        @foreach (var e in Model.TimelineEvents.OrderBy(x => x.OccurredAt))
+        {
+            <li>
+                <span>@e.OccurredAt.ToLocalTime().ToString("dd MMM yyyy HH:mm")</span>
+                <span><strong>@e.EventType</strong> — @(e.Notes ?? "")</span>
+            </li>
+        }
+    </ul>
+</div>

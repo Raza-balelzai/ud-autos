@@ -1,0 +1,121 @@
+@model LandedCostPageViewModel
+
+@section PageActions {
+    <a class="btn-app btn-app--outline" asp-controller="Shipments" asp-action="Details" asp-route-id="@Model.Shipment.Id">Back to shipment</a>
+    <a class="btn-app btn-app--primary" asp-action="Receiving" asp-route-shipmentId="@Model.Shipment.Id">Final Receiving</a>
+}
+
+<div class="card-panel">
+    @if (Model.Shipment.IsFinalized)
+    {
+        <div class="alert-app alert-app--info">This shipment is finalized and landed cost is locked.</div>
+    }
+
+    <form asp-action="Calculate" method="post">
+        @Html.AntiForgeryToken()
+        <input type="hidden" name="shipmentId" value="@Model.Shipment.Id" />
+
+        <div class="form-grid form-grid--3">
+            <div class="field">
+                <label>Allocation method</label>
+                <select class="select-app" name="method" asp-items="Html.GetEnumSelectList<LandedCostAllocationMethod>()"></select>
+                <span class="hint">KG freight defaults to ByWeight; CBM to ByCbm</span>
+            </div>
+            <div class="field">
+                <label>Costing exchange rate (RMB→PKR)</label>
+                <input class="input-app" name="costingExchangeRate" value="@Model.CostingExchangeRate" />
+            </div>
+            <div class="field">
+                <label>Agent charges (PKR)</label>
+                <input class="input-app" name="agentChargesPkr" value="@Model.AgentChargesPkr" />
+            </div>
+        </div>
+
+        <h3 class="card-panel__title">Allocation inputs</h3>
+        <div class="table-wrap">
+            <table class="table-app">
+                <thead>
+                <tr>
+                    <th>SKU</th>
+                    <th>Expected / Actual</th>
+                    <th>Weight Kg</th>
+                    <th>CBM</th>
+                    <th>Custom %</th>
+                </tr>
+                </thead>
+                <tbody>
+                @for (var i = 0; i < Model.Shipment.Items.Count; i++)
+                {
+                    var item = Model.Shipment.Items.ElementAt(i);
+                    var custom = Model.CustomInputs.FirstOrDefault(c => c.ShipmentItemId == item.Id) ?? new CustomAllocationInput { ShipmentItemId = item.Id };
+                    <tr>
+                        <td>
+                            @item.Product.Sku
+                            <input type="hidden" name="customInputs[@i].ShipmentItemId" value="@item.Id" />
+                        </td>
+                        <td>@item.ExpectedQuantity.ToString("N2") / @((item.ActualQuantity ?? item.ExpectedQuantity).ToString("N2"))</td>
+                        <td><input class="input-app" name="customInputs[@i].AllocationWeightKg" value="@(custom.AllocationWeightKg ?? item.AllocationWeightKg)" /></td>
+                        <td><input class="input-app" name="customInputs[@i].AllocationCbm" value="@(custom.AllocationCbm ?? item.AllocationCbm)" /></td>
+                        <td><input class="input-app" name="customInputs[@i].Percent" value="@custom.Percent" /></td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+
+        <div class="form-actions">
+            <button type="submit" name="action" value="preview" class="btn-app btn-app--outline">Preview</button>
+            @if (!Model.Shipment.IsFinalized)
+            {
+                <button type="submit" name="action" value="save" class="btn-app btn-app--primary">Calculate &amp; Save</button>
+            }
+        </div>
+    </form>
+
+    @if (Model.Preview is not null)
+    {
+        <h3 class="card-panel__title">Cost breakdown</h3>
+        <div class="detail-grid">
+            <div class="detail-item"><dt>China product cost</dt><dd>Rs. @Model.Preview.ChinaProductCostPkr.ToString("N2")</dd></div>
+            <div class="detail-item"><dt>Hawala direct charges</dt><dd>Rs. @Model.Preview.HawalaDirectChargesPkr.ToString("N2")</dd></div>
+            <div class="detail-item"><dt>China→Karachi freight</dt><dd>Rs. @Model.Preview.FreightAmountPkr.ToString("N2")</dd></div>
+            <div class="detail-item"><dt>Agent charges</dt><dd>Rs. @Model.Preview.AgentChargesPkr.ToString("N2")</dd></div>
+            <div class="detail-item"><dt>Karachi→Tarnol transport</dt><dd>Rs. @Model.Preview.TransportCostPkr.ToString("N2")</dd></div>
+            <div class="detail-item"><dt>Loading / Unloading</dt><dd>Rs. @((Model.Preview.LoadingCostPkr + Model.Preview.UnloadingCostPkr).ToString("N2"))</dd></div>
+            <div class="detail-item"><dt>Other direct</dt><dd>Rs. @Model.Preview.OtherDirectCostPkr.ToString("N2")</dd></div>
+            <div class="detail-item"><dt>Total direct cost</dt><dd>Rs. @Model.Preview.TotalDirectCostPkr.ToString("N2")</dd></div>
+            <div class="detail-item"><dt>Allocated total</dt><dd>Rs. @Model.Preview.AllocatedTotalPkr.ToString("N2")</dd></div>
+            <div class="detail-item"><dt>Remainder</dt><dd>Rs. @Model.Preview.AllocationRemainderPkr.ToString("N2")</dd></div>
+            <div class="detail-item"><dt>Method / FX</dt><dd>@Model.Preview.Method — rate @Model.Preview.CostingExchangeRate.ToString("N4")</dd></div>
+        </div>
+
+        <h3 class="card-panel__title">Per-SKU allocation</h3>
+        <div class="table-wrap">
+            <table class="table-app">
+                <thead>
+                <tr>
+                    <th>SKU</th>
+                    <th>Qty</th>
+                    <th>Basis</th>
+                    <th>China cost</th>
+                    <th>Allocated direct</th>
+                    <th>Landed unit</th>
+                </tr>
+                </thead>
+                <tbody>
+                @foreach (var line in Model.Preview.Lines)
+                {
+                    <tr>
+                        <td>@line.Sku — @line.ProductName</td>
+                        <td>@line.Quantity.ToString("N2")</td>
+                        <td>@line.AllocationBasisValue.ToString("N4")</td>
+                        <td>Rs. @line.ChinaProductCostPkr.ToString("N2")</td>
+                        <td>Rs. @line.AllocatedDirectCostPkr.ToString("N2")</td>
+                        <td>Rs. @line.LandedUnitCostPkr.ToString("N4")</td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>

@@ -1,0 +1,106 @@
+@model CashBankPageViewModel
+
+@section PageActions {
+    <form asp-action="Sync" method="post">
+        @Html.AntiForgeryToken()
+        <button type="submit" class="btn-app btn-app--outline">Sync linked movements</button>
+    </form>
+}
+
+<div class="kpi-grid">
+    <div class="kpi-card"><p class="kpi-card__label">Opening</p><p class="kpi-card__value">Rs. @Model.Statement.Opening.ToString("N0")</p></div>
+    <div class="kpi-card"><p class="kpi-card__label">Collections</p><p class="kpi-card__value">Rs. @Model.Statement.Collections.ToString("N0")</p></div>
+    <div class="kpi-card"><p class="kpi-card__label">Other Receipts</p><p class="kpi-card__value">Rs. @Model.Statement.OtherReceipts.ToString("N0")</p></div>
+    <div class="kpi-card"><p class="kpi-card__label">Hawala Out</p><p class="kpi-card__value">Rs. @Model.Statement.Hawala.ToString("N0")</p></div>
+    <div class="kpi-card"><p class="kpi-card__label">Expenses</p><p class="kpi-card__value">Rs. @Model.Statement.Expenses.ToString("N0")</p></div>
+    <div class="kpi-card"><p class="kpi-card__label">Other / Refunds</p><p class="kpi-card__value">Rs. @((Model.Statement.OtherPayments + Model.Statement.SalesRefunds).ToString("N0"))</p></div>
+    <div class="kpi-card"><p class="kpi-card__label">Closing</p><p class="kpi-card__value">Rs. @Model.Statement.Closing.ToString("N0")</p></div>
+</div>
+
+<div class="card-panel">
+    <form method="get" class="table-toolbar">
+        <input class="input-app" type="date" name="from" value="@Model.From.ToString("yyyy-MM-dd")" />
+        <input class="input-app" type="date" name="to" value="@Model.To.ToString("yyyy-MM-dd")" />
+        <select class="select-app" name="account">
+            <option value="">All accounts</option>
+            @if (Model.AccountFilter == PaymentAccount.Cash)
+            {
+                <option value="Cash" selected>Cash</option>
+            }
+            else
+            {
+                <option value="Cash">Cash</option>
+            }
+            @if (Model.AccountFilter == PaymentAccount.Bank)
+            {
+                <option value="Bank" selected>Bank</option>
+            }
+            else
+            {
+                <option value="Bank">Bank</option>
+            }
+        </select>
+        <button type="submit" class="btn-app btn-app--outline">Filter</button>
+    </form>
+
+    <div class="form-grid form-grid--3">
+        <form asp-action="SetOpening" method="post" class="card-panel">
+            @Html.AntiForgeryToken()
+            <input type="hidden" asp-for="From" />
+            <input type="hidden" asp-for="To" />
+            <h3 class="card-panel__title">Set opening</h3>
+            <div class="field"><label>Account</label><select asp-for="OpeningAccount" class="select-app" asp-items="Html.GetEnumSelectList<PaymentAccount>()"></select></div>
+            <div class="field"><label>As of</label><input asp-for="OpeningDate" type="date" class="input-app" /></div>
+            <div class="field"><label>Amount</label><input asp-for="OpeningAmount" class="input-app" /></div>
+            <button type="submit" class="btn-app btn-app--primary">Save opening</button>
+        </form>
+
+        <form asp-action="AddManual" method="post" class="card-panel">
+            @Html.AntiForgeryToken()
+            <input type="hidden" asp-for="From" />
+            <input type="hidden" asp-for="To" />
+            <h3 class="card-panel__title">Other receipt / payment</h3>
+            <div class="field"><label>Account</label><select asp-for="ManualAccount" class="select-app" asp-items="Html.GetEnumSelectList<PaymentAccount>()"></select></div>
+            <div class="field"><label>Date</label><input asp-for="ManualDate" type="date" class="input-app" /></div>
+            <div class="field">
+                <label>Type</label>
+                <select asp-for="ManualType" class="select-app">
+                    <option value="@((int)CashBankMovementType.OtherReceipt)">Other Receipt</option>
+                    <option value="@((int)CashBankMovementType.OtherPayment)">Other Payment</option>
+                </select>
+            </div>
+            <div class="field"><label>Amount</label><input asp-for="ManualAmount" class="input-app" /></div>
+            <div class="field form-grid--full"><label>Detail</label><input asp-for="ManualDetail" class="input-app" /></div>
+            <button type="submit" class="btn-app btn-app--success">Post</button>
+        </form>
+    </div>
+
+    <h3 class="card-panel__title">Movements</h3>
+    <div class="table-wrap">
+        <table class="table-app">
+            <thead><tr><th>Date</th><th>#</th><th>Type</th><th>Account</th><th>Detail</th><th>In</th><th>Out</th><th>Link</th></tr></thead>
+            <tbody>
+            @if (Model.Statement.Movements.Count == 0)
+            {
+                <tr><td colspan="8"><div class="empty-state">No movements in range. Sync linked or post opening/manual.</div></td></tr>
+            }
+            else
+            {
+                foreach (var m in Model.Statement.Movements)
+                {
+                    <tr>
+                        <td>@m.MovementDate.ToString("dd MMM yyyy")</td>
+                        <td>@m.MovementNumber</td>
+                        <td>@m.MovementType</td>
+                        <td>@m.Account</td>
+                        <td>@m.Detail</td>
+                        <td>@(m.Direction == CashBankDirection.In ? m.Amount.ToString("N2") : "—")</td>
+                        <td>@(m.Direction == CashBankDirection.Out ? m.Amount.ToString("N2") : "—")</td>
+                        <td>@(m.IsLinked ? m.ReferenceNumber : "Manual")</td>
+                    </tr>
+                }
+            }
+            </tbody>
+        </table>
+    </div>
+</div>

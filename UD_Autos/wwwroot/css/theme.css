@@ -1,0 +1,70 @@
+/* =========================================================
+   UD Autos — Design Tokens (central theme)
+   Source: Auto Parts Business Solution UI mockup
+   Do not put page-specific or inline styles in views.
+   ========================================================= */
+
+:root {
+  /* Brand / surfaces */
+  --color-sidebar: #1a2233;
+  --color-sidebar-muted: #8b95a8;
+  --color-sidebar-hover: rgba(255, 255, 255, 0.06);
+  --color-sidebar-active: #3b82f6;
+  --color-bg: #f4f7fa;
+  --color-surface: #ffffff;
+  --color-border: #e6ebf2;
+  --color-border-strong: #d5dde8;
+
+  /* Text */
+  --color-text: #1f2937;
+  --color-text-muted: #6b7280;
+  --color-text-inverse: #ffffff;
+
+  /* Accents */
+  --color-primary: #3b82f6;
+  --color-primary-hover: #2563eb;
+  --color-primary-soft: rgba(59, 130, 246, 0.12);
+  --color-success: #16a34a;
+  --color-success-soft: rgba(22, 163, 74, 0.12);
+  --color-danger: #dc2626;
+  --color-danger-soft: rgba(220, 38, 38, 0.12);
+  --color-warning: #d97706;
+  --color-warning-soft: rgba(217, 119, 6, 0.12);
+  --color-info: #0891b2;
+  --color-info-soft: rgba(8, 145, 178, 0.12);
+  --color-purple: #7c3aed;
+  --color-purple-soft: rgba(124, 58, 237, 0.12);
+
+  /* Typography */
+  --font-sans: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+  --fs-xs: 0.75rem;
+  --fs-sm: 0.875rem;
+  --fs-base: 0.9375rem;
+  --fs-md: 1rem;
+  --fs-lg: 1.125rem;
+  --fs-xl: 1.375rem;
+  --fs-2xl: 1.75rem;
+  --fw-regular: 400;
+  --fw-medium: 500;
+  --fw-semibold: 600;
+  --fw-bold: 700;
+
+  /* Layout */
+  --sidebar-width: 260px;
+  --header-height: 64px;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 12px;
+  --shadow-sm: 0 1px 2px rgba(16, 24, 40, 0.04);
+  --shadow-md: 0 4px 14px rgba(16, 24, 40, 0.06);
+  --shadow-card: 0 2px 8px rgba(16, 24, 40, 0.05);
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+  --content-max: 1400px;
+  --transition: 150ms ease;
+}

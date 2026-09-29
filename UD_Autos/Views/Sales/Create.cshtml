@@ -1,0 +1,124 @@
+@model BillingPageViewModel
+
+<form asp-action="Create" method="post" class="card-panel" id="billing-form">
+    @Html.AntiForgeryToken()
+    <input type="hidden" asp-for="IdempotencyKey" />
+    <div asp-validation-summary="ModelOnly" class="validation-summary-errors"></div>
+
+    <div class="form-grid form-grid--3">
+        <div class="field">
+            <label>Customer</label>
+            <select asp-for="CustomerId" class="select-app" id="customer-select" asp-items="@(new SelectList(Model.Customers.Select(c => new { c.Id, Label = (c.ShopName ?? c.Name) + " (" + c.Phone + ")" }), "Id", "Label"))">
+                <option value="">— Search / select —</option>
+            </select>
+        </div>
+        <div class="field">
+            <label>Invoice Date</label>
+            <input asp-for="InvoiceDate" type="date" class="input-app" />
+        </div>
+        <div class="field">
+            <label>Invoice No</label>
+            <input class="input-app" value="Auto on save" readonly />
+        </div>
+    </div>
+
+    <div class="detail-grid" id="customer-info">
+        <div class="detail-item"><dt>Previous balance</dt><dd id="cust-balance">Rs. @(Model.Customer?.CurrentBalance.ToString("N2") ?? "—")</dd></div>
+        <div class="detail-item"><dt>Credit limit</dt><dd id="cust-limit">@(Model.Customer?.CreditLimit is decimal lim ? $"Rs. {lim:N2}" : "—")</dd></div>
+        <div class="detail-item"><dt>Type</dt><dd id="cust-type">@(Model.Customer?.CustomerType.ToString() ?? "—")</dd></div>
+    </div>
+
+    <h3 class="card-panel__title">Line items</h3>
+    <div class="table-toolbar">
+        <input class="input-app" id="product-search" placeholder="Product (Search by SKU or Name)" />
+    </div>
+    <div class="line-items-editor" id="sale-lines">
+        @for (var i = 0; i < Model.Items.Count; i++)
+        {
+            <div class="line-row">
+                <select class="select-app" name="Items[@i].ProductId" asp-items="@(new SelectList(Model.Products.Select(p => new { p.Id, Label = p.Sku + " — " + p.Name }), "Id", "Label", Model.Items[i].ProductId))">
+                    <option value="">Product</option>
+                </select>
+                <input class="input-app" name="Items[@i].Quantity" value="@Model.Items[i].Quantity" placeholder="Qty" />
+                <input class="input-app" name="Items[@i].UnitPrice" value="@Model.Items[i].UnitPrice" placeholder="Price" />
+                <input class="input-app" name="Items[@i].LineDiscount" value="@Model.Items[i].LineDiscount" placeholder="Discount" />
+                <button type="button" class="btn-app btn-app--ghost btn-app--sm" data-remove-line>✕</button>
+            </div>
+        }
+    </div>
+    <button type="button" class="btn-app btn-app--outline btn-app--sm" id="add-sale-line">+ Add item</button>
+
+    <div class="form-grid form-grid--3">
+        <div class="field"><label>Bill discount</label><input asp-for="DiscountAmount" class="input-app" /></div>
+        <div class="field"><label>Delivery charge</label><input asp-for="DeliveryCharge" class="input-app" /></div>
+        <div class="field"><label>Other charge</label><input asp-for="OtherCharge" class="input-app" /></div>
+        <div class="field">
+            <label>Payment mode</label>
+            <select asp-for="PaymentMode" class="select-app" asp-items="Html.GetEnumSelectList<PaymentMode>()" id="pay-mode"></select>
+        </div>
+        <div class="field">
+            <label>Cash / Bank</label>
+            <select asp-for="PaymentAccount" class="select-app" asp-items="Html.GetEnumSelectList<PaymentAccount>()"></select>
+        </div>
+        <div class="field">
+            <label>Payment received (partial)</label>
+            <input asp-for="PaymentReceived" class="input-app" />
+        </div>
+        <div class="field"><label>Payment reference</label><input asp-for="PaymentReference" class="input-app" /></div>
+        <div class="field form-grid--full"><label>Notes</label><textarea asp-for="Notes" class="textarea-app"></textarea></div>
+    </div>
+
+    <div class="form-actions">
+        <button type="submit" class="btn-app btn-app--success" id="save-invoice">Save Invoice</button>
+        <a class="btn-app btn-app--outline" asp-action="Index">Cancel</a>
+    </div>
+</form>
+
+<template id="sale-line-template">
+    <div class="line-row">
+        <select class="select-app" name="Items[__i__].ProductId">
+            <option value="">Product</option>
+            @foreach (var p in Model.Products)
+            {
+                <option value="@p.Id" data-price="@p.WholesalePrice">@p.Sku — @p.Name</option>
+            }
+        </select>
+        <input class="input-app" name="Items[__i__].Quantity" placeholder="Qty" />
+        <input class="input-app" name="Items[__i__].UnitPrice" placeholder="Price" />
+        <input class="input-app" name="Items[__i__].LineDiscount" placeholder="Discount" />
+        <button type="button" class="btn-app btn-app--ghost btn-app--sm" data-remove-line>✕</button>
+    </div>
+</template>
+
+@section Scripts {
+<script>
+(() => {
+  const lines = document.getElementById('sale-lines');
+  const tpl = document.getElementById('sale-line-template');
+  document.getElementById('add-sale-line')?.addEventListener('click', () => {
+    const i = lines.querySelectorAll('.line-row').length;
+    lines.insertAdjacentHTML('beforeend', tpl.innerHTML.replaceAll('__i__', i));
+  });
+  lines?.addEventListener('click', e => {
+    const btn = e.target.closest('[data-remove-line]');
+    if (btn && lines.querySelectorAll('.line-row').length > 1) btn.closest('.line-row').remove();
+  });
+  document.getElementById('customer-select')?.addEventListener('change', async (e) => {
+    const id = e.target.value;
+    if (!id) return;
+    const res = await fetch(`/Sales/CustomerInfo?id=${id}`);
+    if (!res.ok) return;
+    const c = await res.json();
+    document.getElementById('cust-balance').textContent = `Rs. ${Number(c.currentBalance).toFixed(2)}`;
+    document.getElementById('cust-limit').textContent = c.creditLimit != null ? `Rs. ${Number(c.creditLimit).toFixed(2)}` : '—';
+    document.getElementById('cust-type').textContent = c.customerType === 1 ? 'Wholesale' : 'Retail';
+  });
+  let submitting = false;
+  document.getElementById('billing-form')?.addEventListener('submit', () => {
+    if (submitting) return false;
+    submitting = true;
+    document.getElementById('save-invoice').disabled = true;
+  });
+})();
+</script>
+}

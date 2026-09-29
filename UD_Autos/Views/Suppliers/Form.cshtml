@@ -1,0 +1,52 @@
+@model Supplier
+
+<form asp-action="@(Model.Id > 0 ? "Edit" : "Create")" method="post" class="card-panel">
+    @if (Model.Id > 0)
+    {
+        <input type="hidden" asp-for="Id" />
+    }
+    <div asp-validation-summary="ModelOnly" class="validation-summary-errors"></div>
+    <div class="form-grid">
+        <div class="field">
+            <label asp-for="SupplierCode">Supplier Code</label>
+            <input asp-for="SupplierCode" class="input-app" placeholder="Leave blank to auto-generate" />
+        </div>
+        <div class="field">
+            <label asp-for="Name">Factory / Supplier Name</label>
+            <input asp-for="Name" class="input-app" />
+            <span asp-validation-for="Name" class="field-error"></span>
+        </div>
+        <div class="field">
+            <label asp-for="ContactPerson">Contact Person</label>
+            <input asp-for="ContactPerson" class="input-app" />
+        </div>
+        <div class="field">
+            <label asp-for="WeChat">WeChat</label>
+            <input asp-for="WeChat" class="input-app" />
+        </div>
+        <div class="field">
+            <label asp-for="Phone">Phone</label>
+            <input asp-for="Phone" class="input-app" />
+        </div>
+        <div class="field">
+            <label asp-for="City">City</label>
+            <input asp-for="City" class="input-app" />
+        </div>
+        <div class="field">
+            <label asp-for="Country">Country</label>
+            <input asp-for="Country" class="input-app" />
+        </div>
+        <div class="field form-grid--full">
+            <label asp-for="Address">Address</label>
+            <textarea asp-for="Address" class="textarea-app"></textarea>
+        </div>
+        <div class="field form-grid--full">
+            <label asp-for="Notes">Notes</label>
+            <textarea asp-for="Notes" class="textarea-app"></textarea>
+        </div>
+    </div>
+    <div class="form-actions">
+        <button type="submit" class="btn-app btn-app--primary">Save Supplier</button>
+        <a class="btn-app btn-app--outline" asp-action="Index">Cancel</a>
+    </div>
+</form>

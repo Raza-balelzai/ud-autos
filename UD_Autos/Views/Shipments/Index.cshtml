@@ -1,0 +1,97 @@
+@model PagedResult<Shipment>
+@{
+    var pager = PagerViewModel.From(Model, "Index", new
+    {
+        search = Model.Search,
+        status = Context.Request.Query["status"].ToString(),
+        from = Context.Request.Query["from"].ToString(),
+        to = Context.Request.Query["to"].ToString()
+    });
+}
+
+@section PageActions {
+    <a class="btn-app btn-app--primary" asp-action="Create">+ New Shipment</a>
+}
+
+<div class="card-panel">
+    <form method="get" class="table-toolbar">
+        <input class="input-app" name="search" value="@Model.Search" placeholder="Search shipment / agent / bilty..." />
+        <select class="select-app" name="status" asp-items="Html.GetEnumSelectList<ShipmentStatus>()"><option value="">All statuses</option></select>
+        <input class="input-app" type="date" name="from" value="@((ViewBag.From as DateTime?)?.ToString("yyyy-MM-dd"))" />
+        <input class="input-app" type="date" name="to" value="@((ViewBag.To as DateTime?)?.ToString("yyyy-MM-dd"))" />
+        <button type="submit" class="btn-app btn-app--outline">Filter</button>
+    </form>
+
+    <div class="table-wrap">
+        <table class="table-app">
+            <thead>
+            <tr>
+                <th>Shipment ID</th>
+                <th>Agent</th>
+                <th>Status</th>
+                <th>Progress</th>
+                <th>Warehouse Kg / CBM</th>
+                <th>Freight</th>
+                <th></th>
+            </tr>
+            </thead>
+            <tbody>
+            @if (Model.Items.Count == 0)
+            {
+                <tr><td colspan="7"><div class="empty-state">No shipments yet.</div></td></tr>
+            }
+            else
+            {
+                foreach (var s in Model.Items)
+                {
+                    var pct = ProgressPct(s.Status);
+                    <tr>
+                        <td>@s.ShipmentNumber</td>
+                        <td>@s.ShippingAgent</td>
+                        <td><span class="badge-app @StatusBadge(s.Status)">@s.Status</span></td>
+                        <td>
+                            <div class="progress-track"><div class="progress-track__bar @ProgressBarClass(pct) progress-w-@pct"></div></div>
+                            <div class="progress-label">@pct%</div>
+                        </td>
+                        <td>@s.WarehouseWeightKg.ToString("N1") / @s.WarehouseCbm.ToString("N3")</td>
+                        <td>Rs. @s.FreightAmountPkr.ToString("N2")</td>
+                        <td class="actions">
+                            <a class="btn-app btn-app--outline btn-app--sm" asp-action="Details" asp-route-id="@s.Id">View</a>
+                        </td>
+                    </tr>
+                }
+            }
+            </tbody>
+        </table>
+    </div>
+    <partial name="_Pager" model="pager" />
+</div>
+
+@functions {
+    static int ProgressPct(ShipmentStatus s) => s switch
+    {
+        ShipmentStatus.Draft => 10,
+        ShipmentStatus.ChinaWarehouse => 30,
+        ShipmentStatus.InTransit => 55,
+        ShipmentStatus.Karachi => 75,
+        ShipmentStatus.Tarnol => 90,
+        ShipmentStatus.Received => 100,
+        _ => 0
+    };
+
+    static string ProgressBarClass(int pct) => pct switch
+    {
+        >= 100 => "progress-track__bar--success",
+        >= 75 => "progress-track__bar--warning",
+        < 30 => "progress-track__bar--danger",
+        _ => ""
+    };
+
+    static string StatusBadge(ShipmentStatus s) => s switch
+    {
+        ShipmentStatus.Received => "badge-app--success",
+        ShipmentStatus.InTransit => "badge-app--info",
+        ShipmentStatus.Karachi or ShipmentStatus.Tarnol => "badge-app--warning",
+        _ => "badge-app--primary"
+    };
+}

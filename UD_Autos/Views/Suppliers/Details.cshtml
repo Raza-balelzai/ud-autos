@@ -1,0 +1,27 @@
+@model Supplier
+
+@section PageActions {
+    <a class="btn-app btn-app--outline" asp-action="Edit" asp-route-id="@Model.Id">Edit</a>
+    <form asp-action="Delete" method="post">
+        @Html.AntiForgeryToken()
+        <input type="hidden" name="id" value="@Model.Id" />
+        <button type="submit" class="btn-app btn-app--danger" onclick="return confirm('Deactivate this supplier?');">Deactivate</button>
+    </form>
+}
+
+<div class="card-panel">
+    <div class="detail-grid">
+        <div class="detail-item"><dt>Code</dt><dd>@Model.SupplierCode</dd></div>
+        <div class="detail-item"><dt>Name</dt><dd>@Model.Name</dd></div>
+        <div class="detail-item"><dt>Contact</dt><dd>@(Model.ContactPerson ?? "—")</dd></div>
+        <div class="detail-item"><dt>WeChat</dt><dd>@(Model.WeChat ?? "—")</dd></div>
+        <div class="detail-item"><dt>Phone</dt><dd>@(Model.Phone ?? "—")</dd></div>
+        <div class="detail-item"><dt>City</dt><dd>@(Model.City ?? "—")</dd></div>
+        <div class="detail-item"><dt>Country</dt><dd>@(Model.Country ?? "—")</dd></div>
+        <div class="detail-item"><dt>Address</dt><dd>@(Model.Address ?? "—")</dd></div>
+        <div class="detail-item"><dt>Total Purchases (RMB)</dt><dd>¥ @Model.TotalPurchasesRmb.ToString("N2")</dd></div>
+        <div class="detail-item"><dt>Total Payments (PKR)</dt><dd>Rs. @Model.TotalPaymentsPkr.ToString("N2")</dd></div>
+        <div class="detail-item"><dt>Outstanding</dt><dd>Rs. @Model.OutstandingBalancePkr.ToString("N2")</dd></div>
+    </div>
+    <p class="dashboard-note">Purchase/payment activity summaries will update automatically when China Purchases and Hawala modules (Phase 2) post transactions.</p>
+</div>

@@ -1,0 +1,71 @@
+@model Invoice
+@using UD_Autos.Authorization
+@{
+    var canViewCosts = ViewBag.CanViewCosts as bool? ?? false;
+    var canVoid = User.IsInRole(AppRoles.Owner) || User.IsInRole(AppRoles.Manager);
+}
+
+@section PageActions {
+    <a class="btn-app btn-app--outline" asp-action="Print" asp-route-id="@Model.Id" target="_blank">Print / PDF</a>
+    @if (!Model.IsVoided)
+    {
+        <a class="btn-app btn-app--outline" asp-controller="SalesReturns" asp-action="Create" asp-route-invoiceId="@Model.Id">Return</a>
+    }
+    <a class="btn-app btn-app--primary" asp-controller="Customers" asp-action="Khata" asp-route-id="@Model.CustomerId">Customer Khata</a>
+}
+
+<div class="card-panel">
+    <div class="detail-grid">
+        <div class="detail-item"><dt>Invoice</dt><dd>@Model.InvoiceNumber</dd></div>
+        <div class="detail-item"><dt>Date</dt><dd>@Model.InvoiceDate.ToString("dd MMM yyyy")</dd></div>
+        <div class="detail-item"><dt>Customer</dt><dd>@(Model.Customer.ShopName ?? Model.Customer.Name)</dd></div>
+        <div class="detail-item"><dt>Mode</dt><dd>@Model.PaymentMode</dd></div>
+        <div class="detail-item"><dt>Previous balance</dt><dd>Rs. @Model.PreviousBalance.ToString("N2")</dd></div>
+        <div class="detail-item"><dt>Bill total</dt><dd>Rs. @Model.BillTotal.ToString("N2")</dd></div>
+        <div class="detail-item"><dt>Payment received</dt><dd>Rs. @Model.PaymentReceived.ToString("N2")</dd></div>
+        <div class="detail-item"><dt>New balance</dt><dd>Rs. @Model.NewBalance.ToString("N2")</dd></div>
+        <div class="detail-item"><dt>Outstanding</dt><dd>Rs. @Model.OutstandingAmount.ToString("N2")</dd></div>
+        @if (canViewCosts)
+        {
+            <div class="detail-item"><dt>COGS</dt><dd>Rs. @Model.TotalCogs.ToString("N2")</dd></div>
+            <div class="detail-item"><dt>Gross profit</dt><dd>Rs. @Model.GrossProfit.ToString("N2")</dd></div>
+        }
+    </div>
+
+    <div class="table-wrap">
+        <table class="table-app">
+            <thead><tr><th>#</th><th>Product</th><th>Qty</th><th>Price</th><th>Discount</th><th>Total</th>@if (canViewCosts){<th>COGS</th>}</tr></thead>
+            <tbody>
+            @{ var n = 1; }
+            @foreach (var item in Model.Items)
+            {
+                <tr>
+                    <td>@(n++)</td>
+                    <td>@item.Product.Sku — @item.Product.Name</td>
+                    <td>@item.Quantity.ToString("N2")</td>
+                    <td>Rs. @item.UnitPrice.ToString("N2")</td>
+                    <td>Rs. @item.LineDiscount.ToString("N2")</td>
+                    <td>Rs. @item.LineTotal.ToString("N2")</td>
+                    @if (canViewCosts) { <td>Rs. @item.LineCogsPkr.ToString("N2")</td> }
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+
+    @if (Model.IsVoided)
+    {
+        <div class="alert-app alert-app--danger">Voided @(Model.VoidedAt?.ToString("dd MMM yyyy HH:mm")) — @Model.VoidReason</div>
+    }
+    else if (canVoid)
+    {
+        <form asp-action="Void" method="post" class="card-panel">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="id" value="@Model.Id" />
+            <h3 class="card-panel__title">Authorized void (Owner/Manager)</h3>
+            <p class="dashboard-note">Restores stock, reverses Khata/cash effects, and keeps the invoice row for audit. Not a silent delete.</p>
+            <div class="field"><label>Reason</label><textarea class="textarea-app" name="reason" required></textarea></div>
+            <button type="submit" class="btn-app btn-app--danger">Void invoice</button>
+        </form>
+    }
+</div>

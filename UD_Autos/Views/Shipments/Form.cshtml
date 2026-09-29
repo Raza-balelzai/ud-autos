@@ -1,0 +1,118 @@
+@model ShipmentFormViewModel
+@{
+    var isEdit = Model.Shipment.Id > 0;
+}
+
+<form asp-action="@(isEdit ? "Edit" : "Create")" method="post" class="card-panel">
+    @if (isEdit)
+    {
+        <input type="hidden" asp-for="Shipment.Id" />
+        <input type="hidden" asp-for="Shipment.ShipmentNumber" />
+    }
+    <div asp-validation-summary="ModelOnly" class="validation-summary-errors"></div>
+
+    <div class="form-grid form-grid--3">
+        @if (!isEdit)
+        {
+            <div class="field">
+                <label asp-for="Shipment.ShipmentNumber">Shipment ID</label>
+                <input asp-for="Shipment.ShipmentNumber" class="input-app" placeholder="Auto e.g. SHP-2026-001" />
+            </div>
+        }
+        <div class="field">
+            <label asp-for="Shipment.ShippingAgent">Shipping Agent</label>
+            <input asp-for="Shipment.ShippingAgent" class="input-app" />
+        </div>
+        <div class="field">
+            <label asp-for="Shipment.Status">Status</label>
+            <select asp-for="Shipment.Status" class="select-app" asp-items="Html.GetEnumSelectList<ShipmentStatus>()"></select>
+        </div>
+        <div class="field">
+            <label asp-for="Shipment.ChinaWarehouseReceivedDate">China WH Received</label>
+            <input asp-for="Shipment.ChinaWarehouseReceivedDate" type="date" class="input-app" />
+        </div>
+        <div class="field">
+            <label asp-for="Shipment.ChinaDepartureDate">China Departure</label>
+            <input asp-for="Shipment.ChinaDepartureDate" type="date" class="input-app" />
+        </div>
+        <div class="field">
+            <label asp-for="Shipment.KarachiArrivalDate">Karachi Arrival</label>
+            <input asp-for="Shipment.KarachiArrivalDate" type="date" class="input-app" />
+        </div>
+        <div class="field form-grid--full">
+            <label asp-for="Shipment.Notes">Notes</label>
+            <textarea asp-for="Shipment.Notes" class="textarea-app"></textarea>
+        </div>
+    </div>
+
+    <h3 class="card-panel__title">Shipment items (by ProductId/SKU)</h3>
+    <div class="line-items-editor" id="shp-lines">
+        @for (var i = 0; i < Model.Items.Count; i++)
+        {
+            <div class="line-row">
+                <select class="select-app" name="Items[@i].ProductId" asp-items="@(new SelectList(Model.Products.Select(p => new { p.Id, Label = p.Sku + " — " + p.Name }), "Id", "Label", Model.Items[i].ProductId))">
+                    <option value="">Product</option>
+                </select>
+                <select class="select-app" name="Items[@i].PurchaseOrderId" asp-items="@(new SelectList(Model.PurchaseOrders, "Id", "PoNumber", Model.Items[i].PurchaseOrderId))">
+                    <option value="">PO (optional)</option>
+                </select>
+                <select class="select-app" name="Items[@i].SupplierId" asp-items="@(new SelectList(Model.Suppliers, "Id", "Name", Model.Items[i].SupplierId))">
+                    <option value="">Supplier</option>
+                </select>
+                <input class="input-app" name="Items[@i].ExpectedQuantity" value="@Model.Items[i].ExpectedQuantity" placeholder="Expected qty" />
+                <button type="button" class="btn-app btn-app--ghost btn-app--sm" data-remove-line>✕</button>
+            </div>
+        }
+    </div>
+    <button type="button" class="btn-app btn-app--outline btn-app--sm" id="add-shp-line">+ Add item</button>
+
+    <div class="form-actions">
+        <button type="submit" class="btn-app btn-app--primary">@(isEdit ? "Save Shipment" : "Create Shipment")</button>
+        <a class="btn-app btn-app--outline" asp-action="Index">Cancel</a>
+    </div>
+</form>
+
+<template id="shp-line-template">
+    <div class="line-row">
+        <select class="select-app" name="Items[__i__].ProductId">
+            <option value="">Product</option>
+            @foreach (var p in Model.Products)
+            {
+                <option value="@p.Id">@p.Sku — @p.Name</option>
+            }
+        </select>
+        <select class="select-app" name="Items[__i__].PurchaseOrderId">
+            <option value="">PO (optional)</option>
+            @foreach (var po in Model.PurchaseOrders)
+            {
+                <option value="@po.Id">@po.PoNumber</option>
+            }
+        </select>
+        <select class="select-app" name="Items[__i__].SupplierId">
+            <option value="">Supplier</option>
+            @foreach (var s in Model.Suppliers)
+            {
+                <option value="@s.Id">@s.Name</option>
+            }
+        </select>
+        <input class="input-app" name="Items[__i__].ExpectedQuantity" placeholder="Expected qty" />
+        <button type="button" class="btn-app btn-app--ghost btn-app--sm" data-remove-line>✕</button>
+    </div>
+</template>
+
+@section Scripts {
+<script>
+(() => {
+  const lines = document.getElementById('shp-lines');
+  const tpl = document.getElementById('shp-line-template');
+  document.getElementById('add-shp-line')?.addEventListener('click', () => {
+    const i = lines.querySelectorAll('.line-row').length;
+    lines.insertAdjacentHTML('beforeend', tpl.innerHTML.replaceAll('__i__', i));
+  });
+  lines?.addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-remove-line]');
+    if (btn && lines.querySelectorAll('.line-row').length > 1) btn.closest('.line-row').remove();
+  });
+})();
+</script>
+}

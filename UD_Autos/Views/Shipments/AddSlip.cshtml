@@ -1,0 +1,57 @@
+@model ReceivingSlipFormViewModel
+
+<form asp-action="AddSlip" method="post" enctype="multipart/form-data" class="card-panel">
+    <input type="hidden" asp-for="ShipmentId" />
+    <input type="hidden" asp-for="ShipmentNumber" />
+    <div asp-validation-summary="ModelOnly" class="validation-summary-errors"></div>
+
+    <div class="form-grid form-grid--3">
+        <div class="field">
+            <label asp-for="Slip.SlipNumber">Slip Number</label>
+            <input asp-for="Slip.SlipNumber" class="input-app" placeholder="Auto if blank" />
+        </div>
+        <div class="field">
+            <label asp-for="Slip.ReceivingDate">Receiving Date</label>
+            <input asp-for="Slip.ReceivingDate" type="date" class="input-app" />
+        </div>
+        <div class="field">
+            <label asp-for="Slip.SupplierId">Factory / Supplier</label>
+            <select asp-for="Slip.SupplierId" class="select-app" asp-items="@(new SelectList(Model.Suppliers, "Id", "Name"))">
+                <option value="">— Select —</option>
+            </select>
+        </div>
+        <div class="field">
+            <label asp-for="Slip.AgentWarehouse">Agent / Warehouse</label>
+            <input asp-for="Slip.AgentWarehouse" class="input-app" />
+        </div>
+        <div class="field">
+            <label asp-for="Slip.Cartons">Cartons</label>
+            <input asp-for="Slip.Cartons" class="input-app" />
+        </div>
+        <div class="field">
+            <label asp-for="Slip.WeightKg">Weight (Kg)</label>
+            <input asp-for="Slip.WeightKg" class="input-app" />
+        </div>
+        <div class="field">
+            <label asp-for="Slip.Cbm">CBM</label>
+            <input asp-for="Slip.Cbm" class="input-app" />
+        </div>
+        <div class="field">
+            <label asp-for="Slip.TrackingReference">Tracking / WH Ref</label>
+            <input asp-for="Slip.TrackingReference" class="input-app" />
+        </div>
+        <div class="field">
+            <label asp-for="SlipFile">Slip Image / PDF</label>
+            <input asp-for="SlipFile" type="file" class="input-app" accept=".pdf,.jpg,.jpeg,.png,.webp,.gif" />
+        </div>
+        <div class="field form-grid--full">
+            <label asp-for="Slip.Notes">Notes</label>
+            <textarea asp-for="Slip.Notes" class="textarea-app"></textarea>
+        </div>
+    </div>
+
+    <div class="form-actions">
+        <button type="submit" class="btn-app btn-app--primary">Save slip</button>
+        <a class="btn-app btn-app--outline" asp-action="Details" asp-route-id="@Model.ShipmentId">Cancel</a>
+    </div>
+</form>

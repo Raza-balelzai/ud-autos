@@ -1,0 +1,100 @@
+@model PurchaseOrderFormViewModel
+@{
+    var isEdit = Model.PurchaseOrder.Id > 0;
+}
+
+<form asp-action="@(isEdit ? "Edit" : "Create")" method="post" class="card-panel" id="po-form">
+    @if (isEdit)
+    {
+        <input type="hidden" asp-for="PurchaseOrder.Id" />
+    }
+    <div asp-validation-summary="ModelOnly" class="validation-summary-errors"></div>
+
+    <div class="form-grid form-grid--3">
+        <div class="field">
+            <label asp-for="PurchaseOrder.PoNumber">PO Number</label>
+            <input asp-for="PurchaseOrder.PoNumber" class="input-app" placeholder="Auto if blank" />
+        </div>
+        <div class="field">
+            <label asp-for="PurchaseOrder.SupplierId">Supplier / Factory</label>
+            <select asp-for="PurchaseOrder.SupplierId" class="select-app" asp-items="@(new SelectList(Model.Suppliers, "Id", "Name"))">
+                <option value="">— Select —</option>
+            </select>
+        </div>
+        <div class="field">
+            <label asp-for="PurchaseOrder.OrderDate">Date</label>
+            <input asp-for="PurchaseOrder.OrderDate" type="date" class="input-app" />
+        </div>
+        <div class="field">
+            <label asp-for="PurchaseOrder.Status">Status</label>
+            <select asp-for="PurchaseOrder.Status" class="select-app" asp-items="Html.GetEnumSelectList<PurchaseOrderStatus>()"></select>
+        </div>
+        <div class="field">
+            <label asp-for="PurchaseOrder.EstimatedExchangeRate">Est. RMB→PKR rate</label>
+            <input asp-for="PurchaseOrder.EstimatedExchangeRate" class="input-app" />
+            <span class="hint">Used only for estimated PKR planning</span>
+        </div>
+        <div class="field form-grid--full">
+            <label asp-for="PurchaseOrder.Notes">Notes</label>
+            <textarea asp-for="PurchaseOrder.Notes" class="textarea-app"></textarea>
+        </div>
+    </div>
+
+    <h3 class="card-panel__title">Line items</h3>
+    <div class="line-items-editor" id="po-lines">
+        @for (var i = 0; i < Model.Items.Count; i++)
+        {
+            <div class="line-row">
+                <select class="select-app" name="Items[@i].ProductId" asp-items="@(new SelectList(Model.Products, "Id", "Name", Model.Items[i].ProductId))">
+                    <option value="">Product (SKU)</option>
+                </select>
+                <input class="input-app" name="Items[@i].Quantity" value="@Model.Items[i].Quantity" placeholder="Qty" />
+                <input class="input-app" name="Items[@i].UnitPriceRmb" value="@Model.Items[i].UnitPriceRmb" placeholder="RMB unit" />
+                <input class="input-app" name="Items[@i].Notes" value="@Model.Items[i].Notes" placeholder="Notes" />
+                <button type="button" class="btn-app btn-app--ghost btn-app--sm" data-remove-line>✕</button>
+            </div>
+        }
+    </div>
+    <button type="button" class="btn-app btn-app--outline btn-app--sm" id="add-po-line">+ Add line</button>
+
+    <div class="form-actions">
+        <button type="submit" class="btn-app btn-app--primary">@(isEdit ? "Save PO" : "Create PO")</button>
+        <a class="btn-app btn-app--outline" asp-action="Index">Cancel</a>
+    </div>
+</form>
+
+<template id="po-line-template">
+    <div class="line-row">
+        <select class="select-app" name="Items[__i__].ProductId">
+            <option value="">Product (SKU)</option>
+            @foreach (var p in Model.Products)
+            {
+                <option value="@p.Id">@p.Sku — @p.Name</option>
+            }
+        </select>
+        <input class="input-app" name="Items[__i__].Quantity" placeholder="Qty" />
+        <input class="input-app" name="Items[__i__].UnitPriceRmb" placeholder="RMB unit" />
+        <input class="input-app" name="Items[__i__].Notes" placeholder="Notes" />
+        <button type="button" class="btn-app btn-app--ghost btn-app--sm" data-remove-line>✕</button>
+    </div>
+</template>
+
+@section Scripts {
+<script>
+(() => {
+  const lines = document.getElementById('po-lines');
+  const tpl = document.getElementById('po-line-template');
+  document.getElementById('add-po-line')?.addEventListener('click', () => {
+    const i = lines.querySelectorAll('.line-row').length;
+    const html = tpl.innerHTML.replaceAll('__i__', i);
+    lines.insertAdjacentHTML('beforeend', html);
+  });
+  lines?.addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-remove-line]');
+    if (!btn) return;
+    const row = btn.closest('.line-row');
+    if (lines.querySelectorAll('.line-row').length > 1) row.remove();
+  });
+})();
+</script>
+}

@@ -1,0 +1,43 @@
+@model SalesReturnFormViewModel
+
+<form asp-action="Create" method="post" class="card-panel">
+    @Html.AntiForgeryToken()
+    <input type="hidden" asp-for="InvoiceId" />
+    <div class="form-grid form-grid--3">
+        <div class="field"><label>Return date</label><input asp-for="ReturnDate" type="date" class="input-app" /></div>
+        <div class="field"><label class="checkbox-row"><input asp-for="AdjustKhata" /> Reduce Khata</label></div>
+        <div class="field">
+            <label>Refund account (if not Khata)</label>
+            <select asp-for="RefundAccount" class="select-app" asp-items="Html.GetEnumSelectList<PaymentAccount>()">
+                <option value="">—</option>
+            </select>
+        </div>
+        <div class="field form-grid--full"><label>Reason</label><textarea asp-for="Reason" class="textarea-app"></textarea></div>
+    </div>
+
+    <div class="table-wrap">
+        <table class="table-app">
+            <thead><tr><th>Product</th><th>Sold</th><th>Already returned</th><th>Return qty</th></tr></thead>
+            <tbody>
+            @for (var i = 0; i < Model.Invoice!.Items.Count; i++)
+            {
+                var item = Model.Invoice.Items.ElementAt(i);
+                <tr>
+                    <td>
+                        @item.Product.Sku — @item.Product.Name
+                        <input type="hidden" name="Lines[@i].InvoiceItemId" value="@item.Id" />
+                    </td>
+                    <td>@item.Quantity.ToString("N2")</td>
+                    <td>@item.ReturnedQuantity.ToString("N2")</td>
+                    <td><input class="input-app" name="Lines[@i].Quantity" value="0" /></td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+
+    <div class="form-actions">
+        <button type="submit" class="btn-app btn-app--danger">Post Return</button>
+        <a class="btn-app btn-app--outline" asp-controller="Sales" asp-action="Details" asp-route-id="@Model.InvoiceId">Cancel</a>
+    </div>
+</form>

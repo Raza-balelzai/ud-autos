@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="UD_Autos.Tests/UD_Autos.Tests.csproj" />
+  <Project Path="UD_Autos/UD_Autos.csproj" />
+</Solution>

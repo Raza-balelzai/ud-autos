@@ -1,0 +1,59 @@
+@model ReceivePaymentViewModel
+
+<form asp-action="Index" method="post" class="card-panel">
+    @Html.AntiForgeryToken()
+    <div class="form-grid form-grid--3">
+        <div class="field">
+            <label>Customer</label>
+            <select asp-for="CustomerId" class="select-app" asp-items="@(new SelectList(Model.Customers.Select(c => new { c.Id, Label = c.ShopName ?? c.Name }), "Id", "Label"))" data-navigate-customer="@Url.Action("Index")">
+                <option value="">— Select —</option>
+            </select>
+        </div>
+        <div class="field"><label>Date</label><input asp-for="PaymentDate" type="date" class="input-app" /></div>
+        <div class="field"><label>Amount</label><input asp-for="Amount" class="input-app" /></div>
+        <div class="field">
+            <label>Cash / Bank</label>
+            <select asp-for="Account" class="select-app" asp-items="Html.GetEnumSelectList<PaymentAccount>()"></select>
+        </div>
+        <div class="field"><label>Reference</label><input asp-for="Reference" class="input-app" /></div>
+        <div class="field"><label class="checkbox-row"><input asp-for="UseManualAllocation" /> Manual allocation</label></div>
+        <div class="field form-grid--full"><label>Notes</label><textarea asp-for="Notes" class="textarea-app"></textarea></div>
+    </div>
+
+    @if (Model.OpenInvoices.Count > 0)
+    {
+        <h3 class="card-panel__title">Open invoices (FIFO default)</h3>
+        <div class="table-wrap">
+            <table class="table-app">
+                <thead><tr><th>Invoice</th><th>Date</th><th>Outstanding</th><th>Allocate</th></tr></thead>
+                <tbody>
+                @for (var i = 0; i < Model.OpenInvoices.Count; i++)
+                {
+                    var inv = Model.OpenInvoices[i];
+                    <tr>
+                        <td>
+                            @inv.InvoiceNumber
+                            <input type="hidden" name="Allocations[@i].InvoiceId" value="@inv.Id" />
+                        </td>
+                        <td>@inv.InvoiceDate.ToString("dd MMM yyyy")</td>
+                        <td>Rs. @inv.OutstandingAmount.ToString("N2")</td>
+                        <td><input class="input-app" name="Allocations[@i].Amount" value="0" /></td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+    }
+
+    <div class="form-actions">
+        <button type="submit" class="btn-app btn-app--success">Save Payment Receipt</button>
+    </div>
+</form>
+
+@section Scripts {
+<script>
+document.querySelector('[data-navigate-customer]')?.addEventListener('change', function () {
+  if (this.value) location.href = this.getAttribute('data-navigate-customer') + '?customerId=' + this.value;
+});
+</script>
+}

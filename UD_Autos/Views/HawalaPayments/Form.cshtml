@@ -1,0 +1,112 @@
+@model HawalaFormViewModel
+@{
+    var isEdit = Model.Payment.Id > 0;
+}
+
+<form asp-action="@(isEdit ? "Edit" : "Create")" method="post" class="card-panel">
+    @if (isEdit)
+    {
+        <input type="hidden" asp-for="Payment.Id" />
+        <input type="hidden" asp-for="Payment.PaymentNumber" />
+    }
+    <div asp-validation-summary="ModelOnly" class="validation-summary-errors"></div>
+
+    <div class="form-grid form-grid--3">
+        <div class="field">
+            <label asp-for="Payment.PaymentDate">Date</label>
+            <input asp-for="Payment.PaymentDate" type="date" class="input-app" />
+        </div>
+        <div class="field">
+            <label asp-for="Payment.HawalaPerson">Hawala Person / Service</label>
+            <input asp-for="Payment.HawalaPerson" class="input-app" />
+        </div>
+        <div class="field">
+            <label asp-for="Payment.SupplierId">Supplier</label>
+            <select asp-for="Payment.SupplierId" class="select-app" id="hawala-supplier" asp-items="@(new SelectList(Model.Suppliers, "Id", "Name"))">
+                <option value="">— Select —</option>
+            </select>
+        </div>
+        <div class="field">
+            <label asp-for="Payment.PurchaseOrderId">Linked PO (optional)</label>
+            <select asp-for="Payment.PurchaseOrderId" class="select-app" id="hawala-po">
+                <option value="">— None —</option>
+                @foreach (var po in Model.PurchaseOrders)
+                {
+                    <option value="@po.Id">@po.PoNumber — ¥ @po.TotalRmb.ToString("N2")</option>
+                }
+            </select>
+        </div>
+        <div class="field">
+            <label asp-for="Payment.RmbReceived">RMB Received by factory</label>
+            <input asp-for="Payment.RmbReceived" class="input-app" id="rmb-received" />
+        </div>
+        <div class="field">
+            <label asp-for="Payment.PkrPaid">PKR Paid locally</label>
+            <input asp-for="Payment.PkrPaid" class="input-app" id="pkr-paid" />
+        </div>
+        <div class="field">
+            <label asp-for="Payment.Account">Paid from Cash / Bank</label>
+            <select asp-for="Payment.Account" class="select-app" asp-items="Html.GetEnumSelectList<PaymentAccount>()"></select>
+        </div>
+        <div class="field">
+            <label>Effective RMB Rate (auto)</label>
+            <input class="input-app" id="eff-rate" readonly value="@(Model.Payment.EffectiveRmbRate > 0 ? Model.Payment.EffectiveRmbRate.ToString("N6") : "")" />
+            <span class="hint">PKR Paid ÷ RMB Received</span>
+        </div>
+        <div class="field">
+            <label asp-for="Payment.HawalaFee">Hawala Fee (PKR)</label>
+            <input asp-for="Payment.HawalaFee" class="input-app" />
+        </div>
+        <div class="field">
+            <label asp-for="Payment.Reference">Reference</label>
+            <input asp-for="Payment.Reference" class="input-app" />
+        </div>
+        <div class="field">
+            <label class="checkbox-row">
+                <input asp-for="Payment.IsDirectImportCharge" />
+                Direct import charge (for landed cost later)
+            </label>
+        </div>
+        <div class="field form-grid--full">
+            <label asp-for="Payment.Notes">Notes</label>
+            <textarea asp-for="Payment.Notes" class="textarea-app"></textarea>
+        </div>
+    </div>
+
+    <div class="form-actions">
+        <button type="submit" class="btn-app btn-app--primary">Save Hawala Payment</button>
+        <a class="btn-app btn-app--outline" asp-action="Index">Cancel</a>
+    </div>
+</form>
+
+@section Scripts {
+<script>
+(() => {
+  const rmb = document.getElementById('rmb-received');
+  const pkr = document.getElementById('pkr-paid');
+  const rate = document.getElementById('eff-rate');
+  const calc = () => {
+    const a = parseFloat(rmb.value), b = parseFloat(pkr.value);
+    rate.value = (a > 0 && b > 0) ? (b / a).toFixed(6) : '';
+  };
+  rmb?.addEventListener('input', calc);
+  pkr?.addEventListener('input', calc);
+
+  const supplier = document.getElementById('hawala-supplier');
+  const po = document.getElementById('hawala-po');
+  supplier?.addEventListener('change', async () => {
+    const id = supplier.value;
+    po.innerHTML = '<option value="">— None —</option>';
+    if (!id) return;
+    const res = await fetch(`/HawalaPayments/OpenPurchaseOrders?supplierId=${id}`);
+    const data = await res.json();
+    data.forEach(x => {
+      const opt = document.createElement('option');
+      opt.value = x.id;
+      opt.textContent = x.label;
+      po.appendChild(opt);
+    });
+  });
+})();
+</script>
+}

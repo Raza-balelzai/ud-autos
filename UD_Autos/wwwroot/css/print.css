@@ -1,0 +1,71 @@
+/* Print / PDF friendly invoice styles — centralized, no inline */
+.print-page {
+  background: #fff;
+  padding: var(--space-6);
+}
+
+.print-sheet {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.print-header {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-4);
+  margin-bottom: var(--space-5);
+  border-bottom: 2px solid var(--color-border);
+  padding-bottom: var(--space-4);
+}
+
+.print-header h1 {
+  margin: 0;
+  font-size: var(--fs-xl);
+}
+
+.print-meta {
+  text-align: right;
+}
+
+.print-customer {
+  margin-bottom: var(--space-5);
+  line-height: 1.5;
+}
+
+.print-totals {
+  margin-top: var(--space-5);
+  margin-left: auto;
+  width: min(320px, 100%);
+}
+
+.print-totals div {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.35rem 0;
+  font-size: var(--fs-sm);
+}
+
+.print-totals .is-strong {
+  font-weight: var(--fw-bold);
+  border-top: 1px solid var(--color-border);
+  margin-top: 0.35rem;
+  padding-top: 0.55rem;
+}
+
+.print-hint {
+  color: var(--color-text-muted);
+  font-size: var(--fs-xs);
+  margin-top: var(--space-5);
+}
+
+@media print {
+  .no-print,
+  .app-sidebar,
+  .app-topbar {
+    display: none !important;
+  }
+
+  .print-page {
+    padding: 0;
+  }
+}

@@ -1,0 +1,139 @@
+@model SettingsIndexViewModel
+
+<div class="card-panel">
+    <div class="tabs-app">
+        <a class="@(Model.ActiveTab == "categories" ? "is-active" : null)" asp-action="Index" asp-route-tab="categories">Categories</a>
+        <a class="@(Model.ActiveTab == "units" ? "is-active" : null)" asp-action="Index" asp-route-tab="units">Units</a>
+        <a class="@(Model.ActiveTab == "expenses" ? "is-active" : null)" asp-action="Index" asp-route-tab="expenses">Expense Categories</a>
+        <a class="@(Model.ActiveTab == "business" ? "is-active" : null)" asp-action="Index" asp-route-tab="business">Business Settings</a>
+    </div>
+
+    @if (Model.ActiveTab == "categories")
+    {
+        <form asp-action="SaveCategory" method="post" class="table-toolbar">
+            @Html.AntiForgeryToken()
+            <input class="input-app" name="Name" placeholder="New category name" required />
+            <input class="input-app" name="Description" placeholder="Description" />
+            <button type="submit" class="btn-app btn-app--primary">Add Category</button>
+        </form>
+        <div class="table-wrap">
+            <table class="table-app">
+                <thead><tr><th>Name</th><th>Description</th><th>Active</th><th></th></tr></thead>
+                <tbody>
+                @foreach (var c in Model.Categories)
+                {
+                    <tr>
+                        <td>@c.Name</td>
+                        <td>@c.Description</td>
+                        <td>@(c.IsActive ? "Yes" : "No")</td>
+                        <td class="actions">
+                            @if (c.IsActive)
+                            {
+                                <form asp-action="DeleteCategory" method="post">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="id" value="@c.Id" />
+                                    <button type="submit" class="btn-app btn-app--outline btn-app--sm">Deactivate</button>
+                                </form>
+                            }
+                        </td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+    }
+    else if (Model.ActiveTab == "units")
+    {
+        <form asp-action="SaveUnit" method="post" class="table-toolbar">
+            @Html.AntiForgeryToken()
+            <input class="input-app" name="Name" placeholder="Unit name" required />
+            <input class="input-app" name="Abbreviation" placeholder="Abbr" required />
+            <button type="submit" class="btn-app btn-app--primary">Add Unit</button>
+        </form>
+        <div class="table-wrap">
+            <table class="table-app">
+                <thead><tr><th>Name</th><th>Abbr</th><th>Active</th><th></th></tr></thead>
+                <tbody>
+                @foreach (var u in Model.Units)
+                {
+                    <tr>
+                        <td>@u.Name</td>
+                        <td>@u.Abbreviation</td>
+                        <td>@(u.IsActive ? "Yes" : "No")</td>
+                        <td class="actions">
+                            @if (u.IsActive)
+                            {
+                                <form asp-action="DeleteUnit" method="post">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="id" value="@u.Id" />
+                                    <button type="submit" class="btn-app btn-app--outline btn-app--sm">Deactivate</button>
+                                </form>
+                            }
+                        </td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+    }
+    else if (Model.ActiveTab == "expenses")
+    {
+        <form asp-action="SaveExpenseCategory" method="post" class="table-toolbar">
+            @Html.AntiForgeryToken()
+            <input class="input-app" name="Name" placeholder="Expense category" required />
+            <label class="checkbox-row"><input type="checkbox" name="IsDirectImportCost" value="true" /> Direct import cost flag</label>
+            <button type="submit" class="btn-app btn-app--primary">Add</button>
+        </form>
+        <div class="table-wrap">
+            <table class="table-app">
+                <thead><tr><th>Name</th><th>Import cost?</th><th>Active</th><th></th></tr></thead>
+                <tbody>
+                @foreach (var e in Model.ExpenseCategories)
+                {
+                    <tr>
+                        <td>@e.Name</td>
+                        <td>@(e.IsDirectImportCost ? "Yes" : "No")</td>
+                        <td>@(e.IsActive ? "Yes" : "No")</td>
+                        <td class="actions">
+                            @if (e.IsActive)
+                            {
+                                <form asp-action="DeleteExpenseCategory" method="post">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="id" value="@e.Id" />
+                                    <button type="submit" class="btn-app btn-app--outline btn-app--sm">Deactivate</button>
+                                </form>
+                            }
+                        </td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+    }
+    else
+    {
+        <div class="table-wrap">
+            <table class="table-app">
+                <thead><tr><th>Key</th><th>Value</th><th>Description</th><th></th></tr></thead>
+                <tbody>
+                @foreach (var s in Model.BusinessSettings)
+                {
+                    <tr>
+                        <td colspan="4">
+                            <form asp-action="SaveBusinessSetting" method="post" class="table-toolbar">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="Id" value="@s.Id" />
+                                <input type="hidden" name="Key" value="@s.Key" />
+                                <span class="badge-app badge-app--neutral">@s.Key</span>
+                                <input class="input-app" name="Value" value="@s.Value" />
+                                <input class="input-app" name="Description" value="@s.Description" />
+                                <button type="submit" class="btn-app btn-app--outline btn-app--sm">Save</button>
+                            </form>
+                        </td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>

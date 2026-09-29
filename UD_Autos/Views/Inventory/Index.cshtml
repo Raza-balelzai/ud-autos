@@ -1,0 +1,87 @@
+@model PagedResult<Product>
+@{
+    var pager = PagerViewModel.From(Model, "Index", new
+    {
+        search = Model.Search,
+        lowStock = Context.Request.Query["lowStock"].ToString(),
+        outOfStock = Context.Request.Query["outOfStock"].ToString()
+    });
+}
+
+@section PageActions {
+    <a class="btn-app btn-app--outline" asp-action="Batches">Batches</a>
+    <a class="btn-app btn-app--outline" asp-action="Movements">Movements</a>
+    <a class="btn-app btn-app--outline" asp-action="LowStock">Low stock</a>
+    <a class="btn-app btn-app--primary" asp-action="Adjust">Adjust stock</a>
+}
+
+<div class="card-panel">
+    <form method="get" class="table-toolbar">
+        <input class="input-app" name="search" value="@Model.Search" placeholder="Search SKU / name..." />
+        <label class="checkbox-row"><input type="checkbox" name="lowStock" value="true" checked="@((ViewBag.LowStock as bool?) == true)" /> Low stock</label>
+        <label class="checkbox-row"><input type="checkbox" name="outOfStock" value="true" checked="@((ViewBag.OutOfStock as bool?) == true)" /> Out of stock</label>
+        <button type="submit" class="btn-app btn-app--outline">Filter</button>
+    </form>
+
+    <div class="table-wrap">
+        <table class="table-app">
+            <thead>
+            <tr>
+                <th>SKU</th>
+                <th>Product</th>
+                <th>Current</th>
+                <th>Available</th>
+                <th>Reserved</th>
+                <th>Damaged</th>
+                <th>Avg cost</th>
+                <th>Latest landed</th>
+                <th>Stock value</th>
+                <th>Status</th>
+                <th></th>
+            </tr>
+            </thead>
+            <tbody>
+            @if (Model.Items.Count == 0)
+            {
+                <tr><td colspan="11"><div class="empty-state">No stock rows. Finalize a shipment to post inventory.</div></td></tr>
+            }
+            else
+            {
+                foreach (var p in Model.Items)
+                {
+                    <tr>
+                        <td>@p.Sku</td>
+                        <td>@p.Name</td>
+                        <td>@p.CurrentStock.ToString("N2")</td>
+                        <td>@p.AvailableQuantity.ToString("N2")</td>
+                        <td>@p.ReservedQuantity.ToString("N2")</td>
+                        <td>@p.DamagedStock.ToString("N2")</td>
+                        <td>@(User.IsInRole(AppRoles.Salesman) ? "—" : $"Rs. {(p.AverageCost ?? 0):N4}")</td>
+                        <td>@(User.IsInRole(AppRoles.Salesman) ? "—" : $"Rs. {(p.LatestLandedCost ?? 0):N4}")</td>
+                        <td>@(User.IsInRole(AppRoles.Salesman) ? "—" : $"Rs. {p.StockValue:N2}")</td>
+                        <td>
+                            @if (p.CurrentStock <= 0)
+                            {
+                                <span class="badge-app badge-app--danger">Out of Stock</span>
+                            }
+                            else if (p.CurrentStock <= p.ReorderLevel)
+                            {
+                                <span class="badge-app badge-app--warning">Low Stock</span>
+                            }
+                            else
+                            {
+                                <span class="badge-app badge-app--success">In Stock</span>
+                            }
+                        </td>
+                        <td class="actions">
+                            <a class="btn-app btn-app--outline btn-app--sm" asp-action="Batches" asp-route-productId="@p.Id">Batches</a>
+                            <a class="btn-app btn-app--outline btn-app--sm" asp-action="Movements" asp-route-productId="@p.Id">Moves</a>
+                        </td>
+                    </tr>
+                }
+            }
+            </tbody>
+        </table>
+    </div>
+    <partial name="_Pager" model="pager" />
+</div>

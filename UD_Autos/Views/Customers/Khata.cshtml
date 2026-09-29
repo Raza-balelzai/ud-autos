@@ -1,0 +1,58 @@
+@{
+    var customer = (Customer)ViewBag.Customer;
+    var ledger = (IReadOnlyList<CustomerLedgerEntry>)ViewBag.Ledger;
+    var invoices = (IReadOnlyList<Invoice>)ViewBag.Invoices;
+}
+
+@section PageActions {
+    <a class="btn-app btn-app--outline" asp-controller="Sales" asp-action="Create" asp-route-customerId="@customer.Id">New Invoice</a>
+    <a class="btn-app btn-app--primary" asp-controller="Payments" asp-action="Index" asp-route-customerId="@customer.Id">Receive Payment</a>
+}
+
+<div class="kpi-grid">
+    <div class="kpi-card"><p class="kpi-card__label">Outstanding</p><p class="kpi-card__value">Rs. @customer.CurrentBalance.ToString("N0")</p></div>
+    <div class="kpi-card"><p class="kpi-card__label">Total Purchases</p><p class="kpi-card__value">Rs. @customer.TotalPurchases.ToString("N0")</p></div>
+    <div class="kpi-card"><p class="kpi-card__label">Total Payments</p><p class="kpi-card__value">Rs. @customer.TotalPayments.ToString("N0")</p></div>
+    <div class="kpi-card"><p class="kpi-card__label">Last Purchase / Payment</p><p class="kpi-card__value">@(customer.LastPurchaseAt?.ToString("dd MMM") ?? "—") / @(customer.LastPaymentAt?.ToString("dd MMM") ?? "—")</p></div>
+</div>
+
+<div class="card-panel">
+    <h2 class="card-panel__title">Ledger</h2>
+    <div class="table-wrap">
+        <table class="table-app">
+            <thead><tr><th>Date</th><th>Detail</th><th>Reference</th><th>Debit</th><th>Credit</th><th>Balance</th></tr></thead>
+            <tbody>
+            @foreach (var e in ledger)
+            {
+                <tr>
+                    <td>@e.EntryDate.ToString("dd MMM yyyy")</td>
+                    <td>@e.Detail</td>
+                    <td>@e.ReferenceNumber</td>
+                    <td>@(e.Debit > 0 ? e.Debit.ToString("N2") : "—")</td>
+                    <td>@(e.Credit > 0 ? e.Credit.ToString("N2") : "—")</td>
+                    <td>@e.RunningBalance.ToString("N2")</td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+
+    <h2 class="card-panel__title">Invoices</h2>
+    <div class="table-wrap">
+        <table class="table-app">
+            <thead><tr><th>Invoice</th><th>Date</th><th>Total</th><th>Outstanding</th><th></th></tr></thead>
+            <tbody>
+            @foreach (var inv in invoices)
+            {
+                <tr>
+                    <td>@inv.InvoiceNumber</td>
+                    <td>@inv.InvoiceDate.ToString("dd MMM yyyy")</td>
+                    <td>Rs. @inv.BillTotal.ToString("N2")</td>
+                    <td>Rs. @inv.OutstandingAmount.ToString("N2")</td>
+                    <td><a class="btn-app btn-app--outline btn-app--sm" asp-controller="Sales" asp-action="Details" asp-route-id="@inv.Id">Open</a></td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+</div>

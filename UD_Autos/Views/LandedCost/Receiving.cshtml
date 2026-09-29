@@ -1,0 +1,89 @@
+@model ReceivingPageViewModel
+
+@section PageActions {
+    <a class="btn-app btn-app--outline" asp-action="Index" asp-route-shipmentId="@Model.Shipment.Id">Landed Cost</a>
+    <a class="btn-app btn-app--outline" asp-controller="Shipments" asp-action="Details" asp-route-id="@Model.Shipment.Id">Shipment</a>
+}
+
+<div class="card-panel">
+    @if (Model.Shipment.IsFinalized)
+    {
+        <div class="alert-app alert-app--success">Finalized on @Model.Shipment.FinalizedAt?.ToLocalTime().ToString("dd MMM yyyy HH:mm"). Inventory posted; historical costs locked.</div>
+    }
+    else if (Model.Shipment.LandedCostCalculatedAt is null)
+    {
+        <div class="alert-app alert-app--danger">Calculate &amp; save landed cost before finalization.</div>
+    }
+
+    <form asp-action="SaveActuals" method="post">
+        @Html.AntiForgeryToken()
+        <input type="hidden" name="shipmentId" value="@Model.Shipment.Id" />
+        <div class="table-wrap">
+            <table class="table-app">
+                <thead>
+                <tr>
+                    <th>SKU</th>
+                    <th>Product</th>
+                    <th>Expected</th>
+                    <th>Actual received</th>
+                    <th>Variance</th>
+                    <th>Landed unit</th>
+                </tr>
+                </thead>
+                <tbody>
+                @for (var i = 0; i < Model.Shipment.Items.Count; i++)
+                {
+                    var item = Model.Shipment.Items.ElementAt(i);
+                    var line = Model.Lines.FirstOrDefault(l => l.ShipmentItemId == item.Id)
+                               ?? new ReceivingLineInput { ShipmentItemId = item.Id, ActualQuantity = item.ExpectedQuantity };
+                    var variance = line.ActualQuantity - item.ExpectedQuantity;
+                    <tr>
+                        <td>
+                            @item.Product.Sku
+                            <input type="hidden" name="lines[@i].ShipmentItemId" value="@item.Id" />
+                        </td>
+                        <td>@item.Product.Name</td>
+                        <td>@item.ExpectedQuantity.ToString("N2")</td>
+                        <td>
+                            <input class="input-app" name="lines[@i].ActualQuantity" value="@line.ActualQuantity" @(Model.Shipment.IsFinalized ? "readonly" : null) />
+                        </td>
+                        <td>
+                            @if (variance < 0)
+                            {
+                                <span class="badge-app badge-app--danger">Shortage @variance.ToString("N2")</span>
+                            }
+                            else if (variance > 0)
+                            {
+                                <span class="badge-app badge-app--warning">Excess +@variance.ToString("N2")</span>
+                            }
+                            else
+                            {
+                                <span class="badge-app badge-app--success">Match</span>
+                            }
+                        </td>
+                        <td>Rs. @item.LandedUnitCostPkr.ToString("N4")</td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+
+        @if (!Model.Shipment.IsFinalized)
+        {
+            <div class="form-actions">
+                <button type="submit" class="btn-app btn-app--outline">Save actuals</button>
+            </div>
+        }
+    </form>
+
+    @if (!Model.Shipment.IsFinalized)
+    {
+        <form asp-action="Finalize" method="post" class="form-actions">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="shipmentId" value="@Model.Shipment.Id" />
+            <button type="submit" class="btn-app btn-app--success" onclick="return confirm('Finalize & receive? This posts inventory and locks landed cost.');">
+                Finalize &amp; Receive Shipment
+            </button>
+        </form>
+    }
+</div>

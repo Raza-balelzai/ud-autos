@@ -1,0 +1,36 @@
+@model PagerViewModel
+@if (Model.TotalPages > 1)
+{
+    <div class="pagination-app">
+        <span>@Model.TotalCount records</span>
+        @for (var i = 1; i <= Model.TotalPages; i++)
+        {
+            if (i == Model.Page)
+            {
+                <span class="is-active">@i</span>
+            }
+            else
+            {
+                <a asp-action="@Model.Action" asp-all-route-data="@(ToRoute(i))">@i</a>
+            }
+        }
+    </div>
+}
+
+@functions {
+    Dictionary<string, string> ToRoute(int page)
+    {
+        var dict = new Dictionary<string, string> { ["page"] = page.ToString() };
+        if (Model.RouteValues is null) return dict;
+
+        foreach (var prop in Model.RouteValues.GetType().GetProperties())
+        {
+            var val = prop.GetValue(Model.RouteValues)?.ToString();
+            if (!string.IsNullOrEmpty(val))
+            {
+                dict[prop.Name] = val;
+            }
+        }
+        return dict;
+    }
+}

@@ -1,0 +1,49 @@
+@model LoginViewModel
+@{
+    Layout = null;
+    ViewData["Title"] = "Sign in";
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Sign in - Auto Parts Business</title>
+    <link rel="stylesheet" href="~/css/theme.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/app.css" asp-append-version="true" />
+</head>
+<body>
+<div class="auth-page">
+    <div class="auth-card">
+        <div class="auth-card__brand">
+            <div class="app-brand__icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M19.1 4.9 17 7M7 17l-2.1 2.1"/></svg>
+            </div>
+            <div class="app-brand__text">Auto Parts<br/>Business Solution</div>
+        </div>
+        <h1>Welcome back</h1>
+        <p class="lead">Sign in to manage products, purchases, shipments and billing.</p>
+
+        <form asp-action="Login" method="post">
+            <div asp-validation-summary="ModelOnly" class="validation-summary-errors"></div>
+            <input type="hidden" asp-for="ReturnUrl" />
+            <div class="field">
+                <label asp-for="Email"></label>
+                <input asp-for="Email" class="input-app" autocomplete="username" />
+                <span asp-validation-for="Email" class="field-error"></span>
+            </div>
+            <div class="field">
+                <label asp-for="Password"></label>
+                <input asp-for="Password" class="input-app" autocomplete="current-password" />
+                <span asp-validation-for="Password" class="field-error"></span>
+            </div>
+            <label class="checkbox-row">
+                <input asp-for="RememberMe" />
+                Remember me
+            </label>
+            <button type="submit" class="btn-app btn-app--primary">Sign in</button>
+        </form>
+    </div>
+</div>
+</body>
+</html>

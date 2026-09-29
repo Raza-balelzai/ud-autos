@@ -1,0 +1,48 @@
+@model DailySalesSummary
+@{
+    var canViewProfit = ViewBag.CanViewProfit as bool? ?? false;
+}
+
+@section PageActions {
+    <a class="btn-app btn-app--outline" asp-action="Daily" asp-route-range="today">Today</a>
+    <a class="btn-app btn-app--outline" asp-action="Daily" asp-route-range="yesterday">Yesterday</a>
+    <a class="btn-app btn-app--outline" asp-action="Daily" asp-route-range="week">This Week</a>
+    <a class="btn-app btn-app--outline" asp-action="Daily" asp-route-range="month">This Month</a>
+}
+
+<div class="kpi-grid">
+    <div class="kpi-card"><p class="kpi-card__label">Total Sales</p><p class="kpi-card__value">Rs. @Model.TotalSales.ToString("N0")</p></div>
+    <div class="kpi-card"><p class="kpi-card__label">Cash Sales</p><p class="kpi-card__value">Rs. @Model.CashSales.ToString("N0")</p></div>
+    <div class="kpi-card"><p class="kpi-card__label">Credit Sales</p><p class="kpi-card__value">Rs. @Model.CreditSales.ToString("N0")</p></div>
+    <div class="kpi-card"><p class="kpi-card__label">Collections</p><p class="kpi-card__value">Rs. @Model.Collections.ToString("N0")</p><p class="kpi-card__meta">Separate from sales</p></div>
+</div>
+<div class="kpi-grid">
+    <div class="kpi-card"><p class="kpi-card__label">Returns</p><p class="kpi-card__value">Rs. @Model.Returns.ToString("N0")</p></div>
+    @if (canViewProfit)
+    {
+        <div class="kpi-card"><p class="kpi-card__label">COGS</p><p class="kpi-card__value">Rs. @Model.Cogs.ToString("N0")</p></div>
+        <div class="kpi-card"><p class="kpi-card__label">Gross Profit</p><p class="kpi-card__value">Rs. @Model.GrossProfit.ToString("N0")</p></div>
+    }
+</div>
+
+<div class="card-panel">
+    <p class="dashboard-note">@Model.From.ToString("dd MMM yyyy") — @Model.To.ToString("dd MMM yyyy")</p>
+    <div class="table-wrap">
+        <table class="table-app">
+            <thead><tr><th>Invoice</th><th>Customer</th><th>Mode</th><th>Total</th><th>Collected</th><th>Outstanding</th></tr></thead>
+            <tbody>
+            @foreach (var inv in Model.Invoices)
+            {
+                <tr>
+                    <td><a asp-action="Details" asp-route-id="@inv.Id">@inv.InvoiceNumber</a></td>
+                    <td>@(inv.Customer.ShopName ?? inv.Customer.Name)</td>
+                    <td>@inv.PaymentMode</td>
+                    <td>Rs. @inv.BillTotal.ToString("N2")</td>
+                    <td>Rs. @inv.PaymentReceived.ToString("N2")</td>
+                    <td>Rs. @inv.OutstandingAmount.ToString("N2")</td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+</div>

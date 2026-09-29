@@ -1,0 +1,22 @@
+@model HawalaPayment
+
+@section PageActions {
+    <a class="btn-app btn-app--outline" asp-action="Edit" asp-route-id="@Model.Id">Edit</a>
+}
+
+<div class="card-panel">
+    <div class="detail-grid">
+        <div class="detail-item"><dt>Number</dt><dd>@Model.PaymentNumber</dd></div>
+        <div class="detail-item"><dt>Date</dt><dd>@Model.PaymentDate.ToString("dd MMM yyyy")</dd></div>
+        <div class="detail-item"><dt>Hawala Person</dt><dd>@Model.HawalaPerson</dd></div>
+        <div class="detail-item"><dt>Supplier</dt><dd>@Model.Supplier.Name</dd></div>
+        <div class="detail-item"><dt>Linked PO</dt><dd>@(Model.PurchaseOrder?.PoNumber ?? "—")</dd></div>
+        <div class="detail-item"><dt>RMB Received</dt><dd>¥ @Model.RmbReceived.ToString("N4")</dd></div>
+        <div class="detail-item"><dt>PKR Paid</dt><dd>Rs. @Model.PkrPaid.ToString("N2")</dd></div>
+        <div class="detail-item"><dt>Effective Rate</dt><dd>@Model.EffectiveRmbRate.ToString("N6")</dd></div>
+        <div class="detail-item"><dt>Fee</dt><dd>Rs. @Model.HawalaFee.ToString("N2")</dd></div>
+        <div class="detail-item"><dt>Direct import charge</dt><dd>@(Model.IsDirectImportCharge ? "Yes" : "No")</dd></div>
+        <div class="detail-item"><dt>Reference</dt><dd>@(Model.Reference ?? "—")</dd></div>
+        <div class="detail-item"><dt>Notes</dt><dd>@(Model.Notes ?? "—")</dd></div>
+    </div>
+</div>
