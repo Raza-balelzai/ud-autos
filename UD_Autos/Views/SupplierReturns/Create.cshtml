@@ -1,0 +1,87 @@
+@model SupplierReturnFormViewModel
+@{
+    var suppliers = ViewBag.Suppliers as IReadOnlyList<UD_Autos.Models.Suppliers.Supplier> ?? Array.Empty<UD_Autos.Models.Suppliers.Supplier>();
+    var shipments = ViewBag.Shipments as IReadOnlyList<UD_Autos.Models.Shipments.Shipment> ?? Array.Empty<UD_Autos.Models.Shipments.Shipment>();
+    var batches = ViewBag.Batches as IReadOnlyList<UD_Autos.Models.Inventory.InventoryBatch> ?? Array.Empty<UD_Autos.Models.Inventory.InventoryBatch>();
+}
+
+<form method="post" class="card-panel" id="supplier-return-form">
+    @Html.AntiForgeryToken()
+    <p class="hint">Stock return only — does not post supplier ledger credit. Qty cannot exceed batch remaining minus reserved.</p>
+
+    <div class="form-grid form-grid--3">
+        <div class="field">
+            <label asp-for="SupplierId">Supplier</label>
+            <select asp-for="SupplierId" class="select-app" asp-items="@(new SelectList(suppliers, "Id", "Name"))" required>
+                <option value="">— Select —</option>
+            </select>
+        </div>
+        <div class="field">
+            <label asp-for="ReturnDate">Date</label>
+            <input asp-for="ReturnDate" type="date" class="input-app" />
+        </div>
+        <div class="field">
+            <label asp-for="ShipmentId">Shipment (optional)</label>
+            <select asp-for="ShipmentId" class="select-app" asp-items="@(new SelectList(shipments, "Id", "ShipmentNumber"))">
+                <option value="">— None —</option>
+            </select>
+        </div>
+        <div class="field form-grid--full">
+            <label asp-for="Reason">Reason</label>
+            <input asp-for="Reason" class="input-app" required />
+        </div>
+        <div class="field form-grid--full">
+            <label asp-for="Notes">Notes</label>
+            <input asp-for="Notes" class="input-app" />
+        </div>
+    </div>
+
+    <h3 class="card-panel__title">Lines</h3>
+    <div class="table-wrap">
+        <table class="table-app" id="return-lines">
+            <thead>
+            <tr><th>Batch</th><th>Qty</th><th>Notes</th></tr>
+            </thead>
+            <tbody>
+            @for (var i = 0; i < Model.Lines.Count; i++)
+            {
+                <tr>
+                    <td>
+                        <select class="select-app" name="Lines[@i].InventoryBatchId" asp-items="@(new SelectList(batches.Select(b => new { b.Id, Label = $"{b.BatchNumber} · {b.Product.Sku} (avail {(b.RemainingQuantity - b.ReservedQuantity):N2})" }), "Id", "Label", Model.Lines[i].InventoryBatchId))">
+                            <option value="0">— Select batch —</option>
+                        </select>
+                    </td>
+                    <td><input class="input-app" name="Lines[@i].Quantity" value="@Model.Lines[i].Quantity" /></td>
+                    <td><input class="input-app" name="Lines[@i].Notes" value="@Model.Lines[i].Notes" /></td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+    <button type="button" class="btn-app btn-app--outline" id="add-return-line">+ Line</button>
+
+    <div class="page-header__actions">
+        <button type="submit" class="btn-app btn-app--primary">Post return</button>
+        <a class="btn-app btn-app--outline" asp-action="Index">Cancel</a>
+    </div>
+</form>
+
+@section Scripts {
+<script>
+(function () {
+    var tbody = document.querySelector('#return-lines tbody');
+    var btn = document.getElementById('add-return-line');
+    if (!tbody || !btn) return;
+    var optionsHtml = tbody.querySelector('select') ? tbody.querySelector('select').innerHTML : '';
+    btn.addEventListener('click', function () {
+        var i = tbody.querySelectorAll('tr').length;
+        var tr = document.createElement('tr');
+        tr.innerHTML =
+            '<td><select class="select-app" name="Lines[' + i + '].InventoryBatchId">' + optionsHtml + '</select></td>' +
+            '<td><input class="input-app" name="Lines[' + i + '].Quantity" value="0" /></td>' +
+            '<td><input class="input-app" name="Lines[' + i + '].Notes" /></td>';
+        tbody.appendChild(tr);
+    });
+})();
+</script>
+}

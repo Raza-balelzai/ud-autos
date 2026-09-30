@@ -1,0 +1,38 @@
+@model UD_Autos.Models.Inventory.SupplierReturn
+
+@section PageActions {
+    <a class="btn-app btn-app--outline" asp-action="Index">Back to list</a>
+}
+
+<div class="card-panel">
+    <div class="detail-grid">
+        <div class="detail-item"><dt>Return #</dt><dd>@Model.ReturnNumber</dd></div>
+        <div class="detail-item"><dt>Date</dt><dd>@Model.ReturnDate.ToString("dd MMM yyyy")</dd></div>
+        <div class="detail-item"><dt>Supplier</dt><dd>@Model.Supplier.Name</dd></div>
+        <div class="detail-item"><dt>Shipment</dt><dd>@(Model.Shipment?.ShipmentNumber ?? "—")</dd></div>
+        <div class="detail-item"><dt>Total qty</dt><dd>@Model.TotalQuantity.ToString("N2")</dd></div>
+        <div class="detail-item"><dt>Reason</dt><dd>@Model.Reason</dd></div>
+    </div>
+    <p class="hint">This return adjusts inventory only. Supplier payment/balance is not auto-credited.</p>
+
+    <div class="table-wrap">
+        <table class="table-app">
+            <thead>
+            <tr><th>SKU</th><th>Product</th><th>Batch</th><th>Qty</th><th>Unit cost</th><th>Notes</th></tr>
+            </thead>
+            <tbody>
+            @foreach (var i in Model.Items)
+            {
+                <tr>
+                    <td>@i.Product.Sku</td>
+                    <td>@i.Product.Name</td>
+                    <td>@i.InventoryBatch.BatchNumber</td>
+                    <td>@i.Quantity.ToString("N2")</td>
+                    <td>Rs. @i.UnitCostPkr.ToString("N4")</td>
+                    <td>@(i.Notes ?? "—")</td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+</div>

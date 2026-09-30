@@ -37,15 +37,22 @@ public class ReportsController : Controller
     }
 
     [HttpGet]
-    public async Task<IActionResult> Export(string family = "sales", string report = "daily", DateTime? from = null, DateTime? to = null, string? search = null, CancellationToken cancellationToken = default)
+    public async Task<IActionResult> Export(string family = "sales", string report = "daily", DateTime? from = null, DateTime? to = null, string? search = null, string format = "csv", CancellationToken cancellationToken = default)
     {
         var canProfit = User.IsInRole(AppRoles.Owner) || User.IsInRole(AppRoles.Manager) || User.IsInRole(AppRoles.Accountant);
         if (family.Equals("profit", StringComparison.OrdinalIgnoreCase) && !canProfit)
             return Forbid();
 
         var result = await _reports.RunAsync(family, report, from, to, search, canProfit, cancellationToken);
+        var stamp = DateTime.UtcNow.ToString("yyyyMMdd");
+        if (string.Equals(format, "xlsx", StringComparison.OrdinalIgnoreCase))
+        {
+            var bytes = _reports.ToExcel(result);
+            return File(bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", $"{family}-{report}-{stamp}.xlsx");
+        }
+
         var csv = _reports.ToCsv(result);
-        var bytes = Encoding.UTF8.GetPreamble().Concat(Encoding.UTF8.GetBytes(csv)).ToArray();
-        return File(bytes, "text/csv", $"{family}-{report}-{DateTime.UtcNow:yyyyMMdd}.csv");
+        var csvBytes = Encoding.UTF8.GetPreamble().Concat(Encoding.UTF8.GetBytes(csv)).ToArray();
+        return File(csvBytes, "text/csv", $"{family}-{report}-{stamp}.csv");
     }
 }

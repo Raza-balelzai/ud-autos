@@ -60,8 +60,11 @@
             <div class="is-strong">New Balance <span>Rs. @Model.NewBalance.ToString("N2")</span></div>
         </div>
 
-        <p class="print-hint">Use browser Print → Save as PDF for PDF output. WhatsApp/share can wrap this URL later without changing accounting logic.</p>
-        <button type="button" class="btn-app btn-app--primary no-print" onclick="window.print()">Print / Save PDF</button>
+        <p class="print-hint">Prefer <strong>Download PDF</strong> from the invoice page for a dedicated PDF file. WhatsApp/share can wrap this URL later without changing accounting logic.</p>
+        <div class="no-print">
+            <a class="btn-app btn-app--primary" href="/Sales/Pdf/@Model.Id">Download PDF</a>
+            <button type="button" class="btn-app btn-app--outline" onclick="window.print()">Print</button>
+        </div>
     </div>
 </body>
 </html>

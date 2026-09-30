@@ -12,8 +12,9 @@
   --color-sidebar-active: #3b82f6;
   --color-bg: #f4f7fa;
   --color-surface: #ffffff;
-  --color-border: #e6ebf2;
-  --color-border-strong: #d5dde8;
+  --color-table-header: #eef2f7;
+  --color-table-header-text: #475569;
+  --color-table-row-hover: #f8fafc;
 
   /* Text */
   --color-text: #1f2937;

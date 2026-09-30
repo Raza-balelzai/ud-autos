@@ -12,6 +12,9 @@
     <a class="btn-app btn-app--outline" asp-action="Batches">Batches</a>
     <a class="btn-app btn-app--outline" asp-action="Movements">Movements</a>
     <a class="btn-app btn-app--outline" asp-action="LowStock">Low stock</a>
+    <a class="btn-app btn-app--outline" asp-action="Hold">Hold</a>
+    <a class="btn-app btn-app--outline" asp-action="Release">Release</a>
+    <a class="btn-app btn-app--outline" asp-controller="SupplierReturns" asp-action="Index">Supplier returns</a>
     <a class="btn-app btn-app--primary" asp-action="Adjust">Adjust stock</a>
 }
 
@@ -75,6 +78,8 @@
                         </td>
                         <td class="actions">
                             <a class="btn-app btn-app--outline btn-app--sm" asp-action="Batches" asp-route-productId="@p.Id">Batches</a>
+                            <a class="btn-app btn-app--outline btn-app--sm" asp-action="Hold" asp-route-productId="@p.Id">Hold</a>
+                            <a class="btn-app btn-app--outline btn-app--sm" asp-action="Release" asp-route-productId="@p.Id">Release</a>
                             <a class="btn-app btn-app--outline btn-app--sm" asp-action="Movements" asp-route-productId="@p.Id">Moves</a>
                         </td>
                     </tr>

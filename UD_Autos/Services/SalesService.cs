@@ -226,8 +226,15 @@ public class SalesService : ISalesService
                 $"Payment {payment.PaymentNumber}", nameof(CustomerPayment), payment.Id.ToString(), payment.PaymentNumber,
                 debit: 0, credit: paymentReceived, userId, cancellationToken);
 
-            var (okAlloc, allocError) = await _allocations.AllocateFifoAsync(payment.Id, userId, cancellationToken);
-            if (!okAlloc) return (false, allocError, null);
+            // Outstanding/AmountPaid already reflect this payment — allocate directly (do not FIFO again).
+            _db.PaymentAllocations.Add(new PaymentAllocation
+            {
+                CustomerPaymentId = payment.Id,
+                InvoiceId = invoice.Id,
+                Amount = paymentReceived,
+                CreatedAt = DateTime.UtcNow,
+                CreatedBy = userId
+            });
 
             await _cash.PostLinkedAsync(
                 CashBankMovementType.Collection, CashBankDirection.In, payment.Account, payment.PaymentDate, payment.Amount,
@@ -444,7 +451,9 @@ public class SalesService : ISalesService
         foreach (var batch in batches)
         {
             if (remaining <= 0) break;
-            var take = Math.Min(batch.RemainingQuantity, remaining);
+            var available = batch.RemainingQuantity - batch.ReservedQuantity;
+            if (available <= 0) continue;
+            var take = Math.Min(available, remaining);
             batch.RemainingQuantity -= take;
             batch.UpdatedAt = DateTime.UtcNow;
             batch.UpdatedBy = userId;

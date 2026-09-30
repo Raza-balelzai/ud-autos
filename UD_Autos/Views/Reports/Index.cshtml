@@ -5,7 +5,8 @@
 }
 
 @section PageActions {
-    <a class="btn-app btn-app--outline" asp-action="Export" asp-route-family="@Model.Family" asp-route-report="@Model.Report" asp-route-from="@Model.From.ToString("yyyy-MM-dd")" asp-route-to="@Model.To.ToString("yyyy-MM-dd")" asp-route-search="@Model.Search">Export CSV</a>
+    <a class="btn-app btn-app--outline" asp-action="Export" asp-route-family="@Model.Family" asp-route-report="@Model.Report" asp-route-from="@Model.From.ToString("yyyy-MM-dd")" asp-route-to="@Model.To.ToString("yyyy-MM-dd")" asp-route-search="@Model.Search" asp-route-format="csv">Export CSV</a>
+    <a class="btn-app btn-app--primary" asp-action="Export" asp-route-family="@Model.Family" asp-route-report="@Model.Report" asp-route-from="@Model.From.ToString("yyyy-MM-dd")" asp-route-to="@Model.To.ToString("yyyy-MM-dd")" asp-route-search="@Model.Search" asp-route-format="xlsx">Export Excel</a>
 }
 
 <div class="card-panel">

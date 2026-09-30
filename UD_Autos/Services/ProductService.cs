@@ -2,7 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using UD_Autos.Data;
 using UD_Autos.Models.Common;
 using UD_Autos.Models.Products;
-using UD_Autos.Models.Suppliers;
+using UD_Autos.Models.ViewModels;
 
 namespace UD_Autos.Services;
 
@@ -10,6 +10,7 @@ public interface IProductService
 {
     Task<PagedResult<Product>> SearchAsync(string? search, int? categoryId, string? sortBy, bool sortDesc, int page, int pageSize, CancellationToken cancellationToken = default);
     Task<Product?> GetByIdAsync(int id, bool includeHistory = false, CancellationToken cancellationToken = default);
+    Task<(IReadOnlyList<ProductPurchaseHistoryRow> Purchases, IReadOnlyList<ProductShipmentHistoryRow> Shipments, IReadOnlyList<ProductSalesHistoryRow> Sales)> GetHistoryAsync(int productId, CancellationToken cancellationToken = default);
     Task<(bool Ok, string? Error, Product? Product)> CreateAsync(Product product, string? userId, CancellationToken cancellationToken = default);
     Task<(bool Ok, string? Error)> UpdateAsync(Product product, string? userId, string? priceChangeReason = null, CancellationToken cancellationToken = default);
     Task<(bool Ok, string? Error)> SoftDeleteAsync(int id, string? userId, CancellationToken cancellationToken = default);
@@ -48,6 +49,7 @@ public class ProductService : IProductService
             query = query.Where(p =>
                 p.Sku.Contains(term) ||
                 p.Name.Contains(term) ||
+                (p.Barcode != null && p.Barcode.Contains(term)) ||
                 (p.Brand != null && p.Brand.Contains(term)) ||
                 (p.VehicleBrand != null && p.VehicleBrand.Contains(term)) ||
                 (p.VehicleModel != null && p.VehicleModel.Contains(term)));
@@ -100,6 +102,65 @@ public class ProductService : IProductService
         return await query.FirstOrDefaultAsync(p => p.Id == id, cancellationToken);
     }
 
+    public async Task<(IReadOnlyList<ProductPurchaseHistoryRow> Purchases, IReadOnlyList<ProductShipmentHistoryRow> Shipments, IReadOnlyList<ProductSalesHistoryRow> Sales)> GetHistoryAsync(
+        int productId, CancellationToken cancellationToken = default)
+    {
+        const int take = 50;
+
+        var purchases = await _db.PurchaseOrderItems.AsNoTracking()
+            .Where(i => i.ProductId == productId)
+            .OrderByDescending(i => i.PurchaseOrder.OrderDate)
+            .ThenByDescending(i => i.Id)
+            .Take(take)
+            .Select(i => new ProductPurchaseHistoryRow
+            {
+                PurchaseOrderId = i.PurchaseOrderId,
+                PoNumber = i.PurchaseOrder.PoNumber,
+                OrderDate = i.PurchaseOrder.OrderDate,
+                SupplierName = i.PurchaseOrder.Supplier.Name,
+                Quantity = i.Quantity,
+                UnitPriceRmb = i.UnitPriceRmb,
+                LineTotalRmb = i.LineTotalRmb
+            })
+            .ToListAsync(cancellationToken);
+
+        var shipments = await _db.ShipmentItems.AsNoTracking()
+            .Where(i => i.ProductId == productId)
+            .OrderByDescending(i => i.Shipment.Id)
+            .Take(take)
+            .Select(i => new ProductShipmentHistoryRow
+            {
+                ShipmentId = i.ShipmentId,
+                ShipmentNumber = i.Shipment.ShipmentNumber,
+                Status = i.Shipment.Status,
+                ExpectedQuantity = i.ExpectedQuantity,
+                ActualQuantity = i.ActualQuantity,
+                ChinaWarehouseReceivedDate = i.Shipment.ChinaWarehouseReceivedDate,
+                TarnolArrivalDate = i.Shipment.TarnolArrivalDate,
+                LandedUnitCostPkr = i.LandedUnitCostPkr
+            })
+            .ToListAsync(cancellationToken);
+
+        var sales = await _db.InvoiceItems.AsNoTracking()
+            .Where(i => i.ProductId == productId && !i.Invoice.IsVoided)
+            .OrderByDescending(i => i.Invoice.InvoiceDate)
+            .ThenByDescending(i => i.Id)
+            .Take(take)
+            .Select(i => new ProductSalesHistoryRow
+            {
+                InvoiceId = i.InvoiceId,
+                InvoiceNumber = i.Invoice.InvoiceNumber,
+                InvoiceDate = i.Invoice.InvoiceDate,
+                CustomerName = i.Invoice.Customer.ShopName ?? i.Invoice.Customer.Name,
+                Quantity = i.Quantity,
+                UnitPrice = i.UnitPrice,
+                LineTotal = i.LineTotal
+            })
+            .ToListAsync(cancellationToken);
+
+        return (purchases, shipments, sales);
+    }
+
     public async Task<(bool Ok, string? Error, Product? Product)> CreateAsync(
         Product product, string? userId, CancellationToken cancellationToken = default)
     {
@@ -112,6 +173,13 @@ public class ProductService : IProductService
         if (await _db.Products.AnyAsync(p => p.Sku == product.Sku, cancellationToken))
         {
             return (false, $"SKU '{product.Sku}' already exists.", null);
+        }
+
+        product.Barcode = NormalizeBarcode(product.Barcode);
+        if (product.Barcode is not null &&
+            await _db.Products.AnyAsync(p => p.Barcode == product.Barcode, cancellationToken))
+        {
+            return (false, $"Barcode '{product.Barcode}' already exists.", null);
         }
 
         if (product.MinimumSalePrice > 0 &&
@@ -175,6 +243,13 @@ public class ProductService : IProductService
             return (false, $"SKU '{product.Sku}' already exists.");
         }
 
+        product.Barcode = NormalizeBarcode(product.Barcode);
+        if (product.Barcode is not null &&
+            await _db.Products.AnyAsync(p => p.Barcode == product.Barcode && p.Id != product.Id, cancellationToken))
+        {
+            return (false, $"Barcode '{product.Barcode}' already exists.");
+        }
+
         if (product.MinimumSalePrice > 0 &&
             (product.WholesalePrice < product.MinimumSalePrice || product.RetailPrice < product.MinimumSalePrice))
         {
@@ -188,6 +263,7 @@ public class ProductService : IProductService
         var oldMin = existing.MinimumSalePrice;
 
         existing.Sku = product.Sku;
+        existing.Barcode = product.Barcode;
         existing.Name = product.Name;
         existing.CategoryId = product.CategoryId;
         existing.Brand = product.Brand;
@@ -284,6 +360,13 @@ public class ProductService : IProductService
         await _db.SaveChangesAsync(cancellationToken);
         await _audit.LogAsync("SoftDelete", nameof(Product), existing.Id.ToString(), existing.Sku, cancellationToken: cancellationToken);
         return (true, null);
+    }
+
+    private static string? NormalizeBarcode(string? barcode)
+    {
+        if (string.IsNullOrWhiteSpace(barcode))
+            return null;
+        return barcode.Trim();
     }
 
     private static void RecalculateCbm(Product product)

@@ -13,6 +13,8 @@ public interface IInventoryService
     Task<PagedResult<StockMovement>> GetMovementsAsync(int? productId, StockMovementType? type, DateTime? from, DateTime? to, int page, int pageSize, CancellationToken cancellationToken = default);
     Task<(bool Ok, string? Error)> AdjustStockAsync(int productId, int? batchId, decimal quantityDelta, string reason, string? userId, CancellationToken cancellationToken = default);
     Task<(bool Ok, string? Error)> MarkDamagedAsync(int productId, int batchId, decimal quantity, string reason, string? userId, CancellationToken cancellationToken = default);
+    Task<(bool Ok, string? Error)> HoldStockAsync(int productId, int? batchId, decimal quantity, string reason, string? userId, CancellationToken cancellationToken = default);
+    Task<(bool Ok, string? Error)> ReleaseStockAsync(int productId, int? batchId, decimal quantity, string reason, string? userId, CancellationToken cancellationToken = default);
 }
 
 public class InventoryService : IInventoryService
@@ -203,6 +205,94 @@ public class InventoryService : IInventoryService
 
         await _db.SaveChangesAsync(cancellationToken);
         await _audit.LogAsync("MarkDamaged", nameof(InventoryBatch), batch.Id.ToString(), batch.BatchNumber, reason, cancellationToken: cancellationToken);
+        await tx.CommitAsync(cancellationToken);
+        return (true, null);
+    }
+
+    public async Task<(bool Ok, string? Error)> HoldStockAsync(
+        int productId, int? batchId, decimal quantity, string reason, string? userId, CancellationToken cancellationToken = default)
+    {
+        if (quantity <= 0) return (false, "Hold quantity must be greater than zero.");
+        if (string.IsNullOrWhiteSpace(reason)) return (false, "Reason is required.");
+
+        await using var tx = await _db.Database.BeginTransactionAsync(cancellationToken);
+
+        var product = await _db.Products.FirstOrDefaultAsync(p => p.Id == productId, cancellationToken);
+        if (product is null) return (false, "Product not found.");
+
+        InventoryBatch? batch = null;
+        if (batchId.HasValue)
+        {
+            batch = await _db.InventoryBatches.FirstOrDefaultAsync(b => b.Id == batchId && b.ProductId == productId, cancellationToken);
+            if (batch is null) return (false, "Batch not found.");
+            var batchAvailable = batch.RemainingQuantity - batch.ReservedQuantity;
+            if (quantity > batchAvailable)
+                return (false, $"Only {batchAvailable:N2} available to hold on this batch.");
+            batch.ReservedQuantity += quantity;
+            batch.UpdatedAt = DateTime.UtcNow;
+            batch.UpdatedBy = userId;
+        }
+
+        var productAvailable = product.CurrentStock - product.ReservedQuantity;
+        if (quantity > productAvailable)
+            return (false, $"Only {productAvailable:N2} available to hold for this product.");
+
+        product.ReservedQuantity += quantity;
+        product.UpdatedAt = DateTime.UtcNow;
+        product.UpdatedBy = userId;
+
+        await _db.SaveChangesAsync(cancellationToken);
+        await _audit.LogAsync(
+            "StockHold",
+            nameof(Product),
+            product.Id.ToString(),
+            product.Sku,
+            reason.Trim(),
+            newValues: new { quantity, batchId, product.ReservedQuantity, BatchReserved = batch?.ReservedQuantity },
+            cancellationToken: cancellationToken);
+        await tx.CommitAsync(cancellationToken);
+        return (true, null);
+    }
+
+    public async Task<(bool Ok, string? Error)> ReleaseStockAsync(
+        int productId, int? batchId, decimal quantity, string reason, string? userId, CancellationToken cancellationToken = default)
+    {
+        if (quantity <= 0) return (false, "Release quantity must be greater than zero.");
+        if (string.IsNullOrWhiteSpace(reason)) return (false, "Reason is required.");
+
+        await using var tx = await _db.Database.BeginTransactionAsync(cancellationToken);
+
+        var product = await _db.Products.FirstOrDefaultAsync(p => p.Id == productId, cancellationToken);
+        if (product is null) return (false, "Product not found.");
+
+        InventoryBatch? batch = null;
+        if (batchId.HasValue)
+        {
+            batch = await _db.InventoryBatches.FirstOrDefaultAsync(b => b.Id == batchId && b.ProductId == productId, cancellationToken);
+            if (batch is null) return (false, "Batch not found.");
+            if (quantity > batch.ReservedQuantity)
+                return (false, $"Batch only has {batch.ReservedQuantity:N2} reserved.");
+            batch.ReservedQuantity -= quantity;
+            batch.UpdatedAt = DateTime.UtcNow;
+            batch.UpdatedBy = userId;
+        }
+
+        if (quantity > product.ReservedQuantity)
+            return (false, $"Product only has {product.ReservedQuantity:N2} reserved.");
+
+        product.ReservedQuantity -= quantity;
+        product.UpdatedAt = DateTime.UtcNow;
+        product.UpdatedBy = userId;
+
+        await _db.SaveChangesAsync(cancellationToken);
+        await _audit.LogAsync(
+            "StockRelease",
+            nameof(Product),
+            product.Id.ToString(),
+            product.Sku,
+            reason.Trim(),
+            newValues: new { quantity, batchId, product.ReservedQuantity, BatchReserved = batch?.ReservedQuantity },
+            cancellationToken: cancellationToken);
         await tx.CommitAsync(cancellationToken);
         return (true, null);
     }

@@ -6,7 +6,8 @@
 }
 
 @section PageActions {
-    <a class="btn-app btn-app--outline" asp-action="Print" asp-route-id="@Model.Id" target="_blank">Print / PDF</a>
+    <a class="btn-app btn-app--primary" asp-action="Pdf" asp-route-id="@Model.Id">Download PDF</a>
+    <a class="btn-app btn-app--outline" asp-action="Print" asp-route-id="@Model.Id" target="_blank">Print</a>
     @if (!Model.IsVoided)
     {
         <a class="btn-app btn-app--outline" asp-controller="SalesReturns" asp-action="Create" asp-route-invoiceId="@Model.Id">Return</a>

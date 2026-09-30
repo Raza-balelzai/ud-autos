@@ -14,11 +14,13 @@ public class SalesController : Controller
 {
     private readonly ISalesService _sales;
     private readonly ApplicationDbContext _db;
+    private readonly IInvoicePdfService _pdf;
 
-    public SalesController(ISalesService sales, ApplicationDbContext db)
+    public SalesController(ISalesService sales, ApplicationDbContext db, IInvoicePdfService pdf)
     {
         _sales = sales;
         _db = db;
+        _pdf = pdf;
     }
 
     public async Task<IActionResult> Index(string? search, int? customerId, DateTime? from, DateTime? to, int page = 1, CancellationToken cancellationToken = default)
@@ -108,6 +110,14 @@ public class SalesController : Controller
         return View(invoice);
     }
 
+    public async Task<IActionResult> Pdf(int id, CancellationToken cancellationToken = default)
+    {
+        var invoice = await _sales.GetInvoiceAsync(id, cancellationToken);
+        if (invoice is null) return NotFound();
+        var bytes = _pdf.Generate(invoice);
+        return File(bytes, "application/pdf", $"{invoice.InvoiceNumber}.pdf");
+    }
+
     public async Task<IActionResult> Daily(string? range, DateTime? from, DateTime? to, CancellationToken cancellationToken = default)
     {
         var (start, end) = ResolveRange(range, from, to);
@@ -123,13 +133,17 @@ public class SalesController : Controller
     {
         q ??= "";
         var products = await _db.Products.AsNoTracking()
-            .Where(p => p.IsActive && (p.Sku.Contains(q) || p.Name.Contains(q)))
+            .Where(p => p.IsActive && (
+                p.Sku.Contains(q) ||
+                p.Name.Contains(q) ||
+                (p.Barcode != null && p.Barcode.Contains(q))))
             .OrderBy(p => p.Name)
             .Take(20)
             .Select(p => new
             {
                 p.Id,
                 p.Sku,
+                p.Barcode,
                 p.Name,
                 p.WholesalePrice,
                 p.RetailPrice,

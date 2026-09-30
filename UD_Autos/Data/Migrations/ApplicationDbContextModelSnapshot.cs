@@ -785,6 +785,116 @@ namespace UD_Autos.Data.Migrations
                     b.ToTable("StockMovements");
                 });
 
+            modelBuilder.Entity("UD_Autos.Models.Inventory.SupplierReturn", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<DateTime>("ReturnDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("ReturnNumber")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)");
+
+                    b.Property<int?>("ShipmentId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("SupplierId")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("TotalQuantity")
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ReturnDate");
+
+                    b.HasIndex("ReturnNumber")
+                        .IsUnique();
+
+                    b.HasIndex("ShipmentId");
+
+                    b.HasIndex("SupplierId");
+
+                    b.ToTable("SupplierReturns");
+                });
+
+            modelBuilder.Entity("UD_Autos.Models.Inventory.SupplierReturnItem", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("InventoryBatchId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(250)
+                        .HasColumnType("nvarchar(250)");
+
+                    b.Property<int>("ProductId")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("Quantity")
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<int>("SupplierReturnId")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("UnitCostPkr")
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("InventoryBatchId");
+
+                    b.HasIndex("ProductId");
+
+                    b.HasIndex("SupplierReturnId", "ProductId");
+
+                    b.ToTable("SupplierReturnItems");
+                });
+
             modelBuilder.Entity("UD_Autos.Models.Products.Product", b =>
                 {
                     b.Property<int>("Id")
@@ -795,6 +905,10 @@ namespace UD_Autos.Data.Migrations
 
                     b.Property<decimal?>("AverageCost")
                         .HasColumnType("decimal(18,4)");
+
+                    b.Property<string>("Barcode")
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
 
                     b.Property<string>("Brand")
                         .HasMaxLength(100)
@@ -912,6 +1026,10 @@ namespace UD_Autos.Data.Migrations
                         .HasColumnType("decimal(18,4)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("Barcode")
+                        .IsUnique()
+                        .HasFilter("[Barcode] IS NOT NULL");
 
                     b.HasIndex("CategoryId");
 
@@ -2439,6 +2557,51 @@ namespace UD_Autos.Data.Migrations
                     b.Navigation("Product");
                 });
 
+            modelBuilder.Entity("UD_Autos.Models.Inventory.SupplierReturn", b =>
+                {
+                    b.HasOne("UD_Autos.Models.Shipments.Shipment", "Shipment")
+                        .WithMany()
+                        .HasForeignKey("ShipmentId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("UD_Autos.Models.Suppliers.Supplier", "Supplier")
+                        .WithMany()
+                        .HasForeignKey("SupplierId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Shipment");
+
+                    b.Navigation("Supplier");
+                });
+
+            modelBuilder.Entity("UD_Autos.Models.Inventory.SupplierReturnItem", b =>
+                {
+                    b.HasOne("UD_Autos.Models.Inventory.InventoryBatch", "InventoryBatch")
+                        .WithMany()
+                        .HasForeignKey("InventoryBatchId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("UD_Autos.Models.Products.Product", "Product")
+                        .WithMany()
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("UD_Autos.Models.Inventory.SupplierReturn", "SupplierReturn")
+                        .WithMany("Items")
+                        .HasForeignKey("SupplierReturnId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("InventoryBatch");
+
+                    b.Navigation("Product");
+
+                    b.Navigation("SupplierReturn");
+                });
+
             modelBuilder.Entity("UD_Autos.Models.Products.Product", b =>
                 {
                     b.HasOne("UD_Autos.Models.Settings.ProductCategory", "Category")
@@ -2744,6 +2907,11 @@ namespace UD_Autos.Data.Migrations
                         .IsRequired();
 
                     b.Navigation("Shipment");
+                });
+
+            modelBuilder.Entity("UD_Autos.Models.Inventory.SupplierReturn", b =>
+                {
+                    b.Navigation("Items");
                 });
 
             modelBuilder.Entity("UD_Autos.Models.Products.Product", b =>

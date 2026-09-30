@@ -140,19 +140,13 @@
 
         <div class="app-main">
             <header class="app-topbar">
-                <div class="app-search">
+                <div class="app-search" data-global-search>
                     <svg class="app-search__icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
-                    <input type="search" placeholder="Search products, customers, invoices, shipments..." aria-label="Global search" />
+                    <input id="global-search-input" type="search" placeholder="Search products, customers, invoices, shipments..." aria-label="Global search" autocomplete="off" />
+                    <div class="app-dropdown app-dropdown--search" id="global-search-results" hidden role="listbox" aria-label="Search results"></div>
                 </div>
                 <div class="app-topbar__actions">
-                    <button type="button" class="app-icon-btn" aria-label="Notifications">
-                        <svg viewBox="0 0 24 24"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10 21a2 2 0 0 0 4 0"/></svg>
-                        <span class="app-icon-btn__badge">3</span>
-                    </button>
-                    <button type="button" class="app-icon-btn" aria-label="Messages">
-                        <svg viewBox="0 0 24 24"><path d="M4 4h16v12H7l-3 3z"/></svg>
-                        <span class="app-icon-btn__badge">7</span>
-                    </button>
+                    @await Component.InvokeAsync("Alerts")
                     <div class="app-user">
                         <div class="app-user__avatar">@initials</div>
                         <div class="app-user__meta">

@@ -1,0 +1,34 @@
+@model IReadOnlyList<UD_Autos.Services.OperationalAlertItem>
+@{
+    var count = Model.Count;
+}
+<div class="app-notify" data-dropdown>
+    <button type="button" class="app-icon-btn" aria-label="Notifications" aria-expanded="false" data-dropdown-toggle>
+        <svg viewBox="0 0 24 24"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10 21a2 2 0 0 0 4 0"/></svg>
+        @if (count > 0)
+        {
+            <span class="app-icon-btn__badge">@count</span>
+        }
+    </button>
+    <div class="app-dropdown" hidden data-dropdown-panel>
+        <div class="app-dropdown__header">Alerts</div>
+        @if (count == 0)
+        {
+            <p class="app-dropdown__empty">No alerts</p>
+        }
+        else
+        {
+            <ul class="app-dropdown__list">
+                @foreach (var a in Model)
+                {
+                    <li>
+                        <a class="app-dropdown__item" href="@a.Url">
+                            <span class="app-dropdown__item-title">@a.Title</span>
+                            <span class="app-dropdown__item-detail">@a.Detail</span>
+                        </a>
+                    </li>
+                }
+            </ul>
+        }
+    </div>
+</div>

@@ -56,8 +56,13 @@ public interface IDashboardService
 public class DashboardService : IDashboardService
 {
     private readonly ApplicationDbContext _db;
+    private readonly IOperationalAlertService _alerts;
 
-    public DashboardService(ApplicationDbContext db) => _db = db;
+    public DashboardService(ApplicationDbContext db, IOperationalAlertService alerts)
+    {
+        _db = db;
+        _alerts = alerts;
+    }
 
     public async Task<DashboardVm> GetAsync(bool canViewProfit, CancellationToken cancellationToken = default)
     {
@@ -172,18 +177,8 @@ public class DashboardService : IDashboardService
             })
             .ToListAsync(cancellationToken);
 
-        var alerts = new List<string>();
-        var lowStock = await _db.Products.AsNoTracking()
-            .Where(p => p.IsActive && p.ReorderLevel > 0 && p.CurrentStock <= p.ReorderLevel)
-            .CountAsync(cancellationToken);
-        if (lowStock > 0) alerts.Add($"{lowStock} product(s) at or below reorder level.");
-        var overdueCust = await _db.Invoices.AsNoTracking()
-            .Where(i => !i.IsVoided && i.OutstandingAmount > 0 && i.InvoiceDate <= overdueCutoff)
-            .Select(i => i.CustomerId).Distinct().CountAsync(cancellationToken);
-        if (overdueCust > 0) alerts.Add($"{overdueCust} customer(s) have invoices overdue 30+ days.");
-        var stuck = await _db.Shipments.AsNoTracking()
-            .CountAsync(s => s.Status == ShipmentStatus.InTransit && s.UpdatedAt < today.AddDays(-14), cancellationToken);
-        if (stuck > 0) alerts.Add($"{stuck} shipment(s) in transit for 14+ days.");
+        var operationalAlerts = await _alerts.GetAlertsAsync(cancellationToken);
+        var alerts = operationalAlerts.Select(a => a.Detail).ToList();
 
         var todayGross = todayInvoices.Sum(i => i.GrossProfit);
         var monthGross = monthInvoices.Sum(i => i.GrossProfit);

@@ -88,4 +88,62 @@ public class InventoryController : Controller
 
     public async Task<IActionResult> LowStock(CancellationToken cancellationToken = default)
         => RedirectToAction(nameof(Index), new { lowStock = true });
+
+    public async Task<IActionResult> Hold(int? productId, int? batchId, CancellationToken cancellationToken = default)
+    {
+        ViewData["Title"] = "Hold Stock";
+        ViewData["Subtitle"] = "Reserve quantity so it cannot be sold until released.";
+        await LoadHoldReleaseLookupsAsync(productId, cancellationToken);
+        return View("HoldRelease", new StockHoldReleaseViewModel
+        {
+            ProductId = productId ?? 0,
+            BatchId = batchId,
+            Mode = "hold"
+        });
+    }
+
+    public async Task<IActionResult> Release(int? productId, int? batchId, CancellationToken cancellationToken = default)
+    {
+        ViewData["Title"] = "Release Held Stock";
+        ViewData["Subtitle"] = "Return reserved quantity to available stock.";
+        await LoadHoldReleaseLookupsAsync(productId, cancellationToken);
+        return View("HoldRelease", new StockHoldReleaseViewModel
+        {
+            ProductId = productId ?? 0,
+            BatchId = batchId,
+            Mode = "release"
+        });
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Hold(StockHoldReleaseViewModel model, CancellationToken cancellationToken = default)
+    {
+        model.Mode = "hold";
+        var (ok, error) = await _inventory.HoldStockAsync(model.ProductId, model.BatchId, model.Quantity, model.Reason, User.GetUserId(), cancellationToken);
+        TempData[ok ? "Success" : "Error"] = ok ? "Stock held." : error;
+        return ok
+            ? RedirectToAction(nameof(Index))
+            : RedirectToAction(nameof(Hold), new { productId = model.ProductId, batchId = model.BatchId });
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Release(StockHoldReleaseViewModel model, CancellationToken cancellationToken = default)
+    {
+        model.Mode = "release";
+        var (ok, error) = await _inventory.ReleaseStockAsync(model.ProductId, model.BatchId, model.Quantity, model.Reason, User.GetUserId(), cancellationToken);
+        TempData[ok ? "Success" : "Error"] = ok ? "Held stock released." : error;
+        return ok
+            ? RedirectToAction(nameof(Index))
+            : RedirectToAction(nameof(Release), new { productId = model.ProductId, batchId = model.BatchId });
+    }
+
+    private async Task LoadHoldReleaseLookupsAsync(int? productId, CancellationToken cancellationToken)
+    {
+        ViewBag.Products = await _db.Products.AsNoTracking().Where(p => p.IsActive).OrderBy(p => p.Name).ToListAsync(cancellationToken);
+        ViewBag.Batches = productId is > 0
+            ? await _inventory.GetBatchesAsync(productId, null, cancellationToken)
+            : Array.Empty<InventoryBatch>();
+    }
 }

@@ -44,3 +44,18 @@ public class DamageStockViewModel
     [Required, StringLength(500)]
     public string Reason { get; set; } = string.Empty;
 }
+
+public class StockHoldReleaseViewModel
+{
+    public int ProductId { get; set; }
+    public int? BatchId { get; set; }
+
+    [Range(0.0001, double.MaxValue)]
+    public decimal Quantity { get; set; }
+
+    [Required, StringLength(500)]
+    public string Reason { get; set; } = string.Empty;
+
+    /// <summary>hold or release</summary>
+    public string Mode { get; set; } = "hold";
+}

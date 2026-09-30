@@ -42,10 +42,19 @@ public class ProductsController : Controller
         var product = await _products.GetByIdAsync(id, includeHistory: true, cancellationToken);
         if (product is null) return NotFound();
 
+        var (purchases, shipments, sales) = await _products.GetHistoryAsync(id, cancellationToken);
+        var canViewCosts = User.IsInRole(AppRoles.Owner) || User.IsInRole(AppRoles.Manager) || User.IsInRole(AppRoles.Accountant);
+
         ViewData["Title"] = product.Name;
         ViewData["Subtitle"] = product.Sku;
-        ViewBag.CanViewCosts = User.IsInRole(AppRoles.Owner) || User.IsInRole(AppRoles.Manager) || User.IsInRole(AppRoles.Accountant);
-        return View(product);
+        return View(new ProductDetailsViewModel
+        {
+            Product = product,
+            CanViewCosts = canViewCosts,
+            PurchaseHistory = purchases,
+            ShipmentHistory = shipments,
+            SalesHistory = sales
+        });
     }
 
     public async Task<IActionResult> Create(CancellationToken cancellationToken = default)

@@ -16,6 +16,11 @@
             <input asp-for="Product.Sku" class="input-app" placeholder="Leave blank to auto-generate" />
             <span asp-validation-for="Product.Sku" class="field-error"></span>
         </div>
+        <div class="field">
+            <label asp-for="Product.Barcode">Barcode</label>
+            <input asp-for="Product.Barcode" class="input-app" placeholder="Optional barcode / scan code" />
+            <span asp-validation-for="Product.Barcode" class="field-error"></span>
+        </div>
         <div class="field form-grid--full">
             <label asp-for="Product.Name">Product Name</label>
             <input asp-for="Product.Name" class="input-app" />

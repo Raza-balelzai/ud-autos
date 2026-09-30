@@ -13,6 +13,9 @@ public class Product : AuditableEntity
     [Required, StringLength(60)]
     public string Sku { get; set; } = string.Empty;
 
+    [StringLength(64)]
+    public string? Barcode { get; set; }
+
     [Required, StringLength(250)]
     public string Name { get; set; } = string.Empty;
 

@@ -1,4 +1,5 @@
 using System.Text;
+using ClosedXML.Excel;
 using Microsoft.EntityFrameworkCore;
 using UD_Autos.Data;
 using UD_Autos.Models.Customers;
@@ -40,6 +41,7 @@ public interface IReportService
 {
     Task<ReportResult> RunAsync(string family, string report, DateTime? from, DateTime? to, string? search, bool canViewProfit, CancellationToken cancellationToken = default);
     string ToCsv(ReportResult report);
+    byte[] ToExcel(ReportResult report);
 }
 
 public class ReportService : IReportService
@@ -734,20 +736,37 @@ public class ReportService : IReportService
         sb.AppendLine(string.Join(",", report.Headers.Select(Escape)));
         foreach (var r in report.Rows)
         {
-            var cells = new List<string>();
-            foreach (var h in report.Headers)
-            {
-                // Map by header position heuristically using available fields in order
-            }
-            var values = new[] { r.Col1, r.Col2, r.Col3, r.Col4, r.Col5, r.Col6 }
-                .Concat(new[] { r.Amount1, r.Amount2, r.Amount3 }.Select(a => a?.ToString("0.##") ?? ""))
-                .Where((_, i) => i < report.Headers.Count)
-                .Select(Escape);
-            // Better: emit non-empty logical columns matching header count
             var ordered = BuildCsvCells(r, report.Headers.Count);
             sb.AppendLine(string.Join(",", ordered.Select(Escape)));
         }
         return sb.ToString();
+    }
+
+    public byte[] ToExcel(ReportResult report)
+    {
+        using var workbook = new XLWorkbook();
+        var sheetName = string.IsNullOrWhiteSpace(report.Title) ? "Report" : report.Title;
+        if (sheetName.Length > 31) sheetName = sheetName[..31];
+        var ws = workbook.Worksheets.Add(sheetName);
+
+        for (var c = 0; c < report.Headers.Count; c++)
+            ws.Cell(1, c + 1).Value = report.Headers[c];
+
+        ws.Row(1).Style.Font.Bold = true;
+
+        var rowIdx = 2;
+        foreach (var r in report.Rows)
+        {
+            var cells = BuildCsvCells(r, report.Headers.Count).ToList();
+            for (var c = 0; c < cells.Count; c++)
+                ws.Cell(rowIdx, c + 1).Value = cells[c];
+            rowIdx++;
+        }
+
+        ws.Columns().AdjustToContents();
+        using var stream = new MemoryStream();
+        workbook.SaveAs(stream);
+        return stream.ToArray();
     }
 
     private static IEnumerable<string> BuildCsvCells(ReportRow r, int count)

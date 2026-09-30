@@ -42,6 +42,8 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<ShipmentTimelineEvent> ShipmentTimelineEvents => Set<ShipmentTimelineEvent>();
     public DbSet<InventoryBatch> InventoryBatches => Set<InventoryBatch>();
     public DbSet<StockMovement> StockMovements => Set<StockMovement>();
+    public DbSet<SupplierReturn> SupplierReturns => Set<SupplierReturn>();
+    public DbSet<SupplierReturnItem> SupplierReturnItems => Set<SupplierReturnItem>();
     public DbSet<Invoice> Invoices => Set<Invoice>();
     public DbSet<InvoiceItem> InvoiceItems => Set<InvoiceItem>();
     public DbSet<InvoiceItemBatchAllocation> InvoiceItemBatchAllocations => Set<InvoiceItemBatchAllocation>();
@@ -62,6 +64,8 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
         builder.ConfigurePhase4();
         builder.ConfigurePhase5();
         builder.ConfigurePhase6();
+        builder.ConfigurePhase7();
+        builder.ConfigurePhase8();
 
         builder.Entity<ProductCategory>(e =>
         {

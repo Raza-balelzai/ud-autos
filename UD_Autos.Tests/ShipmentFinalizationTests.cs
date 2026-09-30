@@ -36,6 +36,7 @@ public class ShipmentFinalizationTests
         public Task<string> NextInvoiceNumberAsync(CancellationToken cancellationToken = default) => Task.FromResult("INV-1");
         public Task<string> NextPaymentNumberAsync(CancellationToken cancellationToken = default) => Task.FromResult("RCV-1");
         public Task<string> NextReturnNumberAsync(CancellationToken cancellationToken = default) => Task.FromResult("SRN-1");
+        public Task<string> NextSupplierReturnNumberAsync(CancellationToken cancellationToken = default) => Task.FromResult("SPR-1");
         public Task<string> NextExpenseNumberAsync(CancellationToken cancellationToken = default) => Task.FromResult("EXP-1");
         public Task<string> NextCashMovementNumberAsync(CancellationToken cancellationToken = default) => Task.FromResult("CBM-1");
     }

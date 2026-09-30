@@ -1,12 +1,13 @@
-@model Product
+@model ProductDetailsViewModel
 @{
-    var canViewCosts = ViewBag.CanViewCosts as bool? ?? false;
+    var p = Model.Product;
+    var canViewCosts = Model.CanViewCosts;
 }
 
 @section PageActions {
-    <a class="btn-app btn-app--outline" asp-action="Edit" asp-route-id="@Model.Id">Edit</a>
+    <a class="btn-app btn-app--outline" asp-action="Edit" asp-route-id="@p.Id">Edit</a>
     <form asp-action="Delete" method="post">
-        <input type="hidden" name="id" value="@Model.Id" />
+        <input type="hidden" name="id" value="@p.Id" />
         @Html.AntiForgeryToken()
         <button type="submit" class="btn-app btn-app--danger" onclick="return confirm('Deactivate this product?');">Deactivate</button>
     </form>
@@ -17,36 +18,39 @@
         <a class="is-active" href="#overview">Overview</a>
         <a href="#stock">Stock</a>
         <a href="#price">Price History</a>
-        <span class="badge-app badge-app--neutral">Purchase / Shipment / Sales history — later phases</span>
+        <a href="#purchases">Purchases</a>
+        <a href="#shipments">Shipments</a>
+        <a href="#sales">Sales</a>
     </div>
 
     <div id="overview" class="detail-grid">
-        <div class="detail-item"><dt>SKU</dt><dd>@Model.Sku</dd></div>
-        <div class="detail-item"><dt>Name</dt><dd>@Model.Name</dd></div>
-        <div class="detail-item"><dt>Category</dt><dd>@(Model.Category?.Name ?? "—")</dd></div>
-        <div class="detail-item"><dt>Brand</dt><dd>@(Model.Brand ?? "—")</dd></div>
-        <div class="detail-item"><dt>Vehicle</dt><dd>@(Model.VehicleBrand) @(Model.VehicleModel) @(Model.VariantYear)</dd></div>
-        <div class="detail-item"><dt>Unit</dt><dd>@(Model.Unit?.Name ?? "—")</dd></div>
-        <div class="detail-item"><dt>Supplier</dt><dd>@(Model.DefaultSupplier?.Name ?? "—")</dd></div>
-        <div class="detail-item"><dt>Wholesale</dt><dd>Rs. @Model.WholesalePrice.ToString("N2")</dd></div>
-        <div class="detail-item"><dt>Retail</dt><dd>Rs. @Model.RetailPrice.ToString("N2")</dd></div>
-        <div class="detail-item"><dt>Min Sale</dt><dd>Rs. @Model.MinimumSalePrice.ToString("N2")</dd></div>
+        <div class="detail-item"><dt>SKU</dt><dd>@p.Sku</dd></div>
+        <div class="detail-item"><dt>Barcode</dt><dd>@(p.Barcode ?? "—")</dd></div>
+        <div class="detail-item"><dt>Name</dt><dd>@p.Name</dd></div>
+        <div class="detail-item"><dt>Category</dt><dd>@(p.Category?.Name ?? "—")</dd></div>
+        <div class="detail-item"><dt>Brand</dt><dd>@(p.Brand ?? "—")</dd></div>
+        <div class="detail-item"><dt>Vehicle</dt><dd>@(p.VehicleBrand) @(p.VehicleModel) @(p.VariantYear)</dd></div>
+        <div class="detail-item"><dt>Unit</dt><dd>@(p.Unit?.Name ?? "—")</dd></div>
+        <div class="detail-item"><dt>Supplier</dt><dd>@(p.DefaultSupplier?.Name ?? "—")</dd></div>
+        <div class="detail-item"><dt>Wholesale</dt><dd>Rs. @p.WholesalePrice.ToString("N2")</dd></div>
+        <div class="detail-item"><dt>Retail</dt><dd>Rs. @p.RetailPrice.ToString("N2")</dd></div>
+        <div class="detail-item"><dt>Min Sale</dt><dd>Rs. @p.MinimumSalePrice.ToString("N2")</dd></div>
         @if (canViewCosts)
         {
-            <div class="detail-item"><dt>Latest RMB</dt><dd>¥ @(Model.LatestRmbPrice?.ToString("N4") ?? "—")</dd></div>
-            <div class="detail-item"><dt>Previous RMB</dt><dd>¥ @(Model.PreviousRmbPrice?.ToString("N4") ?? "—")</dd></div>
-            <div class="detail-item"><dt>Latest Landed</dt><dd>Rs. @(Model.LatestLandedCost?.ToString("N4") ?? "—")</dd></div>
-            <div class="detail-item"><dt>Average Cost</dt><dd>Rs. @(Model.AverageCost?.ToString("N4") ?? "—")</dd></div>
+            <div class="detail-item"><dt>Latest RMB</dt><dd>¥ @(p.LatestRmbPrice?.ToString("N4") ?? "—")</dd></div>
+            <div class="detail-item"><dt>Previous RMB</dt><dd>¥ @(p.PreviousRmbPrice?.ToString("N4") ?? "—")</dd></div>
+            <div class="detail-item"><dt>Latest Landed</dt><dd>Rs. @(p.LatestLandedCost?.ToString("N4") ?? "—")</dd></div>
+            <div class="detail-item"><dt>Average Cost</dt><dd>Rs. @(p.AverageCost?.ToString("N4") ?? "—")</dd></div>
         }
-        <div class="detail-item"><dt>CBM</dt><dd>@(Model.Cbm?.ToString("N6") ?? "—")</dd></div>
-        <div class="detail-item"><dt>Pcs / Carton</dt><dd>@(Model.PiecesPerCarton?.ToString() ?? "—")</dd></div>
+        <div class="detail-item"><dt>CBM</dt><dd>@(p.Cbm?.ToString("N6") ?? "—")</dd></div>
+        <div class="detail-item"><dt>Pcs / Carton</dt><dd>@(p.PiecesPerCarton?.ToString() ?? "—")</dd></div>
     </div>
 
     <h3 id="stock" class="card-panel__title">Stock summary</h3>
     <div class="detail-grid">
-        <div class="detail-item"><dt>Current Stock</dt><dd>@Model.CurrentStock.ToString("N2")</dd></div>
-        <div class="detail-item"><dt>Reorder Level</dt><dd>@Model.ReorderLevel.ToString("N2")</dd></div>
-        <div class="detail-item"><dt>Stock Value</dt><dd>Rs. @Model.StockValue.ToString("N2")</dd></div>
+        <div class="detail-item"><dt>Current Stock</dt><dd>@p.CurrentStock.ToString("N2")</dd></div>
+        <div class="detail-item"><dt>Reorder Level</dt><dd>@p.ReorderLevel.ToString("N2")</dd></div>
+        <div class="detail-item"><dt>Stock Value</dt><dd>Rs. @p.StockValue.ToString("N2")</dd></div>
     </div>
 
     @if (canViewCosts)
@@ -56,13 +60,13 @@
             <table class="table-app">
                 <thead><tr><th>Date</th><th>RMB</th><th>Source</th><th>Notes</th></tr></thead>
                 <tbody>
-                @if (Model.RmbPriceHistory.Count == 0)
+                @if (p.RmbPriceHistory.Count == 0)
                 {
                     <tr><td colspan="4">No history yet.</td></tr>
                 }
                 else
                 {
-                    foreach (var h in Model.RmbPriceHistory)
+                    foreach (var h in p.RmbPriceHistory)
                     {
                         <tr>
                             <td>@h.EffectiveDate.ToLocalTime().ToString("dd MMM yyyy")</td>
@@ -81,13 +85,13 @@
             <table class="table-app">
                 <thead><tr><th>Date</th><th>Landed PKR</th><th>Shipment</th><th>Notes</th></tr></thead>
                 <tbody>
-                @if (Model.LandedCostHistory.Count == 0)
+                @if (p.LandedCostHistory.Count == 0)
                 {
                     <tr><td colspan="4">No history yet.</td></tr>
                 }
                 else
                 {
-                    foreach (var h in Model.LandedCostHistory)
+                    foreach (var h in p.LandedCostHistory)
                     {
                         <tr>
                             <td>@h.EffectiveDate.ToLocalTime().ToString("dd MMM yyyy")</td>
@@ -101,4 +105,131 @@
             </table>
         </div>
     }
+    else
+    {
+        <h3 id="price" class="card-panel__title">Price History</h3>
+        <p class="hint">Cost history is visible to Owner / Manager / Accountant only.</p>
+    }
+
+    <h3 id="purchases" class="card-panel__title">Purchase history</h3>
+    <div class="table-wrap">
+        <table class="table-app">
+            <thead>
+            <tr>
+                <th>PO</th>
+                <th>Date</th>
+                <th>Supplier</th>
+                <th>Qty</th>
+                @if (canViewCosts)
+                {
+                    <th>RMB Unit</th>
+                    <th>RMB Total</th>
+                }
+            </tr>
+            </thead>
+            <tbody>
+            @if (Model.PurchaseHistory.Count == 0)
+            {
+                <tr><td colspan="@(canViewCosts ? 6 : 4)">No purchase orders yet.</td></tr>
+            }
+            else
+            {
+                foreach (var row in Model.PurchaseHistory)
+                {
+                    <tr>
+                        <td><a asp-controller="PurchaseOrders" asp-action="Details" asp-route-id="@row.PurchaseOrderId">@row.PoNumber</a></td>
+                        <td>@row.OrderDate.ToString("dd MMM yyyy")</td>
+                        <td>@row.SupplierName</td>
+                        <td>@row.Quantity.ToString("N2")</td>
+                        @if (canViewCosts)
+                        {
+                            <td>¥ @row.UnitPriceRmb.ToString("N4")</td>
+                            <td>¥ @row.LineTotalRmb.ToString("N4")</td>
+                        }
+                    </tr>
+                }
+            }
+            </tbody>
+        </table>
+    </div>
+
+    <h3 id="shipments" class="card-panel__title">Shipment history</h3>
+    <div class="table-wrap">
+        <table class="table-app">
+            <thead>
+            <tr>
+                <th>Shipment</th>
+                <th>Status</th>
+                <th>Expected</th>
+                <th>Actual</th>
+                <th>China WH</th>
+                <th>Tarnol</th>
+                @if (canViewCosts)
+                {
+                    <th>Landed Unit</th>
+                }
+            </tr>
+            </thead>
+            <tbody>
+            @if (Model.ShipmentHistory.Count == 0)
+            {
+                <tr><td colspan="@(canViewCosts ? 7 : 6)">No shipments yet.</td></tr>
+            }
+            else
+            {
+                foreach (var row in Model.ShipmentHistory)
+                {
+                    <tr>
+                        <td><a asp-controller="Shipments" asp-action="Details" asp-route-id="@row.ShipmentId">@row.ShipmentNumber</a></td>
+                        <td>@row.Status</td>
+                        <td>@row.ExpectedQuantity.ToString("N2")</td>
+                        <td>@(row.ActualQuantity?.ToString("N2") ?? "—")</td>
+                        <td>@(row.ChinaWarehouseReceivedDate?.ToString("dd MMM yyyy") ?? "—")</td>
+                        <td>@(row.TarnolArrivalDate?.ToString("dd MMM yyyy") ?? "—")</td>
+                        @if (canViewCosts)
+                        {
+                            <td>@(row.LandedUnitCostPkr > 0 ? $"Rs. {row.LandedUnitCostPkr:N4}" : "—")</td>
+                        }
+                    </tr>
+                }
+            }
+            </tbody>
+        </table>
+    </div>
+
+    <h3 id="sales" class="card-panel__title">Sales history</h3>
+    <div class="table-wrap">
+        <table class="table-app">
+            <thead>
+            <tr>
+                <th>Invoice</th>
+                <th>Date</th>
+                <th>Customer</th>
+                <th>Qty</th>
+                <th>Price</th>
+                <th>Line Total</th>
+            </tr>
+            </thead>
+            <tbody>
+            @if (Model.SalesHistory.Count == 0)
+            {
+                <tr><td colspan="6">No sales yet.</td></tr>
+            }
+            else
+            {
+                foreach (var row in Model.SalesHistory)
+                {
+                    <tr>
+                        <td><a asp-controller="Sales" asp-action="Details" asp-route-id="@row.InvoiceId">@row.InvoiceNumber</a></td>
+                        <td>@row.InvoiceDate.ToString("dd MMM yyyy")</td>
+                        <td>@row.CustomerName</td>
+                        <td>@row.Quantity.ToString("N2")</td>
+                        <td>Rs. @row.UnitPrice.ToString("N2")</td>
+                        <td>Rs. @row.LineTotal.ToString("N2")</td>
+                    </tr>
+                }
+            }
+            </tbody>
+        </table>
+    </div>
 </div>

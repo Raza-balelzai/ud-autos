@@ -16,6 +16,7 @@ public interface ICodeGeneratorService
     Task<string> NextInvoiceNumberAsync(CancellationToken cancellationToken = default);
     Task<string> NextPaymentNumberAsync(CancellationToken cancellationToken = default);
     Task<string> NextReturnNumberAsync(CancellationToken cancellationToken = default);
+    Task<string> NextSupplierReturnNumberAsync(CancellationToken cancellationToken = default);
     Task<string> NextExpenseNumberAsync(CancellationToken cancellationToken = default);
     Task<string> NextCashMovementNumberAsync(CancellationToken cancellationToken = default);
 }
@@ -138,6 +139,17 @@ public class CodeGeneratorService : ICodeGeneratorService
         var year = DateTime.UtcNow.Year;
         var prefix = $"SRN-{year}";
         var codes = await _db.SalesReturns.AsNoTracking()
+            .Where(r => r.ReturnNumber.StartsWith(prefix + "-"))
+            .Select(r => r.ReturnNumber)
+            .ToListAsync(cancellationToken);
+        return $"{prefix}-{NextNumber(codes, prefix):D4}";
+    }
+
+    public async Task<string> NextSupplierReturnNumberAsync(CancellationToken cancellationToken = default)
+    {
+        var year = DateTime.UtcNow.Year;
+        var prefix = $"SPR-{year}";
+        var codes = await _db.SupplierReturns.AsNoTracking()
             .Where(r => r.ReturnNumber.StartsWith(prefix + "-"))
             .Select(r => r.ReturnNumber)
             .ToListAsync(cancellationToken);
