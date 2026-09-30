@@ -132,8 +132,59 @@
         });
     }
 
+    function initNavDrawer() {
+        var toggle = document.querySelector("[data-nav-toggle]");
+        var backdrop = document.querySelector("[data-nav-backdrop]");
+        var sidebar = document.getElementById("app-sidebar");
+        if (!toggle || !sidebar) return;
+
+        function setOpen(open) {
+            document.body.classList.toggle("is-nav-open", open);
+            toggle.setAttribute("aria-expanded", open ? "true" : "false");
+            toggle.setAttribute("aria-label", open ? "Close navigation menu" : "Open navigation menu");
+            if (backdrop) {
+                backdrop.hidden = !open;
+                backdrop.setAttribute("aria-hidden", open ? "false" : "true");
+            }
+        }
+
+        function close() {
+            setOpen(false);
+        }
+
+        function toggleNav() {
+            setOpen(!document.body.classList.contains("is-nav-open"));
+        }
+
+        toggle.addEventListener("click", function (e) {
+            e.stopPropagation();
+            toggleNav();
+        });
+
+        if (backdrop) {
+            backdrop.addEventListener("click", close);
+        }
+
+        document.addEventListener("keydown", function (e) {
+            if (e.key === "Escape" && document.body.classList.contains("is-nav-open")) {
+                close();
+            }
+        });
+
+        sidebar.querySelectorAll(".app-nav a").forEach(function (link) {
+            link.addEventListener("click", close);
+        });
+
+        window.addEventListener("resize", function () {
+            if (window.matchMedia("(min-width: 1024px)").matches) {
+                close();
+            }
+        });
+    }
+
     document.addEventListener("DOMContentLoaded", function () {
         initDropdowns();
         initGlobalSearch();
+        initNavDrawer();
     });
 })();
