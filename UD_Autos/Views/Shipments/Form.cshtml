@@ -10,6 +10,7 @@
         <input type="hidden" asp-for="Shipment.ShipmentNumber" />
     }
     <div asp-validation-summary="ModelOnly" class="validation-summary-errors"></div>
+    <p class="form-legend"><span class="req" aria-hidden="true">*</span> Required field</p>
 
     <div class="form-grid form-grid--3">
         @if (!isEdit)
@@ -17,14 +18,15 @@
             <div class="field">
                 <label asp-for="Shipment.ShipmentNumber">Shipment ID</label>
                 <input asp-for="Shipment.ShipmentNumber" class="input-app" placeholder="Auto e.g. SHP-2026-001" />
+                <span class="hint">Optional — blank auto-generates</span>
             </div>
         }
         <div class="field">
-            <label asp-for="Shipment.ShippingAgent">Shipping Agent</label>
-            <input asp-for="Shipment.ShippingAgent" class="input-app" />
+            <label asp-for="Shipment.ShippingAgent" class="is-required">Shipping Agent <span class="req" aria-hidden="true">*</span></label>
+            <input asp-for="Shipment.ShippingAgent" class="input-app" required aria-required="true" />
         </div>
         <div class="field">
-            <label asp-for="Shipment.Status">Status</label>
+            <label asp-for="Shipment.Status" class="is-required">Status <span class="req" aria-hidden="true">*</span></label>
             <select asp-for="Shipment.Status" class="select-app" asp-items="Html.GetEnumSelectList<ShipmentStatus>()"></select>
         </div>
         <div class="field">

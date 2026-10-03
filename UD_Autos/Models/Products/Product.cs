@@ -10,8 +10,9 @@ public class Product : AuditableEntity
 {
     public int Id { get; set; }
 
-    [Required, StringLength(60)]
-    public string Sku { get; set; } = string.Empty;
+    /// <summary>Optional on create — auto-generated when blank. Always set before save.</summary>
+    [StringLength(60)]
+    public string? Sku { get; set; }
 
     [StringLength(64)]
     public string? Barcode { get; set; }

@@ -81,7 +81,7 @@ public class SupplierService : ISupplierService
             supplier.SupplierCode = await _codes.NextSupplierCodeAsync(cancellationToken);
         }
 
-        supplier.SupplierCode = supplier.SupplierCode.Trim().ToUpperInvariant();
+        supplier.SupplierCode = supplier.SupplierCode!.Trim().ToUpperInvariant();
         if (await _db.Suppliers.AnyAsync(s => s.SupplierCode == supplier.SupplierCode, cancellationToken))
         {
             return (false, $"Supplier code '{supplier.SupplierCode}' already exists.", null);
@@ -101,7 +101,12 @@ public class SupplierService : ISupplierService
         var existing = await _db.Suppliers.FirstOrDefaultAsync(s => s.Id == supplier.Id, cancellationToken);
         if (existing is null) return (false, "Supplier not found.");
 
-        supplier.SupplierCode = supplier.SupplierCode.Trim().ToUpperInvariant();
+        if (string.IsNullOrWhiteSpace(supplier.SupplierCode))
+        {
+            return (false, "Supplier code is required when editing.");
+        }
+
+        supplier.SupplierCode = supplier.SupplierCode!.Trim().ToUpperInvariant();
         if (await _db.Suppliers.AnyAsync(s => s.SupplierCode == supplier.SupplierCode && s.Id != supplier.Id, cancellationToken))
         {
             return (false, $"Supplier code '{supplier.SupplierCode}' already exists.");

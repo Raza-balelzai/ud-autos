@@ -14,16 +14,17 @@
             ? "Hold reduces Available for sales without removing physical stock. Use when a customer asks you to keep goods."
             : "Release returns held quantity to Available for sales.")
     </p>
+    <p class="form-legend"><span class="req" aria-hidden="true">*</span> Required field</p>
 
     <div class="form-grid form-grid--3">
         <div class="field">
-            <label asp-for="ProductId">Product</label>
-            <select asp-for="ProductId" class="select-app" asp-items="@(new SelectList(products, "Id", "Name", Model.ProductId))" onchange="location.href='@(mode == "hold" ? Url.Action("Hold") : Url.Action("Release"))?productId='+this.value">
+            <label asp-for="ProductId" class="is-required">Product <span class="req" aria-hidden="true">*</span></label>
+            <select asp-for="ProductId" class="select-app" asp-items="@(new SelectList(products, "Id", "Name", Model.ProductId))" onchange="location.href='@(mode == "hold" ? Url.Action("Hold") : Url.Action("Release"))?productId='+this.value" required>
                 <option value="0">— Select —</option>
             </select>
         </div>
         <div class="field">
-            <label asp-for="BatchId">Batch (optional)</label>
+            <label asp-for="BatchId">Batch</label>
             <select asp-for="BatchId" class="select-app">
                 <option value="">Product-level only</option>
                 @foreach (var b in batches)
@@ -33,13 +34,14 @@
                     </option>
                 }
             </select>
+            <span class="hint">Optional</span>
         </div>
         <div class="field">
-            <label asp-for="Quantity">Quantity</label>
-            <input asp-for="Quantity" class="input-app" />
+            <label asp-for="Quantity" class="is-required">Quantity <span class="req" aria-hidden="true">*</span></label>
+            <input asp-for="Quantity" class="input-app" required />
         </div>
         <div class="field form-grid--full">
-            <label asp-for="Reason">Reason</label>
+            <label asp-for="Reason" class="is-required">Reason <span class="req" aria-hidden="true">*</span></label>
             <input asp-for="Reason" class="input-app" required />
         </div>
     </div>

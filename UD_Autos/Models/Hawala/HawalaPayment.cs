@@ -11,8 +11,9 @@ public class HawalaPayment : AuditableEntity
 {
     public int Id { get; set; }
 
-    [Required, StringLength(40)]
-    public string PaymentNumber { get; set; } = string.Empty;
+    /// <summary>Auto-generated on create.</summary>
+    [StringLength(40)]
+    public string? PaymentNumber { get; set; }
 
     public DateTime PaymentDate { get; set; } = DateTime.UtcNow.Date;
 

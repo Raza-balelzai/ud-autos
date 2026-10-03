@@ -10,8 +10,9 @@ public class OperatingExpense : AuditableEntity
 {
     public int Id { get; set; }
 
-    [Required, StringLength(40)]
-    public string ExpenseNumber { get; set; } = string.Empty;
+    /// <summary>Auto-generated on create.</summary>
+    [StringLength(40)]
+    public string? ExpenseNumber { get; set; }
 
     public DateTime ExpenseDate { get; set; } = DateTime.UtcNow.Date;
 

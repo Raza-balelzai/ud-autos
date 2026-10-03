@@ -9,8 +9,9 @@ public class Shipment : AuditableEntity
 {
     public int Id { get; set; }
 
-    [Required, StringLength(40)]
-    public string ShipmentNumber { get; set; } = string.Empty;
+    /// <summary>Optional on create — auto-generated when blank.</summary>
+    [StringLength(40)]
+    public string? ShipmentNumber { get; set; }
 
     [Required, StringLength(150)]
     public string ShippingAgent { get; set; } = string.Empty;

@@ -1,19 +1,27 @@
 @model Customer
+@{
+    var isEdit = Model.Id > 0;
+}
 
-<form asp-action="@(Model.Id > 0 ? "Edit" : "Create")" method="post" class="card-panel">
-    @if (Model.Id > 0)
+<form asp-action="@(isEdit ? "Edit" : "Create")" method="post" class="card-panel">
+    @if (isEdit)
     {
         <input type="hidden" asp-for="Id" />
     }
     <div asp-validation-summary="ModelOnly" class="validation-summary-errors"></div>
+    <p class="form-legend"><span class="req" aria-hidden="true">*</span> Required field</p>
     <div class="form-grid">
         <div class="field">
-            <label asp-for="CustomerCode">Customer ID</label>
-            <input asp-for="CustomerCode" class="input-app" placeholder="Leave blank to auto-generate" />
+            <label asp-for="CustomerCode">Customer ID @(isEdit ? Html.Raw("<span class=\"req\" aria-hidden=\"true\">*</span>") : null)</label>
+            <input asp-for="CustomerCode" class="input-app" placeholder="@(isEdit ? "" : "Leave blank to auto-generate")" />
+            @if (!isEdit)
+            {
+                <span class="hint">Optional — blank generates a new ID</span>
+            }
         </div>
         <div class="field">
-            <label asp-for="Name">Name</label>
-            <input asp-for="Name" class="input-app" />
+            <label asp-for="Name" class="is-required">Name <span class="req" aria-hidden="true">*</span></label>
+            <input asp-for="Name" class="input-app" required aria-required="true" />
             <span asp-validation-for="Name" class="field-error"></span>
         </div>
         <div class="field">
@@ -29,19 +37,20 @@
             <input asp-for="City" class="input-app" />
         </div>
         <div class="field">
-            <label asp-for="CustomerType">Customer Type</label>
+            <label asp-for="CustomerType" class="is-required">Customer Type <span class="req" aria-hidden="true">*</span></label>
             <select asp-for="CustomerType" class="select-app" asp-items="Html.GetEnumSelectList<CustomerType>()"></select>
         </div>
         <div class="field">
-            <label asp-for="CreditLimit">Credit Limit (optional)</label>
+            <label asp-for="CreditLimit">Credit Limit</label>
             <input asp-for="CreditLimit" class="input-app" />
+            <span class="hint">Optional</span>
         </div>
-        @if (Model.Id == 0)
+        @if (!isEdit)
         {
             <div class="field">
                 <label asp-for="OpeningBalance">Opening Balance (migration)</label>
                 <input asp-for="OpeningBalance" class="input-app" />
-                <span class="hint">Seeds current balance once. Later balances come from ledger.</span>
+                <span class="hint">Optional — seeds balance once; later balances come from ledger</span>
             </div>
         }
         <div class="field form-grid--full">

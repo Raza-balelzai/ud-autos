@@ -171,15 +171,6 @@
             </header>
 
             <main class="app-content">
-                @if (TempData["Success"] is string success)
-                {
-                    <div class="alert-app alert-app--success">@success</div>
-                }
-                @if (TempData["Error"] is string error)
-                {
-                    <div class="alert-app alert-app--danger">@error</div>
-                }
-
                 <div class="page-header">
                     <div class="page-header__titles">
                         <h1>@ViewData["Title"]</h1>
@@ -203,6 +194,15 @@ else
     @RenderBody()
 }
 
+    <div id="app-toast-host" class="toast-host" aria-live="polite" aria-relevant="additions"></div>
+    @if (TempData["Success"] is string toastSuccess)
+    {
+        <script type="application/json" id="toast-data-success">@Html.Raw(System.Text.Json.JsonSerializer.Serialize(toastSuccess))</script>
+    }
+    @if (TempData["Error"] is string toastError)
+    {
+        <script type="application/json" id="toast-data-error">@Html.Raw(System.Text.Json.JsonSerializer.Serialize(toastError))</script>
+    }
     <script src="~/js/site.js" asp-append-version="true"></script>
     @await RenderSectionAsync("Scripts", required: false)
 </body>

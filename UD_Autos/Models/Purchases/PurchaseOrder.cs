@@ -9,8 +9,9 @@ public class PurchaseOrder : AuditableEntity
 {
     public int Id { get; set; }
 
-    [Required, StringLength(40)]
-    public string PoNumber { get; set; } = string.Empty;
+    /// <summary>Optional on create — auto-generated when blank.</summary>
+    [StringLength(40)]
+    public string? PoNumber { get; set; }
 
     public int SupplierId { get; set; }
     public Supplier Supplier { get; set; } = null!;

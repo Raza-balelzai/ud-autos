@@ -6,26 +6,28 @@
 
 <form asp-action="Adjust" method="post" class="card-panel">
     @Html.AntiForgeryToken()
+    <p class="form-legend"><span class="req" aria-hidden="true">*</span> Required field</p>
     <div class="form-grid">
         <div class="field">
-            <label asp-for="ProductId">Product</label>
-            <select asp-for="ProductId" class="select-app" asp-items="@(new SelectList(products.Select(p => new { p.Id, Label = p.Sku + " — " + p.Name }), "Id", "Label"))">
+            <label asp-for="ProductId" class="is-required">Product <span class="req" aria-hidden="true">*</span></label>
+            <select asp-for="ProductId" class="select-app" asp-items="@(new SelectList(products.Select(p => new { p.Id, Label = p.Sku + " — " + p.Name }), "Id", "Label"))" required>
                 <option value="">— Select —</option>
             </select>
         </div>
         <div class="field">
-            <label asp-for="BatchId">Batch (optional)</label>
+            <label asp-for="BatchId">Batch</label>
             <select asp-for="BatchId" class="select-app" asp-items="@(new SelectList(batches, "Id", "BatchNumber"))">
                 <option value="">— Product level only —</option>
             </select>
+            <span class="hint">Optional</span>
         </div>
         <div class="field">
-            <label asp-for="QuantityDelta">Quantity (+ increase / − decrease)</label>
-            <input asp-for="QuantityDelta" class="input-app" />
+            <label asp-for="QuantityDelta" class="is-required">Quantity (+ increase / − decrease) <span class="req" aria-hidden="true">*</span></label>
+            <input asp-for="QuantityDelta" class="input-app" required />
         </div>
         <div class="field form-grid--full">
-            <label asp-for="Reason">Reason</label>
-            <textarea asp-for="Reason" class="textarea-app"></textarea>
+            <label asp-for="Reason" class="is-required">Reason <span class="req" aria-hidden="true">*</span></label>
+            <textarea asp-for="Reason" class="textarea-app" required></textarea>
         </div>
     </div>
     <div class="form-actions">

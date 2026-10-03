@@ -164,12 +164,17 @@ public class ProductService : IProductService
     public async Task<(bool Ok, string? Error, Product? Product)> CreateAsync(
         Product product, string? userId, CancellationToken cancellationToken = default)
     {
+        if (string.IsNullOrWhiteSpace(product.Name))
+        {
+            return (false, "Product name is required.", null);
+        }
+
         if (string.IsNullOrWhiteSpace(product.Sku))
         {
             product.Sku = await _codes.NextSkuAsync(cancellationToken);
         }
 
-        product.Sku = product.Sku.Trim().ToUpperInvariant();
+        product.Sku = product.Sku!.Trim().ToUpperInvariant();
         if (await _db.Products.AnyAsync(p => p.Sku == product.Sku, cancellationToken))
         {
             return (false, $"SKU '{product.Sku}' already exists.", null);
@@ -237,7 +242,12 @@ public class ProductService : IProductService
             return (false, "Product not found.");
         }
 
-        product.Sku = product.Sku.Trim().ToUpperInvariant();
+        if (string.IsNullOrWhiteSpace(product.Sku))
+        {
+            return (false, "SKU is required when editing a product.");
+        }
+
+        product.Sku = product.Sku!.Trim().ToUpperInvariant();
         if (await _db.Products.AnyAsync(p => p.Sku == product.Sku && p.Id != product.Id, cancellationToken))
         {
             return (false, $"SKU '{product.Sku}' already exists.");

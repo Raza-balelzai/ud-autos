@@ -86,7 +86,7 @@ public class CustomerService : ICustomerService
             customer.CustomerCode = await _codes.NextCustomerCodeAsync(cancellationToken);
         }
 
-        customer.CustomerCode = customer.CustomerCode.Trim().ToUpperInvariant();
+        customer.CustomerCode = customer.CustomerCode!.Trim().ToUpperInvariant();
         if (await _db.Customers.AnyAsync(c => c.CustomerCode == customer.CustomerCode, cancellationToken))
         {
             return (false, $"Customer code '{customer.CustomerCode}' already exists.", null);
@@ -109,7 +109,12 @@ public class CustomerService : ICustomerService
         var existing = await _db.Customers.FirstOrDefaultAsync(c => c.Id == customer.Id, cancellationToken);
         if (existing is null) return (false, "Customer not found.");
 
-        customer.CustomerCode = customer.CustomerCode.Trim().ToUpperInvariant();
+        if (string.IsNullOrWhiteSpace(customer.CustomerCode))
+        {
+            return (false, "Customer code is required when editing.");
+        }
+
+        customer.CustomerCode = customer.CustomerCode!.Trim().ToUpperInvariant();
         if (await _db.Customers.AnyAsync(c => c.CustomerCode == customer.CustomerCode && c.Id != customer.Id, cancellationToken))
         {
             return (false, $"Customer code '{customer.CustomerCode}' already exists.");

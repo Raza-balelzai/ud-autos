@@ -4,21 +4,23 @@
     @Html.AntiForgeryToken()
     <input type="hidden" asp-for="IdempotencyKey" />
     <div asp-validation-summary="ModelOnly" class="validation-summary-errors"></div>
+    <p class="form-legend"><span class="req" aria-hidden="true">*</span> Required field</p>
 
     <div class="form-grid form-grid--3">
         <div class="field">
-            <label>Customer</label>
-            <select asp-for="CustomerId" class="select-app" id="customer-select" asp-items="@(new SelectList(Model.Customers.Select(c => new { c.Id, Label = (c.ShopName ?? c.Name) + " (" + c.Phone + ")" }), "Id", "Label"))">
+            <label class="is-required">Customer <span class="req" aria-hidden="true">*</span></label>
+            <select asp-for="CustomerId" class="select-app" id="customer-select" asp-items="@(new SelectList(Model.Customers.Select(c => new { c.Id, Label = (c.ShopName ?? c.Name) + " (" + c.Phone + ")" }), "Id", "Label"))" required>
                 <option value="">— Search / select —</option>
             </select>
         </div>
         <div class="field">
-            <label>Invoice Date</label>
-            <input asp-for="InvoiceDate" type="date" class="input-app" />
+            <label class="is-required">Invoice Date <span class="req" aria-hidden="true">*</span></label>
+            <input asp-for="InvoiceDate" type="date" class="input-app" required />
         </div>
         <div class="field">
             <label>Invoice No</label>
             <input class="input-app" value="Auto on save" readonly />
+            <span class="hint">Auto-generated</span>
         </div>
     </div>
 
@@ -49,11 +51,23 @@
     <button type="button" class="btn-app btn-app--outline btn-app--sm" id="add-sale-line">+ Add item</button>
 
     <div class="form-grid form-grid--3">
-        <div class="field"><label>Bill discount</label><input asp-for="DiscountAmount" class="input-app" /></div>
-        <div class="field"><label>Delivery charge</label><input asp-for="DeliveryCharge" class="input-app" /></div>
-        <div class="field"><label>Other charge</label><input asp-for="OtherCharge" class="input-app" /></div>
         <div class="field">
-            <label>Payment mode</label>
+            <label>Bill discount</label>
+            <input asp-for="DiscountAmount" class="input-app" />
+            <span class="hint">Optional</span>
+        </div>
+        <div class="field">
+            <label>Delivery charge</label>
+            <input asp-for="DeliveryCharge" class="input-app" />
+            <span class="hint">Optional</span>
+        </div>
+        <div class="field">
+            <label>Other charge</label>
+            <input asp-for="OtherCharge" class="input-app" />
+            <span class="hint">Optional</span>
+        </div>
+        <div class="field">
+            <label class="is-required">Payment mode <span class="req" aria-hidden="true">*</span></label>
             <select asp-for="PaymentMode" class="select-app" asp-items="Html.GetEnumSelectList<PaymentMode>()" id="pay-mode"></select>
         </div>
         <div class="field">
@@ -63,9 +77,17 @@
         <div class="field">
             <label>Payment received (partial)</label>
             <input asp-for="PaymentReceived" class="input-app" />
+            <span class="hint">Optional for credit / partial</span>
         </div>
-        <div class="field"><label>Payment reference</label><input asp-for="PaymentReference" class="input-app" /></div>
-        <div class="field form-grid--full"><label>Notes</label><textarea asp-for="Notes" class="textarea-app"></textarea></div>
+        <div class="field">
+            <label>Payment reference</label>
+            <input asp-for="PaymentReference" class="input-app" />
+            <span class="hint">Optional</span>
+        </div>
+        <div class="field form-grid--full">
+            <label>Notes</label>
+            <textarea asp-for="Notes" class="textarea-app"></textarea>
+        </div>
     </div>
 
     <div class="form-actions">

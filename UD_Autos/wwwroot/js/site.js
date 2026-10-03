@@ -182,9 +182,179 @@
         });
     }
 
+    function createToastApi() {
+        var host = document.getElementById("app-toast-host");
+        if (!host) {
+            host = document.createElement("div");
+            host.id = "app-toast-host";
+            host.className = "toast-host";
+            host.setAttribute("aria-live", "polite");
+            document.body.appendChild(host);
+        }
+
+        var DEFAULT_MS = { success: 4500, error: 6500, info: 4500, warning: 5500 };
+
+        function escapeHtml(s) {
+            return String(s)
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;");
+        }
+
+        function show(options) {
+            var type = (options && options.type) || "info";
+            var message = (options && options.message) || "";
+            if (!message) return null;
+
+            var duration = options && options.duration != null
+                ? options.duration
+                : DEFAULT_MS[type] || 4500;
+
+            var el = document.createElement("div");
+            el.className = "toast toast--" + type;
+            el.setAttribute("role", type === "error" ? "alert" : "status");
+            el.innerHTML =
+                '<div class="toast__body">' +
+                '<p class="toast__message">' +
+                escapeHtml(message) +
+                "</p>" +
+                '<button type="button" class="toast__close" aria-label="Dismiss notification">&times;</button>' +
+                "</div>" +
+                '<div class="toast__progress" aria-hidden="true"><span class="toast__progress-bar"></span></div>';
+
+            host.appendChild(el);
+            requestAnimationFrame(function () {
+                el.classList.add("is-visible");
+            });
+
+            var remaining = duration;
+            var startedAt = 0;
+            var timerId = null;
+            var stuck = false;
+            var closed = false;
+            var progressBar = el.querySelector(".toast__progress-bar");
+
+            function clearTimer() {
+                if (timerId) {
+                    clearTimeout(timerId);
+                    timerId = null;
+                }
+            }
+
+            function updateProgress(running) {
+                if (!progressBar) return;
+                if (stuck || duration <= 0) {
+                    progressBar.style.transition = "none";
+                    progressBar.style.transform = "scaleX(0)";
+                    return;
+                }
+                if (running) {
+                    progressBar.style.transition = "transform " + remaining + "ms linear";
+                    progressBar.style.transform = "scaleX(0)";
+                } else {
+                    var computed = window.getComputedStyle(progressBar).transform;
+                    progressBar.style.transition = "none";
+                    progressBar.style.transform = computed;
+                }
+            }
+
+            function startTimer() {
+                if (stuck || closed || duration <= 0) return;
+                startedAt = Date.now();
+                if (progressBar) {
+                    // reset width to remaining fraction then animate to 0
+                    var fraction = Math.max(0, Math.min(1, remaining / duration));
+                    progressBar.style.transition = "none";
+                    progressBar.style.transform = "scaleX(" + fraction + ")";
+                    // force reflow
+                    void progressBar.offsetWidth;
+                }
+                updateProgress(true);
+                timerId = setTimeout(dismiss, remaining);
+            }
+
+            function pauseTimer() {
+                if (stuck || closed || !timerId) return;
+                clearTimer();
+                remaining = Math.max(0, remaining - (Date.now() - startedAt));
+                updateProgress(false);
+            }
+
+            function dismiss() {
+                if (closed) return;
+                closed = true;
+                clearTimer();
+                el.classList.remove("is-visible");
+                el.classList.add("is-leaving");
+                setTimeout(function () {
+                    if (el.parentNode) el.parentNode.removeChild(el);
+                }, 220);
+            }
+
+            function stick() {
+                if (closed) return;
+                stuck = true;
+                clearTimer();
+                el.classList.add("is-stuck");
+                updateProgress(false);
+            }
+
+            el.querySelector(".toast__close").addEventListener("click", function (e) {
+                e.stopPropagation();
+                dismiss();
+            });
+
+            el.addEventListener("mouseenter", pauseTimer);
+            el.addEventListener("mouseleave", function () {
+                if (!stuck) startTimer();
+            });
+
+            el.addEventListener("click", function (e) {
+                if (e.target.closest(".toast__close")) return;
+                stick();
+            });
+
+            if (duration > 0) {
+                // set initial full bar then start
+                if (progressBar) {
+                    progressBar.style.transform = "scaleX(1)";
+                }
+                startTimer();
+            }
+
+            return { dismiss: dismiss, stick: stick, el: el };
+        }
+
+        function readBootMessage(id) {
+            var node = document.getElementById(id);
+            if (!node) return null;
+            try {
+                return JSON.parse(node.textContent || "null");
+            } catch (e) {
+                return node.textContent;
+            } finally {
+                node.remove();
+            }
+        }
+
+        function bootFromTempData() {
+            var success = readBootMessage("toast-data-success");
+            var error = readBootMessage("toast-data-error");
+            if (success) show({ type: "success", message: success });
+            if (error) show({ type: "error", message: error });
+        }
+
+        return { show: show, bootFromTempData: bootFromTempData };
+    }
+
+    var AppToast = createToastApi();
+    window.AppToast = AppToast;
+
     document.addEventListener("DOMContentLoaded", function () {
         initDropdowns();
         initGlobalSearch();
         initNavDrawer();
+        AppToast.bootFromTempData();
     });
 })();

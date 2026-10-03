@@ -43,6 +43,9 @@ public class SuppliersController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Create(Supplier model, CancellationToken cancellationToken = default)
     {
+        if (string.IsNullOrWhiteSpace(model.SupplierCode))
+            ModelState.Remove(nameof(Supplier.SupplierCode));
+
         if (!ModelState.IsValid) return View("Form", model);
 
         var (ok, error, supplier) = await _suppliers.CreateAsync(model, User.GetUserId(), cancellationToken);

@@ -59,6 +59,9 @@ public class CustomersController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Create(Customer model, CancellationToken cancellationToken = default)
     {
+        if (string.IsNullOrWhiteSpace(model.CustomerCode))
+            ModelState.Remove(nameof(Customer.CustomerCode));
+
         if (!ModelState.IsValid) return View("Form", model);
 
         var (ok, error, customer) = await _customers.CreateAsync(model, User.GetUserId(), cancellationToken);

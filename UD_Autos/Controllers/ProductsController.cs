@@ -67,6 +67,10 @@ public class ProductsController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Create(ProductFormViewModel model, CancellationToken cancellationToken = default)
     {
+        // SKU is optional on create (auto-generated); ignore NRT-driven required validation noise.
+        if (string.IsNullOrWhiteSpace(model.Product.Sku))
+            ModelState.Remove("Product.Sku");
+
         if (!ModelState.IsValid)
         {
             return View("Form", await BuildFormAsync(model.Product, cancellationToken));

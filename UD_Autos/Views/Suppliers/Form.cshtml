@@ -1,19 +1,27 @@
 @model Supplier
+@{
+    var isEdit = Model.Id > 0;
+}
 
-<form asp-action="@(Model.Id > 0 ? "Edit" : "Create")" method="post" class="card-panel">
-    @if (Model.Id > 0)
+<form asp-action="@(isEdit ? "Edit" : "Create")" method="post" class="card-panel">
+    @if (isEdit)
     {
         <input type="hidden" asp-for="Id" />
     }
     <div asp-validation-summary="ModelOnly" class="validation-summary-errors"></div>
+    <p class="form-legend"><span class="req" aria-hidden="true">*</span> Required field</p>
     <div class="form-grid">
         <div class="field">
-            <label asp-for="SupplierCode">Supplier Code</label>
-            <input asp-for="SupplierCode" class="input-app" placeholder="Leave blank to auto-generate" />
+            <label asp-for="SupplierCode">Supplier Code @(isEdit ? Html.Raw("<span class=\"req\" aria-hidden=\"true\">*</span>") : null)</label>
+            <input asp-for="SupplierCode" class="input-app" placeholder="@(isEdit ? "" : "Leave blank to auto-generate")" />
+            @if (!isEdit)
+            {
+                <span class="hint">Optional — blank generates a new code</span>
+            }
         </div>
         <div class="field">
-            <label asp-for="Name">Factory / Supplier Name</label>
-            <input asp-for="Name" class="input-app" />
+            <label asp-for="Name" class="is-required">Factory / Supplier Name <span class="req" aria-hidden="true">*</span></label>
+            <input asp-for="Name" class="input-app" required aria-required="true" />
             <span asp-validation-for="Name" class="field-error"></span>
         </div>
         <div class="field">

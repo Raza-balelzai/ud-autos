@@ -9,30 +9,32 @@
         <input type="hidden" asp-for="PurchaseOrder.Id" />
     }
     <div asp-validation-summary="ModelOnly" class="validation-summary-errors"></div>
+    <p class="form-legend"><span class="req" aria-hidden="true">*</span> Required field</p>
 
     <div class="form-grid form-grid--3">
         <div class="field">
             <label asp-for="PurchaseOrder.PoNumber">PO Number</label>
             <input asp-for="PurchaseOrder.PoNumber" class="input-app" placeholder="Auto if blank" />
+            <span class="hint">Optional — blank generates PO number</span>
         </div>
         <div class="field">
-            <label asp-for="PurchaseOrder.SupplierId">Supplier / Factory</label>
-            <select asp-for="PurchaseOrder.SupplierId" class="select-app" asp-items="@(new SelectList(Model.Suppliers, "Id", "Name"))">
+            <label asp-for="PurchaseOrder.SupplierId" class="is-required">Supplier / Factory <span class="req" aria-hidden="true">*</span></label>
+            <select asp-for="PurchaseOrder.SupplierId" class="select-app" asp-items="@(new SelectList(Model.Suppliers, "Id", "Name"))" required>
                 <option value="">— Select —</option>
             </select>
         </div>
         <div class="field">
-            <label asp-for="PurchaseOrder.OrderDate">Date</label>
-            <input asp-for="PurchaseOrder.OrderDate" type="date" class="input-app" />
+            <label asp-for="PurchaseOrder.OrderDate" class="is-required">Date <span class="req" aria-hidden="true">*</span></label>
+            <input asp-for="PurchaseOrder.OrderDate" type="date" class="input-app" required />
         </div>
         <div class="field">
-            <label asp-for="PurchaseOrder.Status">Status</label>
+            <label asp-for="PurchaseOrder.Status" class="is-required">Status <span class="req" aria-hidden="true">*</span></label>
             <select asp-for="PurchaseOrder.Status" class="select-app" asp-items="Html.GetEnumSelectList<PurchaseOrderStatus>()"></select>
         </div>
         <div class="field">
             <label asp-for="PurchaseOrder.EstimatedExchangeRate">Est. RMB→PKR rate</label>
             <input asp-for="PurchaseOrder.EstimatedExchangeRate" class="input-app" />
-            <span class="hint">Used only for estimated PKR planning</span>
+            <span class="hint">Optional — planning only, not landed cost</span>
         </div>
         <div class="field form-grid--full">
             <label asp-for="PurchaseOrder.Notes">Notes</label>

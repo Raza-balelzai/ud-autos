@@ -3,22 +3,36 @@
 <form asp-action="Create" method="post" class="card-panel">
     @Html.AntiForgeryToken()
     <div asp-validation-summary="ModelOnly" class="validation-summary-errors"></div>
+    <p class="form-legend"><span class="req" aria-hidden="true">*</span> Required field</p>
     <div class="form-grid form-grid--3">
-        <div class="field"><label>Date</label><input asp-for="Expense.ExpenseDate" type="date" class="input-app" /></div>
         <div class="field">
-            <label>Category</label>
-            <select asp-for="Expense.CategoryId" class="select-app" asp-items="@(new SelectList(Model.Categories.Select(c => new { c.Id, Label = c.Name + (c.IsDirectImportCost ? " — IMPORT COST FLAG" : "") }), "Id", "Label"))">
+            <label class="is-required">Date <span class="req" aria-hidden="true">*</span></label>
+            <input asp-for="Expense.ExpenseDate" type="date" class="input-app" required />
+        </div>
+        <div class="field">
+            <label class="is-required">Category <span class="req" aria-hidden="true">*</span></label>
+            <select asp-for="Expense.CategoryId" class="select-app" asp-items="@(new SelectList(Model.Categories.Select(c => new { c.Id, Label = c.Name + (c.IsDirectImportCost ? " — IMPORT COST FLAG" : "") }), "Id", "Label"))" required>
                 <option value="">— Select —</option>
             </select>
         </div>
-        <div class="field"><label>Amount</label><input asp-for="Expense.Amount" class="input-app" /></div>
         <div class="field">
-            <label>Cash / Bank</label>
+            <label class="is-required">Amount <span class="req" aria-hidden="true">*</span></label>
+            <input asp-for="Expense.Amount" class="input-app" required />
+        </div>
+        <div class="field">
+            <label class="is-required">Cash / Bank <span class="req" aria-hidden="true">*</span></label>
             <select asp-for="Expense.Account" class="select-app" asp-items="Html.GetEnumSelectList<PaymentAccount>()"></select>
         </div>
-        <div class="field"><label>Reference</label><input asp-for="Expense.Reference" class="input-app" /></div>
+        <div class="field">
+            <label>Reference</label>
+            <input asp-for="Expense.Reference" class="input-app" />
+            <span class="hint">Optional</span>
+        </div>
         <div class="field"><label class="checkbox-row"><input asp-for="Expense.AcknowledgedImportRisk" /> I understand this may overlap shipment landed cost</label></div>
-        <div class="field form-grid--full"><label>Notes</label><textarea asp-for="Expense.Notes" class="textarea-app"></textarea></div>
+        <div class="field form-grid--full">
+            <label>Notes</label>
+            <textarea asp-for="Expense.Notes" class="textarea-app"></textarea>
+        </div>
     </div>
     <div class="form-actions">
         <button type="submit" class="btn-app btn-app--success">Save Expense</button>

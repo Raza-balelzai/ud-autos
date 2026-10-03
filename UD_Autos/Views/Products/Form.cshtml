@@ -9,21 +9,27 @@
         <input type="hidden" asp-for="Product.Id" />
     }
     <div asp-validation-summary="ModelOnly" class="validation-summary-errors"></div>
+    <p class="form-legend"><span class="req" aria-hidden="true">*</span> Required field</p>
 
     <div class="form-grid form-grid--3">
         <div class="field">
-            <label asp-for="Product.Sku">SKU / Item Code</label>
-            <input asp-for="Product.Sku" class="input-app" placeholder="Leave blank to auto-generate" />
+            <label asp-for="Product.Sku">SKU / Item Code @(isEdit ? Html.Raw("<span class=\"req\" aria-hidden=\"true\">*</span>") : null)</label>
+            <input asp-for="Product.Sku" class="input-app" placeholder="@(isEdit ? "" : "Leave blank to auto-generate")" aria-required="@(isEdit ? "true" : "false")" />
+            @if (!isEdit)
+            {
+                <span class="hint">Optional — blank generates a new SKU</span>
+            }
             <span asp-validation-for="Product.Sku" class="field-error"></span>
         </div>
         <div class="field">
             <label asp-for="Product.Barcode">Barcode</label>
             <input asp-for="Product.Barcode" class="input-app" placeholder="Optional barcode / scan code" />
+            <span class="hint">Optional</span>
             <span asp-validation-for="Product.Barcode" class="field-error"></span>
         </div>
         <div class="field form-grid--full">
-            <label asp-for="Product.Name">Product Name</label>
-            <input asp-for="Product.Name" class="input-app" />
+            <label asp-for="Product.Name" class="is-required">Product Name <span class="req" aria-hidden="true">*</span></label>
+            <input asp-for="Product.Name" class="input-app" required aria-required="true" />
             <span asp-validation-for="Product.Name" class="field-error"></span>
         </div>
         <div class="field">
@@ -31,18 +37,21 @@
             <select asp-for="Product.CategoryId" class="select-app" asp-items="@(new SelectList(Model.Categories, "Id", "Name"))">
                 <option value="">— Select —</option>
             </select>
+            <span class="hint">Optional</span>
         </div>
         <div class="field">
             <label asp-for="Product.UnitId">Unit</label>
             <select asp-for="Product.UnitId" class="select-app" asp-items="@(new SelectList(Model.Units, "Id", "Name"))">
                 <option value="">— Select —</option>
             </select>
+            <span class="hint">Optional</span>
         </div>
         <div class="field">
             <label asp-for="Product.DefaultSupplierId">Default Supplier / Factory</label>
             <select asp-for="Product.DefaultSupplierId" class="select-app" asp-items="@(new SelectList(Model.Suppliers, "Id", "Name"))">
                 <option value="">— Select —</option>
             </select>
+            <span class="hint">Optional</span>
         </div>
         <div class="field">
             <label asp-for="Product.Brand">Brand</label>
@@ -85,9 +94,9 @@
     <div class="form-grid form-grid--3">
         @if (User.IsInRole(AppRoles.Owner) || User.IsInRole(AppRoles.Manager) || User.IsInRole(AppRoles.Accountant))
         {
-            <div class="field"><label asp-for="Product.LatestRmbPrice">Latest RMB Price</label><input asp-for="Product.LatestRmbPrice" class="input-app" /><span class="hint">History preserved on change</span></div>
-            <div class="field"><label asp-for="Product.LatestLandedCost">Latest Landed Cost (PKR)</label><input asp-for="Product.LatestLandedCost" class="input-app" /><span class="hint">History preserved on change</span></div>
-            <div class="field"><label asp-for="PriceChangeReason">Price change reason</label><input asp-for="PriceChangeReason" class="input-app" /></div>
+            <div class="field"><label asp-for="Product.LatestRmbPrice">Latest RMB Price</label><input asp-for="Product.LatestRmbPrice" class="input-app" /><span class="hint">Optional — history preserved on change</span></div>
+            <div class="field"><label asp-for="Product.LatestLandedCost">Latest Landed Cost (PKR)</label><input asp-for="Product.LatestLandedCost" class="input-app" /><span class="hint">Optional — history preserved on change</span></div>
+            <div class="field"><label asp-for="PriceChangeReason">Price change reason</label><input asp-for="PriceChangeReason" class="input-app" /><span class="hint">Required only when sale prices change</span></div>
         }
         <div class="field"><label asp-for="Product.WholesalePrice">Wholesale Price</label><input asp-for="Product.WholesalePrice" class="input-app" /></div>
         <div class="field"><label asp-for="Product.RetailPrice">Retail Price</label><input asp-for="Product.RetailPrice" class="input-app" /></div>

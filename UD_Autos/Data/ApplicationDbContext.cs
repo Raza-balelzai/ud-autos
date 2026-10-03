@@ -90,6 +90,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
 
         builder.Entity<Supplier>(e =>
         {
+            e.Property(x => x.SupplierCode).IsRequired().HasMaxLength(40);
             e.HasIndex(x => x.SupplierCode).IsUnique();
             e.HasIndex(x => x.Name);
             e.Property(x => x.TotalPurchasesRmb).HasPrecision(18, 2);
@@ -99,6 +100,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
 
         builder.Entity<Customer>(e =>
         {
+            e.Property(x => x.CustomerCode).IsRequired().HasMaxLength(40);
             e.HasIndex(x => x.CustomerCode).IsUnique();
             e.HasIndex(x => x.Phone);
             e.HasIndex(x => x.Name);
@@ -111,6 +113,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
 
         builder.Entity<Product>(e =>
         {
+            e.Property(x => x.Sku).IsRequired().HasMaxLength(60);
             e.HasIndex(x => x.Sku).IsUnique();
             e.HasIndex(x => x.Name);
             e.HasIndex(x => x.CategoryId);

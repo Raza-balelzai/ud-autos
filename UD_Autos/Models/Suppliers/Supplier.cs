@@ -9,8 +9,9 @@ public class Supplier : AuditableEntity
 {
     public int Id { get; set; }
 
-    [Required, StringLength(40)]
-    public string SupplierCode { get; set; } = string.Empty;
+    /// <summary>Optional on create — auto-generated when blank.</summary>
+    [StringLength(40)]
+    public string? SupplierCode { get; set; }
 
     [Required, StringLength(200)]
     public string Name { get; set; } = string.Empty;

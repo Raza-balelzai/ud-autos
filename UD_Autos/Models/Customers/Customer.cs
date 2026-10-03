@@ -8,8 +8,9 @@ public class Customer : AuditableEntity
 {
     public int Id { get; set; }
 
-    [Required, StringLength(40)]
-    public string CustomerCode { get; set; } = string.Empty;
+    /// <summary>Optional on create — auto-generated when blank.</summary>
+    [StringLength(40)]
+    public string? CustomerCode { get; set; }
 
     [Required, StringLength(200)]
     public string Name { get; set; } = string.Empty;

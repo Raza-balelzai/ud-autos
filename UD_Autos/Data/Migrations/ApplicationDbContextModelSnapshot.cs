@@ -454,7 +454,6 @@ namespace UD_Autos.Data.Migrations
                         .HasColumnType("datetime2");
 
                     b.Property<string>("ExpenseNumber")
-                        .IsRequired()
                         .HasMaxLength(40)
                         .HasColumnType("nvarchar(40)");
 
@@ -479,7 +478,8 @@ namespace UD_Autos.Data.Migrations
                     b.HasIndex("CategoryId");
 
                     b.HasIndex("ExpenseNumber")
-                        .IsUnique();
+                        .IsUnique()
+                        .HasFilter("[ExpenseNumber] IS NOT NULL");
 
                     b.HasIndex("ExpenseDate", "CategoryId");
 
@@ -525,7 +525,6 @@ namespace UD_Autos.Data.Migrations
                         .HasColumnType("datetime2");
 
                     b.Property<string>("PaymentNumber")
-                        .IsRequired()
                         .HasMaxLength(40)
                         .HasColumnType("nvarchar(40)");
 
@@ -556,7 +555,8 @@ namespace UD_Autos.Data.Migrations
                     b.HasIndex("PaymentDate");
 
                     b.HasIndex("PaymentNumber")
-                        .IsUnique();
+                        .IsUnique()
+                        .HasFilter("[PaymentNumber] IS NOT NULL");
 
                     b.HasIndex("PurchaseOrderId");
 
@@ -1179,7 +1179,6 @@ namespace UD_Autos.Data.Migrations
                         .HasColumnType("decimal(18,4)");
 
                     b.Property<string>("PoNumber")
-                        .IsRequired()
                         .HasMaxLength(40)
                         .HasColumnType("nvarchar(40)");
 
@@ -1203,7 +1202,8 @@ namespace UD_Autos.Data.Migrations
                     b.HasIndex("OrderDate");
 
                     b.HasIndex("PoNumber")
-                        .IsUnique();
+                        .IsUnique()
+                        .HasFilter("[PoNumber] IS NOT NULL");
 
                     b.HasIndex("Status");
 
@@ -2104,7 +2104,6 @@ namespace UD_Autos.Data.Migrations
                         .HasColumnType("rowversion");
 
                     b.Property<string>("ShipmentNumber")
-                        .IsRequired()
                         .HasMaxLength(40)
                         .HasColumnType("nvarchar(40)");
 
@@ -2161,7 +2160,8 @@ namespace UD_Autos.Data.Migrations
                     b.HasIndex("ChinaDepartureDate");
 
                     b.HasIndex("ShipmentNumber")
-                        .IsUnique();
+                        .IsUnique()
+                        .HasFilter("[ShipmentNumber] IS NOT NULL");
 
                     b.HasIndex("Status");
 

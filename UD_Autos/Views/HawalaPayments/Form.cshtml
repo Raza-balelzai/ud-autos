@@ -10,24 +10,25 @@
         <input type="hidden" asp-for="Payment.PaymentNumber" />
     }
     <div asp-validation-summary="ModelOnly" class="validation-summary-errors"></div>
+    <p class="form-legend"><span class="req" aria-hidden="true">*</span> Required field</p>
 
     <div class="form-grid form-grid--3">
         <div class="field">
-            <label asp-for="Payment.PaymentDate">Date</label>
-            <input asp-for="Payment.PaymentDate" type="date" class="input-app" />
+            <label asp-for="Payment.PaymentDate" class="is-required">Date <span class="req" aria-hidden="true">*</span></label>
+            <input asp-for="Payment.PaymentDate" type="date" class="input-app" required />
         </div>
         <div class="field">
-            <label asp-for="Payment.HawalaPerson">Hawala Person / Service</label>
-            <input asp-for="Payment.HawalaPerson" class="input-app" />
+            <label asp-for="Payment.HawalaPerson" class="is-required">Hawala Person / Service <span class="req" aria-hidden="true">*</span></label>
+            <input asp-for="Payment.HawalaPerson" class="input-app" required aria-required="true" />
         </div>
         <div class="field">
-            <label asp-for="Payment.SupplierId">Supplier</label>
-            <select asp-for="Payment.SupplierId" class="select-app" id="hawala-supplier" asp-items="@(new SelectList(Model.Suppliers, "Id", "Name"))">
+            <label asp-for="Payment.SupplierId" class="is-required">Supplier <span class="req" aria-hidden="true">*</span></label>
+            <select asp-for="Payment.SupplierId" class="select-app" id="hawala-supplier" asp-items="@(new SelectList(Model.Suppliers, "Id", "Name"))" required>
                 <option value="">— Select —</option>
             </select>
         </div>
         <div class="field">
-            <label asp-for="Payment.PurchaseOrderId">Linked PO (optional)</label>
+            <label asp-for="Payment.PurchaseOrderId">Linked PO</label>
             <select asp-for="Payment.PurchaseOrderId" class="select-app" id="hawala-po">
                 <option value="">— None —</option>
                 @foreach (var po in Model.PurchaseOrders)
@@ -35,17 +36,18 @@
                     <option value="@po.Id">@po.PoNumber — ¥ @po.TotalRmb.ToString("N2")</option>
                 }
             </select>
+            <span class="hint">Optional</span>
         </div>
         <div class="field">
-            <label asp-for="Payment.RmbReceived">RMB Received by factory</label>
-            <input asp-for="Payment.RmbReceived" class="input-app" id="rmb-received" />
+            <label asp-for="Payment.RmbReceived" class="is-required">RMB Received by factory <span class="req" aria-hidden="true">*</span></label>
+            <input asp-for="Payment.RmbReceived" class="input-app" id="rmb-received" required />
         </div>
         <div class="field">
-            <label asp-for="Payment.PkrPaid">PKR Paid locally</label>
-            <input asp-for="Payment.PkrPaid" class="input-app" id="pkr-paid" />
+            <label asp-for="Payment.PkrPaid" class="is-required">PKR Paid locally <span class="req" aria-hidden="true">*</span></label>
+            <input asp-for="Payment.PkrPaid" class="input-app" id="pkr-paid" required />
         </div>
         <div class="field">
-            <label asp-for="Payment.Account">Paid from Cash / Bank</label>
+            <label asp-for="Payment.Account" class="is-required">Paid from Cash / Bank <span class="req" aria-hidden="true">*</span></label>
             <select asp-for="Payment.Account" class="select-app" asp-items="Html.GetEnumSelectList<PaymentAccount>()"></select>
         </div>
         <div class="field">
@@ -56,10 +58,12 @@
         <div class="field">
             <label asp-for="Payment.HawalaFee">Hawala Fee (PKR)</label>
             <input asp-for="Payment.HawalaFee" class="input-app" />
+            <span class="hint">Optional</span>
         </div>
         <div class="field">
             <label asp-for="Payment.Reference">Reference</label>
             <input asp-for="Payment.Reference" class="input-app" />
+            <span class="hint">Optional</span>
         </div>
         <div class="field">
             <label class="checkbox-row">

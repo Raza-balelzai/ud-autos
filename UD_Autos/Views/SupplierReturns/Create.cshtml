@@ -8,31 +8,34 @@
 <form method="post" class="card-panel" id="supplier-return-form">
     @Html.AntiForgeryToken()
     <p class="hint">Stock return only — does not post supplier ledger credit. Qty cannot exceed batch remaining minus reserved.</p>
+    <p class="form-legend"><span class="req" aria-hidden="true">*</span> Required field</p>
 
     <div class="form-grid form-grid--3">
         <div class="field">
-            <label asp-for="SupplierId">Supplier</label>
+            <label asp-for="SupplierId" class="is-required">Supplier <span class="req" aria-hidden="true">*</span></label>
             <select asp-for="SupplierId" class="select-app" asp-items="@(new SelectList(suppliers, "Id", "Name"))" required>
                 <option value="">— Select —</option>
             </select>
         </div>
         <div class="field">
-            <label asp-for="ReturnDate">Date</label>
-            <input asp-for="ReturnDate" type="date" class="input-app" />
+            <label asp-for="ReturnDate" class="is-required">Date <span class="req" aria-hidden="true">*</span></label>
+            <input asp-for="ReturnDate" type="date" class="input-app" required />
         </div>
         <div class="field">
-            <label asp-for="ShipmentId">Shipment (optional)</label>
+            <label asp-for="ShipmentId">Shipment</label>
             <select asp-for="ShipmentId" class="select-app" asp-items="@(new SelectList(shipments, "Id", "ShipmentNumber"))">
                 <option value="">— None —</option>
             </select>
+            <span class="hint">Optional</span>
         </div>
         <div class="field form-grid--full">
-            <label asp-for="Reason">Reason</label>
+            <label asp-for="Reason" class="is-required">Reason <span class="req" aria-hidden="true">*</span></label>
             <input asp-for="Reason" class="input-app" required />
         </div>
         <div class="field form-grid--full">
             <label asp-for="Notes">Notes</label>
             <input asp-for="Notes" class="input-app" />
+            <span class="hint">Optional</span>
         </div>
     </div>
 
