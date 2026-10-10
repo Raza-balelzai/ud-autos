@@ -54,7 +54,7 @@
         </div>
         <div class="table-toolbar">
             <input class="input-app" id="component-search" placeholder="Search by SKU or name" autocomplete="off" />
-            <button type="button" class="btn-app btn-app--outline btn-app--sm" id="component-add">Add selected item</button>
+            <button type="button" class="btn-app btn-app--outline btn-app--sm" id="component-add"><svg class="ico" aria-hidden="true"><use href="#i-plus"></use></svg> Add selected item</button>
         </div>
         <div id="component-results"></div>
         <div class="table-wrap">
@@ -75,7 +75,7 @@
                         </td>
                         <td><input class="input-app qty-input" name="Components[@i].RequiredQuantity" value="@Model.Components[i].RequiredQuantity" /></td>
                         <td>@Model.Components[i].AvailableStock.ToString("N2")</td>
-                        <td><button type="button" class="btn-app btn-app--ghost btn-app--sm" data-remove-component>Remove</button></td>
+                        <td><button type="button" class="btn-app btn-app--ghost btn-app--sm" data-remove-component><svg class="ico" aria-hidden="true"><use href="#i-trash"></use></svg> Remove</button></td>
                     </tr>
                 }
                 </tbody>
@@ -224,8 +224,8 @@
     </section>
 
     <div class="form-actions">
-        <button type="submit" class="btn-app btn-app--primary" id="product-save">@(isEdit ? "Save changes" : "Create product")</button>
-        <a class="btn-app btn-app--outline" asp-action="Index">Cancel</a>
+        <button type="submit" class="btn-app btn-app--primary" id="product-save"><svg class="ico" aria-hidden="true"><use href="@(isEdit ? "#i-check" : "#i-plus")"></use></svg> @(isEdit ? "Save changes" : "Create product")</button>
+        <a class="btn-app btn-app--outline" asp-action="Index"><svg class="ico" aria-hidden="true"><use href="#i-x"></use></svg> Cancel</a>
     </div>
 </form>
 
@@ -294,7 +294,7 @@
       '</td>' +
       '<td><input class="input-app qty-input" name="Components[' + i + '].RequiredQuantity" value="1" /></td>' +
       '<td>' + Number(item.available).toFixed(2) + '</td>' +
-      '<td><button type="button" class="btn-app btn-app--ghost btn-app--sm" data-remove-component>Remove</button></td>';
+      '<td><button type="button" class="btn-app btn-app--ghost btn-app--sm" data-remove-component><svg class="ico" aria-hidden="true"><use href="#i-trash"></use></svg> Remove</button></td>';
     tableBody.appendChild(tr);
     syncEmpty();
   }
@@ -313,7 +313,7 @@
     results.innerHTML = matches.length === 0
       ? '<p class="hint">No matching single items.</p>'
       : '<div class="component-picks">' + matches.map((m, idx) =>
-        '<button type="button" class="btn-app btn-app--outline btn-app--sm" data-pick="' + idx + '">' +
+        '<button type="button" class="btn-app btn-app--outline btn-app--sm" data-pick="' + idx + '"><svg class="ico" aria-hidden="true"><use href="#i-plus"></use></svg> ' +
         text(m.sku) + ' — ' + text(m.name) + ' · ' + Number(m.available).toFixed(0) + ' in stock</button>').join('') + '</div>';
   }
 

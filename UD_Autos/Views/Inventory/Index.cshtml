@@ -9,13 +9,13 @@
 }
 
 @section PageActions {
-    <a class="btn-app btn-app--outline" asp-action="Batches">Batches</a>
-    <a class="btn-app btn-app--outline" asp-action="Movements">Movements</a>
-    <a class="btn-app btn-app--outline" asp-action="LowStock">Low stock</a>
-    <a class="btn-app btn-app--outline" asp-action="Hold">Hold</a>
-    <a class="btn-app btn-app--outline" asp-action="Release">Release</a>
-    <a class="btn-app btn-app--outline" asp-controller="SupplierReturns" asp-action="Index">Supplier returns</a>
-    <a class="btn-app btn-app--primary" asp-action="Adjust">Adjust stock</a>
+    <a class="btn-app btn-app--outline" asp-action="Batches"><svg class="ico" aria-hidden="true"><use href="#i-layers"></use></svg> Batches</a>
+    <a class="btn-app btn-app--outline" asp-action="Movements"><svg class="ico" aria-hidden="true"><use href="#i-activity"></use></svg> Movements</a>
+    <a class="btn-app btn-app--outline" asp-action="LowStock"><svg class="ico" aria-hidden="true"><use href="#i-alert"></use></svg> Low stock</a>
+    <a class="btn-app btn-app--outline" asp-action="Hold"><svg class="ico" aria-hidden="true"><use href="#i-pause"></use></svg> Hold</a>
+    <a class="btn-app btn-app--outline" asp-action="Release"><svg class="ico" aria-hidden="true"><use href="#i-play"></use></svg> Release</a>
+    <a class="btn-app btn-app--outline" asp-controller="SupplierReturns" asp-action="Index"><svg class="ico" aria-hidden="true"><use href="#i-undo"></use></svg> Supplier returns</a>
+    <a class="btn-app btn-app--primary" asp-action="Adjust"><svg class="ico" aria-hidden="true"><use href="#i-pencil"></use></svg> Adjust stock</a>
 }
 
 <div class="card-panel">
@@ -23,7 +23,7 @@
         <input class="input-app" name="search" value="@Model.Search" placeholder="Search SKU / name..." />
         <label class="checkbox-row"><input type="checkbox" name="lowStock" value="true" checked="@((ViewBag.LowStock as bool?) == true)" /> Low stock</label>
         <label class="checkbox-row"><input type="checkbox" name="outOfStock" value="true" checked="@((ViewBag.OutOfStock as bool?) == true)" /> Out of stock</label>
-        <button type="submit" class="btn-app btn-app--outline">Filter</button>
+        <button type="submit" class="btn-app btn-app--outline"><svg class="ico" aria-hidden="true"><use href="#i-filter"></use></svg> Filter</button>
     </form>
 
     <div class="table-wrap">
@@ -96,17 +96,23 @@
                             }
                         </td>
                         <td class="actions">
+                            <a class="btn-app btn-app--primary btn-app--icon" asp-controller="Products" asp-action="Details" asp-route-id="@p.Id" title="View" aria-label="View"><svg class="ico" aria-hidden="true"><use href="#i-eye"></use></svg></a>
+                            <a class="btn-app btn-app--success btn-app--icon" asp-controller="Products" asp-action="Edit" asp-route-id="@p.Id" title="Edit" aria-label="Edit"><svg class="ico" aria-hidden="true"><use href="#i-pencil"></use></svg></a>
+                            <form asp-controller="Products" asp-action="Delete" method="post" class="row-action">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="id" value="@p.Id" />
+                                <button type="submit" class="btn-app btn-app--danger btn-app--icon" title="Deactivate" aria-label="Deactivate" onclick="return confirm('Deactivate this product?');"><svg class="ico" aria-hidden="true"><use href="#i-ban"></use></svg></button>
+                            </form>
                             @if (p.ProductKind == ProductKind.CompleteSet)
                             {
-                                <a class="btn-app btn-app--outline btn-app--sm" asp-controller="Products" asp-action="Details" asp-route-id="@p.Id">Set items</a>
-                                <a class="btn-app btn-app--outline btn-app--sm" asp-controller="Products" asp-action="Edit" asp-route-id="@p.Id">Edit</a>
+                                <a class="btn-app btn-app--outline btn-app--icon" asp-controller="Products" asp-action="Details" asp-route-id="@p.Id" title="Set items" aria-label="Set items"><svg class="ico" aria-hidden="true"><use href="#i-box"></use></svg></a>
                             }
                             else
                             {
-                                <a class="btn-app btn-app--outline btn-app--sm" asp-action="Batches" asp-route-productId="@p.Id">Batches</a>
-                                <a class="btn-app btn-app--outline btn-app--sm" asp-action="Hold" asp-route-productId="@p.Id">Hold</a>
-                                <a class="btn-app btn-app--outline btn-app--sm" asp-action="Release" asp-route-productId="@p.Id">Release</a>
-                                <a class="btn-app btn-app--outline btn-app--sm" asp-action="Movements" asp-route-productId="@p.Id">Moves</a>
+                                <a class="btn-app btn-app--outline btn-app--icon" asp-action="Batches" asp-route-productId="@p.Id" title="Batches" aria-label="Batches"><svg class="ico" aria-hidden="true"><use href="#i-layers"></use></svg></a>
+                                <a class="btn-app btn-app--outline btn-app--icon" asp-action="Hold" asp-route-productId="@p.Id" title="Hold" aria-label="Hold"><svg class="ico" aria-hidden="true"><use href="#i-pause"></use></svg></a>
+                                <a class="btn-app btn-app--outline btn-app--icon" asp-action="Release" asp-route-productId="@p.Id" title="Release" aria-label="Release"><svg class="ico" aria-hidden="true"><use href="#i-play"></use></svg></a>
+                                <a class="btn-app btn-app--outline btn-app--icon" asp-action="Movements" asp-route-productId="@p.Id" title="Movements" aria-label="Movements"><svg class="ico" aria-hidden="true"><use href="#i-activity"></use></svg></a>
                             }
                         </td>
                     </tr>

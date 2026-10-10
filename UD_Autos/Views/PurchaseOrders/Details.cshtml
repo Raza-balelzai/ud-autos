@@ -1,8 +1,8 @@
 @model PurchaseOrder
 
 @section PageActions {
-    <a class="btn-app btn-app--outline" asp-action="Edit" asp-route-id="@Model.Id">Edit</a>
-    <a class="btn-app btn-app--primary" asp-controller="HawalaPayments" asp-action="Create" asp-route-supplierId="@Model.SupplierId">+ Hawala</a>
+    <a class="btn-app btn-app--outline" asp-action="Edit" asp-route-id="@Model.Id"><svg class="ico" aria-hidden="true"><use href="#i-pencil"></use></svg> Edit</a>
+    <a class="btn-app btn-app--primary" asp-controller="HawalaPayments" asp-action="Create" asp-route-supplierId="@Model.SupplierId"><svg class="ico" aria-hidden="true"><use href="#i-plus"></use></svg> + Hawala</a>
 }
 
 <div class="card-panel">
@@ -44,6 +44,6 @@
         <input type="hidden" name="id" value="@Model.Id" />
         <select class="select-app" name="status" asp-items="Html.GetEnumSelectList<PurchaseOrderStatus>()"></select>
         <input class="input-app" name="reason" placeholder="Reason (required for rollback)" />
-        <button type="submit" class="btn-app btn-app--outline">Apply status</button>
+        <button type="submit" class="btn-app btn-app--outline"><svg class="ico" aria-hidden="true"><use href="#i-check"></use></svg> Apply status</button>
     </form>
 </div>

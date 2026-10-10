@@ -4,8 +4,8 @@
 }
 
 @section PageActions {
-    <a class="btn-app btn-app--outline" asp-action="Daily">Daily Sales</a>
-    <a class="btn-app btn-app--primary" asp-action="Create">+ New Invoice</a>
+    <a class="btn-app btn-app--outline" asp-action="Daily"><svg class="ico" aria-hidden="true"><use href="#i-calendar"></use></svg> Daily sales</a>
+    <a class="btn-app btn-app--primary" asp-action="Create"><svg class="ico" aria-hidden="true"><use href="#i-plus"></use></svg> New invoice</a>
 }
 
 <div class="card-panel">
@@ -13,7 +13,7 @@
         <input class="input-app" name="search" value="@Model.Search" placeholder="Search invoice / customer..." />
         <input class="input-app" type="date" name="from" />
         <input class="input-app" type="date" name="to" />
-        <button type="submit" class="btn-app btn-app--outline">Filter</button>
+        <button type="submit" class="btn-app btn-app--outline"><svg class="ico" aria-hidden="true"><use href="#i-filter"></use></svg> Filter</button>
     </form>
     <div class="table-wrap">
         <table class="table-app">
@@ -47,8 +47,8 @@
                         <td>Rs. @inv.PaymentReceived.ToString("N2")</td>
                         <td>Rs. @inv.OutstandingAmount.ToString("N2")</td>
                         <td class="actions">
-                            <a class="btn-app btn-app--outline btn-app--sm" asp-action="Details" asp-route-id="@inv.Id">View</a>
-                            <a class="btn-app btn-app--outline btn-app--sm" asp-action="Print" asp-route-id="@inv.Id" target="_blank">Print</a>
+                            <a class="btn-app btn-app--primary btn-app--icon" asp-action="Details" asp-route-id="@inv.Id" title="View" aria-label="View"><svg class="ico" aria-hidden="true"><use href="#i-eye"></use></svg></a>
+                            <a class="btn-app btn-app--outline btn-app--icon" asp-action="Print" asp-route-id="@inv.Id" target="_blank" title="Print" aria-label="Print"><svg class="ico" aria-hidden="true"><use href="#i-printer"></use></svg></a>
                         </td>
                     </tr>
                 }

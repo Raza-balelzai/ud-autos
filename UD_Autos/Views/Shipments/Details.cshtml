@@ -9,10 +9,10 @@
 }
 
 @section PageActions {
-    <a class="btn-app btn-app--outline" asp-action="Edit" asp-route-id="@Model.Id">Edit</a>
-    <a class="btn-app btn-app--outline" asp-controller="LandedCost" asp-action="Index" asp-route-shipmentId="@Model.Id">Landed Cost</a>
-    <a class="btn-app btn-app--primary" asp-controller="LandedCost" asp-action="Receiving" asp-route-shipmentId="@Model.Id">Final Receiving</a>
-    <a class="btn-app btn-app--primary" asp-action="AddSlip" asp-route-id="@Model.Id">+ Warehouse Slip</a>
+    <a class="btn-app btn-app--outline" asp-action="Edit" asp-route-id="@Model.Id"><svg class="ico" aria-hidden="true"><use href="#i-pencil"></use></svg> Edit</a>
+    <a class="btn-app btn-app--outline" asp-controller="LandedCost" asp-action="Index" asp-route-shipmentId="@Model.Id"><svg class="ico" aria-hidden="true"><use href="#i-receipt"></use></svg> Landed Cost</a>
+    <a class="btn-app btn-app--primary" asp-controller="LandedCost" asp-action="Receiving" asp-route-shipmentId="@Model.Id"><svg class="ico" aria-hidden="true"><use href="#i-check"></use></svg> Final Receiving</a>
+    <a class="btn-app btn-app--primary" asp-action="AddSlip" asp-route-id="@Model.Id"><svg class="ico" aria-hidden="true"><use href="#i-plus"></use></svg> + Warehouse Slip</a>
 }
 
 <div class="card-panel">
@@ -157,7 +157,7 @@
         <div class="field"><label>Unloading</label><input class="input-app" name="UnloadingCostPkr" value="@Model.UnloadingCostPkr" /></div>
         <div class="field"><label>Other Direct</label><input class="input-app" name="OtherDirectCostPkr" value="@Model.OtherDirectCostPkr" /></div>
         <div class="form-actions form-grid--full">
-            <button type="submit" class="btn-app btn-app--primary">Save freight &amp; local costs</button>
+            <button type="submit" class="btn-app btn-app--primary"><svg class="ico" aria-hidden="true"><use href="#i-check"></use></svg> Save freight &amp; local costs</button>
         </div>
     </form>
 
@@ -167,7 +167,7 @@
         <input type="hidden" name="id" value="@Model.Id" />
         <select class="select-app" name="status" asp-items="Html.GetEnumSelectList<ShipmentStatus>()"></select>
         <input class="input-app" name="reason" placeholder="Reason for rollback" />
-        <button type="submit" class="btn-app btn-app--outline">Apply status</button>
+        <button type="submit" class="btn-app btn-app--outline"><svg class="ico" aria-hidden="true"><use href="#i-check"></use></svg> Apply status</button>
     </form>
     <p class="dashboard-note">Use <strong>Final Receiving</strong> to finalize &amp; post inventory (Phase 3). Manual status “Received” remains blocked outside finalization.</p>
 
@@ -178,7 +178,7 @@
         <select class="select-app" name="DocumentType" asp-items="Html.GetEnumSelectList<ShipmentDocumentType>()"></select>
         <input class="input-app" type="file" name="File" accept=".pdf,.jpg,.jpeg,.png,.webp,.gif" />
         <input class="input-app" name="Notes" placeholder="Notes" />
-        <button type="submit" class="btn-app btn-app--outline">Upload</button>
+        <button type="submit" class="btn-app btn-app--outline"><svg class="ico" aria-hidden="true"><use href="#i-upload"></use></svg> Upload</button>
     </form>
     <div class="table-wrap">
         <table class="table-app">
@@ -204,7 +204,7 @@
         <select class="select-app" name="eventType" asp-items="Html.GetEnumSelectList<ShipmentTimelineEventType>()"></select>
         <input class="input-app" type="datetime-local" name="occurredAt" value="@DateTime.Now.ToString("yyyy-MM-ddTHH:mm")" />
         <input class="input-app" name="notes" placeholder="Notes" />
-        <button type="submit" class="btn-app btn-app--outline">Add event</button>
+        <button type="submit" class="btn-app btn-app--outline"><svg class="ico" aria-hidden="true"><use href="#i-plus"></use></svg> Add event</button>
     </form>
     <ul class="timeline-list">
         @foreach (var e in Model.TimelineEvents.OrderBy(x => x.OccurredAt))

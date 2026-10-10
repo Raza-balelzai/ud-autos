@@ -35,6 +35,7 @@
     <link rel="stylesheet" href="~/css/app.css" asp-append-version="true" />
 </head>
 <body>
+    <partial name="_IconSprite" />
 @if (SignInManager.IsSignedIn(User))
 {
     <div class="app-shell">
@@ -164,7 +165,7 @@
                         </div>
                         <form asp-controller="Account" asp-action="Logout" method="post">
                             @Html.AntiForgeryToken()
-                            <button type="submit" class="btn-app btn-app--ghost btn-app--sm">Logout</button>
+                            <button type="submit" class="btn-app btn-app--ghost btn-app--sm"><svg class="ico" aria-hidden="true"><use href="#i-logout"></use></svg> Logout</button>
                         </form>
                     </div>
                 </div>

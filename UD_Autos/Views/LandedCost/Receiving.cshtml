@@ -1,8 +1,8 @@
 @model ReceivingPageViewModel
 
 @section PageActions {
-    <a class="btn-app btn-app--outline" asp-action="Index" asp-route-shipmentId="@Model.Shipment.Id">Landed Cost</a>
-    <a class="btn-app btn-app--outline" asp-controller="Shipments" asp-action="Details" asp-route-id="@Model.Shipment.Id">Shipment</a>
+    <a class="btn-app btn-app--outline" asp-action="Index" asp-route-shipmentId="@Model.Shipment.Id"><svg class="ico" aria-hidden="true"><use href="#i-receipt"></use></svg> Landed Cost</a>
+    <a class="btn-app btn-app--outline" asp-controller="Shipments" asp-action="Details" asp-route-id="@Model.Shipment.Id"><svg class="ico" aria-hidden="true"><use href="#i-truck"></use></svg> Shipment</a>
 }
 
 <div class="card-panel">
@@ -72,7 +72,7 @@
         @if (!Model.Shipment.IsFinalized)
         {
             <div class="form-actions">
-                <button type="submit" class="btn-app btn-app--outline">Save actuals</button>
+                <button type="submit" class="btn-app btn-app--outline"><svg class="ico" aria-hidden="true"><use href="#i-check"></use></svg> Save actuals</button>
             </div>
         }
     </form>
@@ -83,7 +83,7 @@
             @Html.AntiForgeryToken()
             <input type="hidden" name="shipmentId" value="@Model.Shipment.Id" />
             <button type="submit" class="btn-app btn-app--success" onclick="return confirm('Finalize & receive? This posts inventory and locks landed cost.');">
-                Finalize &amp; Receive Shipment
+                <svg class="ico" aria-hidden="true"><use href="#i-check"></use></svg> Finalize &amp; Receive Shipment
             </button>
         </form>
     }

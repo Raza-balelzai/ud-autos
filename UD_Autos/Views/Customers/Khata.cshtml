@@ -5,8 +5,8 @@
 }
 
 @section PageActions {
-    <a class="btn-app btn-app--outline" asp-controller="Sales" asp-action="Create" asp-route-customerId="@customer.Id">New Invoice</a>
-    <a class="btn-app btn-app--primary" asp-controller="Payments" asp-action="Index" asp-route-customerId="@customer.Id">Receive Payment</a>
+    <a class="btn-app btn-app--outline" asp-controller="Sales" asp-action="Create" asp-route-customerId="@customer.Id"><svg class="ico" aria-hidden="true"><use href="#i-plus"></use></svg> New Invoice</a>
+    <a class="btn-app btn-app--primary" asp-controller="Payments" asp-action="Index" asp-route-customerId="@customer.Id"><svg class="ico" aria-hidden="true"><use href="#i-check"></use></svg> Receive Payment</a>
 }
 
 <div class="kpi-grid">
@@ -55,7 +55,7 @@
                     <td>@inv.InvoiceDate.ToString("dd MMM yyyy")</td>
                     <td>Rs. @inv.BillTotal.ToString("N2")</td>
                     <td>Rs. @inv.OutstandingAmount.ToString("N2")</td>
-                    <td><a class="btn-app btn-app--outline btn-app--sm" asp-controller="Sales" asp-action="Details" asp-route-id="@inv.Id">Open</a></td>
+                    <td class="actions"><a class="btn-app btn-app--primary btn-app--icon" asp-controller="Sales" asp-action="Details" asp-route-id="@inv.Id" title="View" aria-label="View"><svg class="ico" aria-hidden="true"><use href="#i-eye"></use></svg></a></td>
                 </tr>
             }
             </tbody>

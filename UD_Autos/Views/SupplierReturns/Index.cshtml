@@ -5,7 +5,7 @@
 }
 
 @section PageActions {
-    <a class="btn-app btn-app--primary" asp-action="Create">+ Supplier return</a>
+    <a class="btn-app btn-app--primary" asp-action="Create"><svg class="ico" aria-hidden="true"><use href="#i-plus"></use></svg> Supplier return</a>
 }
 
 <div class="card-panel">
@@ -14,7 +14,7 @@
         <select class="select-app" name="supplierId" asp-items="@(new SelectList(suppliers, "Id", "Name", ViewBag.SupplierId))">
             <option value="">All suppliers</option>
         </select>
-        <button type="submit" class="btn-app btn-app--outline">Filter</button>
+        <button type="submit" class="btn-app btn-app--outline"><svg class="ico" aria-hidden="true"><use href="#i-filter"></use></svg> Filter</button>
     </form>
 
     <div class="table-wrap">
@@ -44,7 +44,7 @@
                         <td>@r.Supplier.Name</td>
                         <td>@r.TotalQuantity.ToString("N2")</td>
                         <td>@r.Reason</td>
-                        <td><a class="btn-app btn-app--outline btn-app--sm" asp-action="Details" asp-route-id="@r.Id">Open</a></td>
+                        <td class="actions"><a class="btn-app btn-app--primary btn-app--icon" asp-action="Details" asp-route-id="@r.Id" title="View" aria-label="View"><svg class="ico" aria-hidden="true"><use href="#i-eye"></use></svg></a></td>
                     </tr>
                 }
             }

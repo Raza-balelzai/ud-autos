@@ -19,7 +19,7 @@
                 }
             </select>
         </div>
-        <div class="form-actions"><button type="submit" class="btn-app btn-app--primary">Create</button></div>
+        <div class="form-actions"><button type="submit" class="btn-app btn-app--primary"><svg class="ico" aria-hidden="true"><use href="#i-plus"></use></svg> Create</button></div>
     </form>
 </div>
 
@@ -50,22 +50,22 @@
                                     }
                                 }
                             </select>
-                            <button type="submit" class="btn-app btn-app--outline btn-app--sm">Save role</button>
+                            <button type="submit" class="btn-app btn-app--outline btn-app--sm"><svg class="ico" aria-hidden="true"><use href="#i-check"></use></svg> Save role</button>
                         </form>
                     </td>
                     <td>@(u.IsActive ? "Yes" : "No")</td>
                     <td class="actions">
-                        <form asp-action="SetActive" method="post">
+                        <form asp-action="SetActive" method="post" class="row-action">
                             @Html.AntiForgeryToken()
                             <input type="hidden" name="id" value="@u.Id" />
                             <input type="hidden" name="isActive" value="@(!u.IsActive)" />
-                            <button type="submit" class="btn-app btn-app--outline btn-app--sm">@(u.IsActive ? "Deactivate" : "Activate")</button>
+                            <button type="submit" class="btn-app @(u.IsActive ? "btn-app--danger" : "btn-app--success") btn-app--icon" title="@(u.IsActive ? "Deactivate" : "Activate")" aria-label="@(u.IsActive ? "Deactivate" : "Activate")"><svg class="ico" aria-hidden="true"><use href="@(u.IsActive ? "#i-ban" : "#i-check")"></use></svg></button>
                         </form>
                         <form asp-action="ResetPassword" method="post" class="table-toolbar">
                             @Html.AntiForgeryToken()
                             <input type="hidden" name="id" value="@u.Id" />
                             <input class="input-app" name="password" type="password" placeholder="New password" required />
-                            <button type="submit" class="btn-app btn-app--ghost btn-app--sm">Reset pwd</button>
+                            <button type="submit" class="btn-app btn-app--ghost btn-app--sm"><svg class="ico" aria-hidden="true"><use href="#i-key"></use></svg> Reset pwd</button>
                         </form>
                     </td>
                 </tr>

@@ -43,7 +43,7 @@
     </div>
 
     <div class="page-header__actions">
-        <button type="submit" class="btn-app btn-app--primary">@(mode == "hold" ? "Hold stock" : "Release stock")</button>
-        <a class="btn-app btn-app--outline" asp-action="Index">Cancel</a>
+        <button type="submit" class="btn-app btn-app--primary"><svg class="ico" aria-hidden="true"><use href="@(mode == "hold" ? "#i-pause" : "#i-play")"></use></svg> @(mode == "hold" ? "Hold stock" : "Release stock")</button>
+        <a class="btn-app btn-app--outline" asp-action="Index"><svg class="ico" aria-hidden="true"><use href="#i-x"></use></svg> Cancel</a>
     </div>
 </form>

@@ -11,7 +11,7 @@
 }
 
 @section PageActions {
-    <a class="btn-app btn-app--primary" asp-action="Create">+ Add Product</a>
+    <a class="btn-app btn-app--primary" asp-action="Create"><svg class="ico" aria-hidden="true"><use href="#i-plus"></use></svg> Add product</a>
 }
 
 <div class="card-panel">
@@ -29,7 +29,7 @@
         <label class="checkbox-row">
             <input type="checkbox" name="sortDesc" value="true" checked="@Model.SortDesc" /> Desc
         </label>
-        <button type="submit" class="btn-app btn-app--outline">Filter</button>
+        <button type="submit" class="btn-app btn-app--outline"><svg class="ico" aria-hidden="true"><use href="#i-filter"></use></svg> Filter</button>
     </form>
 
     <div class="table-wrap">
@@ -108,8 +108,13 @@
                             }
                         </td>
                         <td class="actions">
-                            <a class="btn-app btn-app--outline btn-app--sm" asp-action="Details" asp-route-id="@item.Id">View</a>
-                            <a class="btn-app btn-app--outline btn-app--sm" asp-action="Edit" asp-route-id="@item.Id">Edit</a>
+                            <a class="btn-app btn-app--primary btn-app--icon" asp-action="Details" asp-route-id="@item.Id" title="View" aria-label="View"><svg class="ico" aria-hidden="true"><use href="#i-eye"></use></svg></a>
+                            <a class="btn-app btn-app--success btn-app--icon" asp-action="Edit" asp-route-id="@item.Id" title="Edit" aria-label="Edit"><svg class="ico" aria-hidden="true"><use href="#i-pencil"></use></svg></a>
+                            <form asp-action="Delete" method="post" class="row-action">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="id" value="@item.Id" />
+                                <button type="submit" class="btn-app btn-app--danger btn-app--icon" title="Deactivate" aria-label="Deactivate" onclick="return confirm('Deactivate this product?');"><svg class="ico" aria-hidden="true"><use href="#i-ban"></use></svg></button>
+                            </form>
                         </td>
                     </tr>
                 }

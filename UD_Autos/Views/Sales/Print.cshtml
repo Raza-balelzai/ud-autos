@@ -12,6 +12,7 @@
     <link rel="stylesheet" href="~/css/print.css" asp-append-version="true" />
 </head>
 <body class="print-page">
+    <partial name="_IconSprite" />
     <div class="print-sheet">
         <header class="print-header">
             <div>
@@ -62,8 +63,8 @@
 
         <p class="print-hint">Prefer <strong>Download PDF</strong> from the invoice page for a dedicated PDF file. WhatsApp/share can wrap this URL later without changing accounting logic.</p>
         <div class="no-print">
-            <a class="btn-app btn-app--primary" href="/Sales/Pdf/@Model.Id">Download PDF</a>
-            <button type="button" class="btn-app btn-app--outline" onclick="window.print()">Print</button>
+            <a class="btn-app btn-app--primary" href="/Sales/Pdf/@Model.Id"><svg class="ico" aria-hidden="true"><use href="#i-download"></use></svg> Download PDF</a>
+            <button type="button" class="btn-app btn-app--outline" onclick="window.print()"><svg class="ico" aria-hidden="true"><use href="#i-printer"></use></svg> Print</button>
         </div>
     </div>
 </body>

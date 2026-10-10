@@ -5,7 +5,7 @@
 }
 
 @section PageActions {
-    <a class="btn-app btn-app--primary" asp-action="Create">+ Add Expense</a>
+    <a class="btn-app btn-app--primary" asp-action="Create"><svg class="ico" aria-hidden="true"><use href="#i-plus"></use></svg> Add expense</a>
 }
 
 <div class="card-panel">
@@ -20,7 +20,7 @@
         </select>
         <input class="input-app" type="date" name="from" />
         <input class="input-app" type="date" name="to" />
-        <button type="submit" class="btn-app btn-app--outline">Filter</button>
+        <button type="submit" class="btn-app btn-app--outline"><svg class="ico" aria-hidden="true"><use href="#i-filter"></use></svg> Filter</button>
     </form>
     <p class="dashboard-note">Categories marked as direct import cost require acknowledgement on create to avoid double-counting with shipment landed cost.</p>
     <div class="table-wrap">
@@ -43,10 +43,10 @@
                         <td>Rs. @e.Amount.ToString("N2")</td>
                         <td>@e.Reference</td>
                         <td>
-                            <form asp-action="Delete" method="post">
+                            <form asp-action="Delete" method="post" class="row-action">
                                 @Html.AntiForgeryToken()
                                 <input type="hidden" name="id" value="@e.Id" />
-                                <button type="submit" class="btn-app btn-app--ghost btn-app--sm">Remove</button>
+                                <button type="submit" class="btn-app btn-app--danger btn-app--icon" title="Remove" aria-label="Remove" onclick="return confirm('Remove this expense?');"><svg class="ico" aria-hidden="true"><use href="#i-trash"></use></svg></button>
                             </form>
                         </td>
                     </tr>

@@ -57,12 +57,12 @@
                 <input class="input-app" name="Items[@i].Quantity" value="@Model.Items[i].Quantity" placeholder="Quantity" aria-label="Quantity" />
                 <input class="input-app" name="Items[@i].UnitPrice" value="@Model.Items[i].UnitPrice" placeholder="Unit price" aria-label="Unit price" />
                 <input class="input-app" name="Items[@i].LineDiscount" value="@Model.Items[i].LineDiscount" placeholder="Discount" aria-label="Discount" />
-                <button type="button" class="btn-app btn-app--ghost btn-app--sm" data-remove-line>✕</button>
+                <button type="button" class="btn-app btn-app--ghost btn-app--icon" data-remove-line title="Remove line" aria-label="Remove line"><svg class="ico" aria-hidden="true"><use href="#i-x"></use></svg></button>
                 <p class="hint line-row__note" data-layer-note hidden></p>
             </div>
         }
     </div>
-    <button type="button" class="btn-app btn-app--outline btn-app--sm" id="add-sale-line">Add line</button>
+    <button type="button" class="btn-app btn-app--outline btn-app--sm" id="add-sale-line"><svg class="ico" aria-hidden="true"><use href="#i-plus"></use></svg> Add line</button>
     </section>
 
     <section class="form-section">
@@ -111,8 +111,8 @@
     </section>
 
     <div class="form-actions">
-        <button type="submit" class="btn-app btn-app--success" id="save-invoice">Save invoice</button>
-        <a class="btn-app btn-app--outline" asp-action="Index">Cancel</a>
+        <button type="submit" class="btn-app btn-app--success" id="save-invoice"><svg class="ico" aria-hidden="true"><use href="#i-check"></use></svg> Save invoice</button>
+        <a class="btn-app btn-app--outline" asp-action="Index"><svg class="ico" aria-hidden="true"><use href="#i-x"></use></svg> Cancel</a>
     </div>
 </form>
 
@@ -128,7 +128,7 @@
         <input class="input-app" name="Items[__i__].Quantity" placeholder="Quantity" aria-label="Quantity" />
         <input class="input-app" name="Items[__i__].UnitPrice" placeholder="Unit price" aria-label="Unit price" />
         <input class="input-app" name="Items[__i__].LineDiscount" placeholder="Discount" aria-label="Discount" />
-        <button type="button" class="btn-app btn-app--ghost btn-app--sm" data-remove-line>✕</button>
+        <button type="button" class="btn-app btn-app--ghost btn-app--icon" data-remove-line title="Remove line" aria-label="Remove line"><svg class="ico" aria-hidden="true"><use href="#i-x"></use></svg></button>
         <p class="hint line-row__note" data-layer-note hidden></p>
     </div>
 </template>

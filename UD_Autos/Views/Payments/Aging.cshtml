@@ -11,7 +11,7 @@
     <form method="get" class="table-toolbar">
         <input class="input-app" type="number" name="days" value="@ViewBag.Days" placeholder="Min age days" />
         <input class="input-app" type="date" name="before" value="@((ViewBag.Before as DateTime?)?.ToString("yyyy-MM-dd"))" />
-        <button type="submit" class="btn-app btn-app--outline">Filter</button>
+        <button type="submit" class="btn-app btn-app--outline"><svg class="ico" aria-hidden="true"><use href="#i-filter"></use></svg> Filter</button>
     </form>
     <p class="dashboard-note">“Before date” returns unpaid invoice amounts originating before that date.</p>
     <div class="table-wrap">

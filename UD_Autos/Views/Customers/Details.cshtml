@@ -1,13 +1,13 @@
 @model Customer
 
 @section PageActions {
-    <a class="btn-app btn-app--outline" asp-action="Khata" asp-route-id="@Model.Id">Open Khata</a>
-    <a class="btn-app btn-app--outline" asp-controller="Sales" asp-action="Create" asp-route-customerId="@Model.Id">New Invoice</a>
-    <a class="btn-app btn-app--outline" asp-action="Edit" asp-route-id="@Model.Id">Edit</a>
+    <a class="btn-app btn-app--outline" asp-action="Khata" asp-route-id="@Model.Id"><svg class="ico" aria-hidden="true"><use href="#i-book"></use></svg> Open Khata</a>
+    <a class="btn-app btn-app--outline" asp-controller="Sales" asp-action="Create" asp-route-customerId="@Model.Id"><svg class="ico" aria-hidden="true"><use href="#i-plus"></use></svg> New Invoice</a>
+    <a class="btn-app btn-app--outline" asp-action="Edit" asp-route-id="@Model.Id"><svg class="ico" aria-hidden="true"><use href="#i-pencil"></use></svg> Edit</a>
     <form asp-action="Delete" method="post">
         @Html.AntiForgeryToken()
         <input type="hidden" name="id" value="@Model.Id" />
-        <button type="submit" class="btn-app btn-app--danger" onclick="return confirm('Deactivate this customer?');">Deactivate</button>
+        <button type="submit" class="btn-app btn-app--danger" onclick="return confirm('Deactivate this customer?');"><svg class="ico" aria-hidden="true"><use href="#i-ban"></use></svg> Deactivate</button>
     </form>
 }
 

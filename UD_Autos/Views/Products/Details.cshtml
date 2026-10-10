@@ -5,11 +5,11 @@
 }
 
 @section PageActions {
-    <a class="btn-app btn-app--outline" asp-action="Edit" asp-route-id="@p.Id">Edit</a>
+    <a class="btn-app btn-app--outline" asp-action="Edit" asp-route-id="@p.Id"><svg class="ico" aria-hidden="true"><use href="#i-pencil"></use></svg> Edit</a>
     <form asp-action="Delete" method="post">
         <input type="hidden" name="id" value="@p.Id" />
         @Html.AntiForgeryToken()
-        <button type="submit" class="btn-app btn-app--danger" onclick="return confirm('Deactivate this product?');">Deactivate</button>
+        <button type="submit" class="btn-app btn-app--danger" onclick="return confirm('Deactivate this product?');"><svg class="ico" aria-hidden="true"><use href="#i-ban"></use></svg> Deactivate</button>
     </form>
 }
 

@@ -13,6 +13,7 @@
     <link rel="stylesheet" href="~/css/app.css" asp-append-version="true" />
 </head>
 <body>
+<partial name="_IconSprite" />
 <div class="auth-page">
     <div class="auth-card">
         <div class="auth-card__brand">
@@ -41,7 +42,7 @@
                 <input asp-for="RememberMe" />
                 Remember me
             </label>
-            <button type="submit" class="btn-app btn-app--primary">Sign in</button>
+            <button type="submit" class="btn-app btn-app--primary"><svg class="ico" aria-hidden="true"><use href="#i-login"></use></svg> Sign in</button>
         </form>
     </div>
 </div>

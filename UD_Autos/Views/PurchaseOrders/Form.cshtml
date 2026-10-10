@@ -62,16 +62,16 @@
                 <input class="input-app" name="Items[@i].Quantity" value="@Model.Items[i].Quantity" placeholder="Quantity" aria-label="Quantity" />
                 <input class="input-app" name="Items[@i].UnitPriceRmb" value="@Model.Items[i].UnitPriceRmb" placeholder="RMB unit price" aria-label="RMB unit price" />
                 <input class="input-app" name="Items[@i].Notes" value="@Model.Items[i].Notes" placeholder="Notes" aria-label="Notes" />
-                <button type="button" class="btn-app btn-app--ghost btn-app--sm" data-remove-line>✕</button>
+                <button type="button" class="btn-app btn-app--ghost btn-app--icon" data-remove-line title="Remove line" aria-label="Remove line"><svg class="ico" aria-hidden="true"><use href="#i-x"></use></svg></button>
             </div>
         }
     </div>
-    <button type="button" class="btn-app btn-app--outline btn-app--sm" id="add-po-line">Add line</button>
+    <button type="button" class="btn-app btn-app--outline btn-app--sm" id="add-po-line"><svg class="ico" aria-hidden="true"><use href="#i-plus"></use></svg> Add line</button>
     </section>
 
     <div class="form-actions">
-        <button type="submit" class="btn-app btn-app--primary">@(isEdit ? "Save PO" : "Create PO")</button>
-        <a class="btn-app btn-app--outline" asp-action="Index">Cancel</a>
+        <button type="submit" class="btn-app btn-app--primary"><svg class="ico" aria-hidden="true"><use href="@(isEdit ? "#i-check" : "#i-plus")"></use></svg> @(isEdit ? "Save PO" : "Create PO")</button>
+        <a class="btn-app btn-app--outline" asp-action="Index"><svg class="ico" aria-hidden="true"><use href="#i-x"></use></svg> Cancel</a>
     </div>
 </form>
 
@@ -87,7 +87,7 @@
         <input class="input-app" name="Items[__i__].Quantity" placeholder="Quantity" aria-label="Quantity" />
         <input class="input-app" name="Items[__i__].UnitPriceRmb" placeholder="RMB unit price" aria-label="RMB unit price" />
         <input class="input-app" name="Items[__i__].Notes" placeholder="Notes" aria-label="Notes" />
-        <button type="button" class="btn-app btn-app--ghost btn-app--sm" data-remove-line>✕</button>
+        <button type="button" class="btn-app btn-app--ghost btn-app--icon" data-remove-line title="Remove line" aria-label="Remove line"><svg class="ico" aria-hidden="true"><use href="#i-x"></use></svg></button>
     </div>
 </template>
 

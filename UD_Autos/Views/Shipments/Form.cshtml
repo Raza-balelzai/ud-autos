@@ -71,16 +71,16 @@
                     <option value="">Supplier</option>
                 </select>
                 <input class="input-app" name="Items[@i].ExpectedQuantity" value="@Model.Items[i].ExpectedQuantity" placeholder="Expected quantity" aria-label="Expected quantity" />
-                <button type="button" class="btn-app btn-app--ghost btn-app--sm" data-remove-line>✕</button>
+                <button type="button" class="btn-app btn-app--ghost btn-app--icon" data-remove-line title="Remove line" aria-label="Remove line"><svg class="ico" aria-hidden="true"><use href="#i-x"></use></svg></button>
             </div>
         }
     </div>
-    <button type="button" class="btn-app btn-app--outline btn-app--sm" id="add-shp-line">Add item</button>
+    <button type="button" class="btn-app btn-app--outline btn-app--sm" id="add-shp-line"><svg class="ico" aria-hidden="true"><use href="#i-plus"></use></svg> Add item</button>
     </section>
 
     <div class="form-actions">
-        <button type="submit" class="btn-app btn-app--primary">@(isEdit ? "Save Shipment" : "Create Shipment")</button>
-        <a class="btn-app btn-app--outline" asp-action="Index">Cancel</a>
+        <button type="submit" class="btn-app btn-app--primary"><svg class="ico" aria-hidden="true"><use href="@(isEdit ? "#i-check" : "#i-plus")"></use></svg> @(isEdit ? "Save Shipment" : "Create Shipment")</button>
+        <a class="btn-app btn-app--outline" asp-action="Index"><svg class="ico" aria-hidden="true"><use href="#i-x"></use></svg> Cancel</a>
     </div>
 </form>
 
@@ -108,7 +108,7 @@
             }
         </select>
         <input class="input-app" name="Items[__i__].ExpectedQuantity" placeholder="Expected qty" />
-        <button type="button" class="btn-app btn-app--ghost btn-app--sm" data-remove-line>✕</button>
+        <button type="button" class="btn-app btn-app--ghost btn-app--icon" data-remove-line title="Remove line" aria-label="Remove line"><svg class="ico" aria-hidden="true"><use href="#i-x"></use></svg></button>
     </div>
 </template>
 

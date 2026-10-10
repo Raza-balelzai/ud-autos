@@ -3,7 +3,7 @@
 @section PageActions {
     <form asp-action="Sync" method="post">
         @Html.AntiForgeryToken()
-        <button type="submit" class="btn-app btn-app--outline">Sync linked movements</button>
+        <button type="submit" class="btn-app btn-app--outline"><svg class="ico" aria-hidden="true"><use href="#i-refresh"></use></svg> Sync linked movements</button>
     </form>
 }
 
@@ -40,7 +40,7 @@
                 <option value="Bank">Bank</option>
             }
         </select>
-        <button type="submit" class="btn-app btn-app--outline">Filter</button>
+        <button type="submit" class="btn-app btn-app--outline"><svg class="ico" aria-hidden="true"><use href="#i-filter"></use></svg> Filter</button>
     </form>
 
     <div class="form-grid form-grid--3">
@@ -52,7 +52,7 @@
             <div class="field"><label>Account</label><select asp-for="OpeningAccount" class="select-app" asp-items="Html.GetEnumSelectList<PaymentAccount>()"></select></div>
             <div class="field"><label>As of</label><input asp-for="OpeningDate" type="date" class="input-app" /></div>
             <div class="field"><label>Amount</label><input asp-for="OpeningAmount" class="input-app" /></div>
-            <button type="submit" class="btn-app btn-app--primary">Save opening</button>
+            <button type="submit" class="btn-app btn-app--primary"><svg class="ico" aria-hidden="true"><use href="#i-check"></use></svg> Save opening</button>
         </form>
 
         <form asp-action="AddManual" method="post" class="card-panel">
@@ -71,7 +71,7 @@
             </div>
             <div class="field"><label>Amount</label><input asp-for="ManualAmount" class="input-app" /></div>
             <div class="field form-grid--full"><label>Detail</label><input asp-for="ManualDetail" class="input-app" /></div>
-            <button type="submit" class="btn-app btn-app--success">Post</button>
+            <button type="submit" class="btn-app btn-app--success"><svg class="ico" aria-hidden="true"><use href="#i-check"></use></svg> Post</button>
         </form>
     </div>
 

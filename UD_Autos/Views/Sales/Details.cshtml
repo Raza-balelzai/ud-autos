@@ -6,13 +6,13 @@
 }
 
 @section PageActions {
-    <a class="btn-app btn-app--primary" asp-action="Pdf" asp-route-id="@Model.Id">Download PDF</a>
-    <a class="btn-app btn-app--outline" asp-action="Print" asp-route-id="@Model.Id" target="_blank">Print</a>
+    <a class="btn-app btn-app--primary" asp-action="Pdf" asp-route-id="@Model.Id"><svg class="ico" aria-hidden="true"><use href="#i-download"></use></svg> Download PDF</a>
+    <a class="btn-app btn-app--outline" asp-action="Print" asp-route-id="@Model.Id" target="_blank"><svg class="ico" aria-hidden="true"><use href="#i-printer"></use></svg> Print</a>
     @if (!Model.IsVoided)
     {
-        <a class="btn-app btn-app--outline" asp-controller="SalesReturns" asp-action="Create" asp-route-invoiceId="@Model.Id">Return</a>
+        <a class="btn-app btn-app--outline" asp-controller="SalesReturns" asp-action="Create" asp-route-invoiceId="@Model.Id"><svg class="ico" aria-hidden="true"><use href="#i-undo"></use></svg> Return</a>
     }
-    <a class="btn-app btn-app--primary" asp-controller="Customers" asp-action="Khata" asp-route-id="@Model.CustomerId">Customer Khata</a>
+    <a class="btn-app btn-app--primary" asp-controller="Customers" asp-action="Khata" asp-route-id="@Model.CustomerId"><svg class="ico" aria-hidden="true"><use href="#i-book"></use></svg> Customer Khata</a>
 }
 
 <div class="card-panel">
@@ -103,7 +103,7 @@
             <h3 class="form-section__title">Void invoice</h3>
             <p class="dashboard-note">Restores stock, reverses Khata/cash effects, and keeps the invoice row for audit. Not a silent delete.</p>
             <div class="field"><label>Reason</label><textarea class="textarea-app" name="reason" required></textarea></div>
-            <button type="submit" class="btn-app btn-app--danger">Void invoice</button>
+            <button type="submit" class="btn-app btn-app--danger"><svg class="ico" aria-hidden="true"><use href="#i-ban"></use></svg> Void invoice</button>
         </form>
     }
 </div>

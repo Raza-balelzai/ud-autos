@@ -1,8 +1,8 @@
 @model DashboardVm
 
 @section PageActions {
-    <a class="btn-app btn-app--outline" asp-controller="Sales" asp-action="Daily">Daily Sales</a>
-    <a class="btn-app btn-app--outline" asp-controller="Reports" asp-action="Index">Reports</a>
+    <a class="btn-app btn-app--outline" asp-controller="Sales" asp-action="Daily"><svg class="ico" aria-hidden="true"><use href="#i-calendar"></use></svg> Daily Sales</a>
+    <a class="btn-app btn-app--outline" asp-controller="Reports" asp-action="Index"><svg class="ico" aria-hidden="true"><use href="#i-receipt"></use></svg> Reports</a>
 }
 
 @if (Model.Alerts.Count > 0)

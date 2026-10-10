@@ -51,7 +51,7 @@
     </div>
 
     <div class="form-actions">
-        <button type="submit" class="btn-app btn-app--danger">Post Return</button>
-        <a class="btn-app btn-app--outline" asp-controller="Sales" asp-action="Details" asp-route-id="@Model.InvoiceId">Cancel</a>
+        <button type="submit" class="btn-app btn-app--danger"><svg class="ico" aria-hidden="true"><use href="#i-check"></use></svg> Post Return</button>
+        <a class="btn-app btn-app--outline" asp-controller="Sales" asp-action="Details" asp-route-id="@Model.InvoiceId"><svg class="ico" aria-hidden="true"><use href="#i-x"></use></svg> Cancel</a>
     </div>
 </form>
