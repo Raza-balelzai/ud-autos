@@ -1,5 +1,9 @@
 @model IReadOnlyList<UD_Autos.Services.UserAdminRow>
+@using System.Security.Claims
 @using UD_Autos.Authorization
+@{
+    var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+}
 
 @section PageActions { }
 
@@ -19,54 +23,79 @@
                 }
             </select>
         </div>
-        <div class="form-actions"><button type="submit" class="btn-app btn-app--primary"><svg class="ico" aria-hidden="true"><use href="#i-plus"></use></svg> Create</button></div>
+        <div class="field field--action">
+            <button type="submit" class="btn-app btn-app--primary"><svg class="ico" aria-hidden="true"><use href="#i-plus"></use></svg> Create</button>
+        </div>
     </form>
 </div>
 
 <div class="card-panel">
     <div class="table-wrap">
-        <table class="table-app">
-            <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Active</th><th>Actions</th></tr></thead>
+        <table class="table-app users-table">
+            <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Status</th><th>Actions</th></tr></thead>
             <tbody>
             @foreach (var u in Model)
             {
+                var isSelf = string.Equals(u.Id, currentUserId, StringComparison.OrdinalIgnoreCase);
                 <tr>
-                    <td>@u.FullName</td>
+                    <td>
+                        <div class="user-name">
+                            <span>@u.FullName</span>
+                            @if (isSelf)
+                            {
+                                <span class="badge-app badge-app--primary">You</span>
+                            }
+                        </div>
+                    </td>
                     <td>@u.Email</td>
                     <td>
-                        <form asp-action="SetRole" method="post" class="table-toolbar">
-                            @Html.AntiForgeryToken()
-                            <input type="hidden" name="id" value="@u.Id" />
-                            <select class="select-app" name="role">
-                                @foreach (var r in AppRoles.All)
-                                {
-                                    if (r == u.Role)
+                        @if (isSelf)
+                        {
+                            <span class="user-role-fixed">@u.Role</span>
+                        }
+                        else
+                        {
+                            <form asp-action="SetRole" method="post" class="user-inline">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="id" value="@u.Id" />
+                                <select class="select-app" name="role" aria-label="Role for @u.FullName">
+                                    @foreach (var r in AppRoles.All)
                                     {
-                                        <option value="@r" selected>@r</option>
+                                        if (r == u.Role)
+                                        {
+                                            <option value="@r" selected>@r</option>
+                                        }
+                                        else
+                                        {
+                                            <option value="@r">@r</option>
+                                        }
                                     }
-                                    else
-                                    {
-                                        <option value="@r">@r</option>
-                                    }
-                                }
-                            </select>
-                            <button type="submit" class="btn-app btn-app--outline btn-app--sm"><svg class="ico" aria-hidden="true"><use href="#i-check"></use></svg> Save role</button>
-                        </form>
+                                </select>
+                                <button type="submit" class="btn-app btn-app--outline btn-app--sm"><svg class="ico" aria-hidden="true"><use href="#i-check"></use></svg> Save role</button>
+                            </form>
+                        }
                     </td>
-                    <td>@(u.IsActive ? "Yes" : "No")</td>
-                    <td class="actions">
-                        <form asp-action="SetActive" method="post" class="row-action">
-                            @Html.AntiForgeryToken()
-                            <input type="hidden" name="id" value="@u.Id" />
-                            <input type="hidden" name="isActive" value="@(!u.IsActive)" />
-                            <button type="submit" class="btn-app @(u.IsActive ? "btn-app--danger" : "btn-app--success") btn-app--icon" title="@(u.IsActive ? "Deactivate" : "Activate")" aria-label="@(u.IsActive ? "Deactivate" : "Activate")"><svg class="ico" aria-hidden="true"><use href="@(u.IsActive ? "#i-ban" : "#i-check")"></use></svg></button>
-                        </form>
-                        <form asp-action="ResetPassword" method="post" class="table-toolbar">
-                            @Html.AntiForgeryToken()
-                            <input type="hidden" name="id" value="@u.Id" />
-                            <input class="input-app" name="password" type="password" placeholder="New password" required />
-                            <button type="submit" class="btn-app btn-app--ghost btn-app--sm"><svg class="ico" aria-hidden="true"><use href="#i-key"></use></svg> Reset pwd</button>
-                        </form>
+                    <td>
+                        <span class="badge-app @(u.IsActive ? "badge-app--success" : "badge-app--neutral")">@(u.IsActive ? "Active" : "Inactive")</span>
+                    </td>
+                    <td>
+                        <div class="user-actions">
+                            <form asp-action="ResetPassword" method="post" class="user-inline">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="id" value="@u.Id" />
+                                <input class="input-app" name="password" type="password" placeholder="New password" aria-label="New password for @u.FullName" required />
+                                <button type="submit" class="btn-app btn-app--outline btn-app--sm"><svg class="ico" aria-hidden="true"><use href="#i-key"></use></svg> Reset password</button>
+                            </form>
+                            @if (!isSelf)
+                            {
+                                <form asp-action="SetActive" method="post" class="user-inline">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="id" value="@u.Id" />
+                                    <input type="hidden" name="isActive" value="@(!u.IsActive)" />
+                                    <button type="submit" class="btn-app @(u.IsActive ? "btn-app--danger" : "btn-app--success") btn-app--icon" title="@(u.IsActive ? "Deactivate" : "Activate")" aria-label="@(u.IsActive ? "Deactivate" : "Activate") @u.FullName"><svg class="ico" aria-hidden="true"><use href="@(u.IsActive ? "#i-ban" : "#i-check")"></use></svg></button>
+                                </form>
+                            }
+                        </div>
                     </td>
                 </tr>
             }

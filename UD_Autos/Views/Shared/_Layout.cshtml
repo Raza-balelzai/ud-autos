@@ -163,9 +163,12 @@
                             <span class="app-user__name">@displayName</span>
                             <span class="app-user__role">@roleLabel</span>
                         </div>
-                        <form asp-controller="Account" asp-action="Logout" method="post">
+                        <form class="app-logout-form" asp-controller="Account" asp-action="Logout" method="post">
                             @Html.AntiForgeryToken()
-                            <button type="submit" class="btn-app btn-app--ghost btn-app--sm"><svg class="ico" aria-hidden="true"><use href="#i-logout"></use></svg> Logout</button>
+                            <button type="submit" class="app-logout">
+                                <svg class="ico" aria-hidden="true"><use href="#i-logout"></use></svg>
+                                <span>Log out</span>
+                            </button>
                         </form>
                     </div>
                 </div>

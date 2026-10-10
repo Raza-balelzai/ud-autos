@@ -18,8 +18,8 @@ public interface IUserAdminService
 {
     Task<IReadOnlyList<UserAdminRow>> ListAsync(CancellationToken cancellationToken = default);
     Task<(bool Ok, string? Error)> CreateAsync(string email, string fullName, string password, string role, CancellationToken cancellationToken = default);
-    Task<(bool Ok, string? Error)> SetActiveAsync(string userId, bool isActive, CancellationToken cancellationToken = default);
-    Task<(bool Ok, string? Error)> SetRoleAsync(string userId, string role, CancellationToken cancellationToken = default);
+    Task<(bool Ok, string? Error)> SetActiveAsync(string userId, bool isActive, string? actorUserId, CancellationToken cancellationToken = default);
+    Task<(bool Ok, string? Error)> SetRoleAsync(string userId, string role, string? actorUserId, CancellationToken cancellationToken = default);
     Task<(bool Ok, string? Error)> ResetPasswordAsync(string userId, string newPassword, CancellationToken cancellationToken = default);
 }
 
@@ -73,8 +73,11 @@ public class UserAdminService : IUserAdminService
         return (true, null);
     }
 
-    public async Task<(bool Ok, string? Error)> SetActiveAsync(string userId, bool isActive, CancellationToken cancellationToken = default)
+    public async Task<(bool Ok, string? Error)> SetActiveAsync(string userId, bool isActive, string? actorUserId, CancellationToken cancellationToken = default)
     {
+        if (IsSelf(userId, actorUserId))
+            return (false, "You cannot change your own account status.");
+
         var user = await _users.FindByIdAsync(userId);
         if (user is null) return (false, "User not found.");
         user.IsActive = isActive;
@@ -84,8 +87,10 @@ public class UserAdminService : IUserAdminService
         return (true, null);
     }
 
-    public async Task<(bool Ok, string? Error)> SetRoleAsync(string userId, string role, CancellationToken cancellationToken = default)
+    public async Task<(bool Ok, string? Error)> SetRoleAsync(string userId, string role, string? actorUserId, CancellationToken cancellationToken = default)
     {
+        if (IsSelf(userId, actorUserId))
+            return (false, "You cannot change your own role.");
         if (!AppRoles.All.Contains(role)) return (false, "Invalid role.");
         var user = await _users.FindByIdAsync(userId);
         if (user is null) return (false, "User not found.");
@@ -106,4 +111,8 @@ public class UserAdminService : IUserAdminService
         await _audit.LogAsync("ResetPassword", nameof(ApplicationUser), user.Id, user.Email, cancellationToken: cancellationToken);
         return (true, null);
     }
+
+    private static bool IsSelf(string userId, string? actorUserId)
+        => !string.IsNullOrEmpty(actorUserId)
+           && string.Equals(userId, actorUserId, StringComparison.OrdinalIgnoreCase);
 }

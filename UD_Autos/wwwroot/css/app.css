@@ -431,6 +431,47 @@ img {
   color: var(--color-text-muted);
 }
 
+.app-logout-form {
+  margin: 0;
+  display: flex;
+}
+
+.app-logout {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  height: 36px;
+  padding: 0 0.75rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-semibold);
+  font-family: inherit;
+  line-height: 1;
+  cursor: pointer;
+  transition: color var(--transition), border-color var(--transition), background var(--transition);
+}
+
+.app-logout .ico {
+  width: 15px;
+  height: 15px;
+  display: block;
+  flex: 0 0 auto;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.app-logout:hover {
+  color: var(--color-danger);
+  border-color: #fecaca;
+  background: #fef2f2;
+}
+
 .app-content {
   padding: var(--space-6);
   width: 100%;
@@ -647,6 +688,43 @@ img {
   margin: 0;
 }
 
+.table-app.users-table {
+  min-width: 980px;
+}
+
+.user-name {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  white-space: nowrap;
+}
+
+.user-role-fixed {
+  font-weight: var(--fw-semibold);
+}
+
+.user-inline,
+.user-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin: 0;
+  flex-wrap: nowrap;
+}
+
+.user-inline .select-app,
+.user-inline .input-app {
+  width: 11.5rem;
+  min-width: 9rem;
+  max-width: none;
+  height: 32px;
+}
+
+.user-inline .btn-app {
+  width: auto;
+  flex: 0 0 auto;
+}
+
 /* ---------- Forms ---------- */
 .form-grid {
   display: grid;
@@ -666,6 +744,10 @@ img {
   display: flex;
   flex-direction: column;
   gap: 0.4rem;
+}
+
+.field--action {
+  align-self: end;
 }
 
 .field label {
@@ -1630,6 +1712,25 @@ label.is-required .req {
 
   .app-user__meta {
     display: none;
+  }
+
+  .app-logout span {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  .app-logout {
+    position: relative;
+    width: 36px;
+    padding: 0;
+    justify-content: center;
   }
 
   .app-icon-btn {

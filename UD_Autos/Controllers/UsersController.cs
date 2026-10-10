@@ -32,7 +32,7 @@ public class UsersController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> SetActive(string id, bool isActive, CancellationToken cancellationToken = default)
     {
-        var (ok, error) = await _users.SetActiveAsync(id, isActive, cancellationToken);
+        var (ok, error) = await _users.SetActiveAsync(id, isActive, User.GetUserId(), cancellationToken);
         TempData[ok ? "Success" : "Error"] = ok ? "User updated." : error;
         return RedirectToAction(nameof(Index));
     }
@@ -41,7 +41,7 @@ public class UsersController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> SetRole(string id, string role, CancellationToken cancellationToken = default)
     {
-        var (ok, error) = await _users.SetRoleAsync(id, role, cancellationToken);
+        var (ok, error) = await _users.SetRoleAsync(id, role, User.GetUserId(), cancellationToken);
         TempData[ok ? "Success" : "Error"] = ok ? "Role updated." : error;
         return RedirectToAction(nameof(Index));
     }
