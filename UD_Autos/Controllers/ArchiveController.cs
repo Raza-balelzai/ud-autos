@@ -35,7 +35,12 @@ public class ArchiveController : Controller
     public async Task<IActionResult> HardDelete(string tab, int id, CancellationToken cancellationToken = default)
     {
         var (ok, error) = await _archive.HardDeleteAsync(tab, id, User.GetUserId(), cancellationToken);
-        TempData[ok ? "Success" : "Error"] = ok ? "Record permanently deleted." : error;
+        if (!ok)
+            TempData["Error"] = error;
+        else if (!string.IsNullOrWhiteSpace(error))
+            TempData["Error"] = error;
+        else
+            TempData["Success"] = "Record permanently deleted.";
         return RedirectToAction(nameof(Index), new { tab = ArchiveService.NormalizeTab(tab) });
     }
 }

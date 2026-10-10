@@ -66,7 +66,9 @@
                         <td>
                             @if (!string.IsNullOrEmpty(item.ImagePath))
                             {
-                                <img class="thumb" src="@item.ImagePath" alt="@item.Name" />
+                                <button type="button" class="thumb-btn" data-image-preview="@item.ImagePath" data-image-title="@item.Name" aria-label="Preview @item.Name">
+                                    <img class="thumb" src="@item.ImagePath" alt="" />
+                                </button>
                             }
                             else
                             {
@@ -117,7 +119,7 @@
                             <form asp-action="Delete" method="post" class="row-action">
                                 @Html.AntiForgeryToken()
                                 <input type="hidden" name="id" value="@item.Id" />
-                                <button type="submit" class="btn-app btn-app--danger btn-app--icon" title="Deactivate" aria-label="Deactivate" onclick="return confirm('Deactivate this product?');"><svg class="ico" aria-hidden="true"><use href="#i-ban"></use></svg></button>
+                                <button type="submit" class="btn-app btn-app--danger btn-app--icon" title="Deactivate" aria-label="Deactivate" data-confirm="Deactivate this product?"><svg class="ico" aria-hidden="true"><use href="#i-ban"></use></svg></button>
                             </form>
                         </td>
                     </tr>

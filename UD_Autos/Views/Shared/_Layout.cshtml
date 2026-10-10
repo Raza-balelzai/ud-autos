@@ -203,6 +203,29 @@ else
 }
 
     <div id="app-toast-host" class="toast-host" aria-live="polite" aria-relevant="additions"></div>
+    <div class="modal-app" id="app-image-preview" hidden>
+        <div class="modal-app__backdrop" data-preview-close></div>
+        <div class="modal-app__dialog modal-app__dialog--preview" role="dialog" aria-modal="true" aria-labelledby="app-preview-title">
+            <div class="modal-app__preview-bar">
+                <h2 class="modal-app__title" id="app-preview-title">Image</h2>
+                <button type="button" class="btn-app btn-app--outline btn-app--icon" data-preview-close aria-label="Close">
+                    <svg class="ico" aria-hidden="true"><use href="#i-x"></use></svg>
+                </button>
+            </div>
+            <img class="modal-app__preview-image" id="app-preview-image" alt="" />
+        </div>
+    </div>
+    <div class="modal-app" id="app-confirm" hidden>
+        <div class="modal-app__backdrop" data-confirm-cancel></div>
+        <div class="modal-app__dialog" role="alertdialog" aria-modal="true" aria-labelledby="app-confirm-title" aria-describedby="app-confirm-message">
+            <h2 class="modal-app__title" id="app-confirm-title">Please confirm</h2>
+            <p class="modal-app__message" id="app-confirm-message"></p>
+            <div class="modal-app__actions">
+                <button type="button" class="btn-app btn-app--outline" data-confirm-cancel>Cancel</button>
+                <button type="button" class="btn-app btn-app--danger" id="app-confirm-ok">Confirm</button>
+            </div>
+        </div>
+    </div>
     @if (TempData["Success"] is string toastSuccess)
     {
         <script type="application/json" id="toast-data-success">@Html.Raw(System.Text.Json.JsonSerializer.Serialize(toastSuccess))</script>

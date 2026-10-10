@@ -82,7 +82,7 @@
         <form asp-action="Finalize" method="post" class="form-actions">
             @Html.AntiForgeryToken()
             <input type="hidden" name="shipmentId" value="@Model.Shipment.Id" />
-            <button type="submit" class="btn-app btn-app--success" onclick="return confirm('Finalize & receive? This posts inventory and locks landed cost.');">
+            <button type="submit" class="btn-app btn-app--success" data-confirm="Finalize and receive? This posts inventory and locks landed cost." data-confirm-tone="success">
                 <svg class="ico" aria-hidden="true"><use href="#i-check"></use></svg> Finalize &amp; Receive Shipment
             </button>
         </form>

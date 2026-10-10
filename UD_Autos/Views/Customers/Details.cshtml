@@ -7,7 +7,7 @@
     <form asp-action="Delete" method="post">
         @Html.AntiForgeryToken()
         <input type="hidden" name="id" value="@Model.Id" />
-        <button type="submit" class="btn-app btn-app--danger" onclick="return confirm('Deactivate this customer?');"><svg class="ico" aria-hidden="true"><use href="#i-ban"></use></svg> Deactivate</button>
+        <button type="submit" class="btn-app btn-app--danger" data-confirm="Deactivate this customer?"><svg class="ico" aria-hidden="true"><use href="#i-ban"></use></svg> Deactivate</button>
     </form>
 }
 

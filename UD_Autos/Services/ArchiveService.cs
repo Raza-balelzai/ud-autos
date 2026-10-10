@@ -235,11 +235,13 @@ public class ArchiveService : IArchiveService
     {
         var entity = await _db.Set<T>().FirstOrDefaultAsync(e => EF.Property<int>(e, "Id") == id, cancellationToken);
         if (entity is null) return (false, "Record not found.");
-        if (EF.Property<bool>(entity, "IsActive")) return (false, "This record is already active.");
 
-        _db.Entry(entity).Property("IsActive").CurrentValue = true;
-        _db.Entry(entity).Property("UpdatedAt").CurrentValue = DateTime.UtcNow;
-        _db.Entry(entity).Property("UpdatedBy").CurrentValue = userId;
+        var entry = _db.Entry(entity);
+        if (entry.Property("IsActive").CurrentValue is true) return (false, "This record is already active.");
+
+        entry.Property("IsActive").CurrentValue = true;
+        entry.Property("UpdatedAt").CurrentValue = DateTime.UtcNow;
+        entry.Property("UpdatedBy").CurrentValue = userId;
         await _db.SaveChangesAsync(cancellationToken);
         await _audit.LogAsync("Reactivate", entityType, id.ToString(), reference(entity), cancellationToken: cancellationToken);
         return (true, null);
@@ -262,9 +264,11 @@ public class ArchiveService : IArchiveService
             var components = await _db.ProductSetComponents.Where(c => c.SetProductId == id).ToListAsync(cancellationToken);
             var rmb = await _db.ProductRmbPriceHistories.Where(h => h.ProductId == id).ToListAsync(cancellationToken);
             var landed = await _db.ProductLandedCostHistories.Where(h => h.ProductId == id).ToListAsync(cancellationToken);
+            var movements = await _db.StockMovements.Where(m => m.ProductId == id).ToListAsync(cancellationToken);
             _db.ProductSetComponents.RemoveRange(components);
             _db.ProductRmbPriceHistories.RemoveRange(rmb);
             _db.ProductLandedCostHistories.RemoveRange(landed);
+            _db.StockMovements.RemoveRange(movements);
             _db.Products.Remove(product);
             await _db.SaveChangesAsync(cancellationToken);
             await _audit.LogAsync("HardDelete", nameof(Product), id.ToString(), sku, cancellationToken: cancellationToken);
@@ -275,7 +279,9 @@ public class ArchiveService : IArchiveService
             return (false, "This product is still used and cannot be deleted.");
         }
 
-        TryDeleteUpload(imagePath);
+        if (!ProductImageFiles.TryDelete(_env, imagePath))
+            return (true, "Product was deleted, but its image file could not be removed from the server.");
+
         return (true, null);
     }
 
@@ -360,7 +366,6 @@ public class ArchiveService : IArchiveService
         await RememberAsync(reasons, _db.PurchaseOrderItems.Where(x => ids.Contains(x.ProductId)).Select(x => x.ProductId), "Used on a purchase order.", cancellationToken);
         await RememberAsync(reasons, _db.ShipmentItems.Where(x => ids.Contains(x.ProductId)).Select(x => x.ProductId), "Used on a shipment.", cancellationToken);
         await RememberAsync(reasons, _db.InventoryBatches.Where(x => ids.Contains(x.ProductId)).Select(x => x.ProductId), "Has stock batches.", cancellationToken);
-        await RememberAsync(reasons, _db.StockMovements.Where(x => ids.Contains(x.ProductId)).Select(x => x.ProductId), "Has stock movements.", cancellationToken);
         await RememberAsync(reasons, _db.SupplierReturnItems.Where(x => ids.Contains(x.ProductId)).Select(x => x.ProductId), "Used on a supplier return.", cancellationToken);
         await RememberAsync(reasons, _db.ProductSetComponents.Where(x => ids.Contains(x.ComponentProductId)).Select(x => x.ComponentProductId), "Used inside a product set.", cancellationToken);
         return reasons;
@@ -417,17 +422,4 @@ public class ArchiveService : IArchiveService
             reasons.TryAdd(id, reason);
     }
 
-    private void TryDeleteUpload(string? imagePath)
-    {
-        if (string.IsNullOrWhiteSpace(imagePath) || !imagePath.StartsWith("/uploads/", StringComparison.OrdinalIgnoreCase))
-            return;
-
-        var relative = imagePath.TrimStart('/').Replace('/', Path.DirectorySeparatorChar);
-        var root = Path.GetFullPath(Path.Combine(_env.WebRootPath, "uploads"));
-        var full = Path.GetFullPath(Path.Combine(_env.WebRootPath, relative));
-        if (!full.StartsWith(root, StringComparison.OrdinalIgnoreCase) || !File.Exists(full))
-            return;
-
-        File.Delete(full);
-    }
 }

@@ -351,10 +351,106 @@
     var AppToast = createToastApi();
     window.AppToast = AppToast;
 
+    function initConfirmModal() {
+        var root = document.getElementById("app-confirm");
+        if (!root) return;
+        var messageEl = document.getElementById("app-confirm-message");
+        var okBtn = document.getElementById("app-confirm-ok");
+        var pending = null;
+
+        function close() {
+            root.hidden = true;
+            document.body.classList.remove("is-modal-open");
+            pending = null;
+        }
+
+        function open(message, tone, onOk) {
+            messageEl.textContent = message;
+            okBtn.className = "btn-app " + (tone === "success" ? "btn-app--success" : "btn-app--danger");
+            okBtn.textContent = tone === "success" ? "Continue" : "Confirm";
+            pending = onOk;
+            root.hidden = false;
+            document.body.classList.add("is-modal-open");
+            okBtn.focus();
+        }
+
+        root.querySelectorAll("[data-confirm-cancel]").forEach(function (el) {
+            el.addEventListener("click", close);
+        });
+        okBtn.addEventListener("click", function () {
+            var run = pending;
+            close();
+            if (run) run();
+        });
+        document.addEventListener("keydown", function (e) {
+            if (e.key === "Escape" && !root.hidden) close();
+        });
+
+        document.addEventListener("submit", function (e) {
+            var form = e.target;
+            if (!form || !form.getAttribute) return;
+            if (form.getAttribute("data-confirmed") === "1") {
+                form.removeAttribute("data-confirmed");
+                return;
+            }
+            var btn = e.submitter;
+            var message = (btn && btn.getAttribute("data-confirm")) || form.getAttribute("data-confirm");
+            if (!message) return;
+            e.preventDefault();
+            open(message, btn && btn.getAttribute("data-confirm-tone"), function () {
+                form.setAttribute("data-confirmed", "1");
+                if (typeof form.requestSubmit === "function") form.requestSubmit(btn || undefined);
+                else form.submit();
+            });
+        });
+    }
+
+    function initImagePreview() {
+        var root = document.getElementById("app-image-preview");
+        if (!root) return;
+        var img = document.getElementById("app-preview-image");
+        var title = document.getElementById("app-preview-title");
+
+        function close() {
+            root.hidden = true;
+            img.removeAttribute("src");
+            var confirmModal = document.getElementById("app-confirm");
+            if (!confirmModal || confirmModal.hidden) document.body.classList.remove("is-modal-open");
+        }
+
+        function open(src, name) {
+            if (!src) return;
+            img.src = src;
+            img.alt = name || "Image preview";
+            title.textContent = name || "Image";
+            root.hidden = false;
+            document.body.classList.add("is-modal-open");
+            var closeBtn = root.querySelector("[data-preview-close].btn-app");
+            if (closeBtn) closeBtn.focus();
+        }
+
+        document.addEventListener("click", function (e) {
+            var trigger = e.target.closest("[data-image-preview]");
+            if (!trigger) return;
+            e.preventDefault();
+            open(trigger.getAttribute("data-image-preview"), trigger.getAttribute("data-image-title"));
+        });
+
+        root.querySelectorAll("[data-preview-close]").forEach(function (el) {
+            el.addEventListener("click", close);
+        });
+
+        document.addEventListener("keydown", function (e) {
+            if (e.key === "Escape" && !root.hidden) close();
+        });
+    }
+
     document.addEventListener("DOMContentLoaded", function () {
         initDropdowns();
         initGlobalSearch();
         initNavDrawer();
+        initConfirmModal();
+        initImagePreview();
         AppToast.bootFromTempData();
     });
 })();

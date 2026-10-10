@@ -81,11 +81,13 @@ public class ProductsController : Controller
             return View("Form", await BuildFormAsync(model.Product, cancellationToken, model.Components));
         }
 
-        await ApplyImageAsync(model);
+        var uploaded = await ApplyImageAsync(model);
         var components = ComponentsOf(model);
         var (ok, error, product) = await _products.CreateAsync(model.Product, User.GetUserId(), cancellationToken, components);
         if (!ok)
         {
+            if (uploaded)
+                ProductImageFiles.TryDelete(_env, model.Product.ImagePath);
             ModelState.AddModelError(string.Empty, error ?? "Could not create product.");
             return View("Form", await BuildFormAsync(model.Product, cancellationToken, model.Components));
         }
@@ -114,13 +116,31 @@ public class ProductsController : Controller
             return View("Form", await BuildFormAsync(model.Product, cancellationToken, model.Components));
         }
 
-        await ApplyImageAsync(model);
+        string? previousImage = null;
+        if (model.ImageFile is { Length: > 0 })
+        {
+            previousImage = await _db.Products.AsNoTracking()
+                .Where(p => p.Id == id)
+                .Select(p => p.ImagePath)
+                .FirstOrDefaultAsync(cancellationToken);
+        }
+
+        var uploaded = await ApplyImageAsync(model);
         var components = ComponentsOf(model);
         var (ok, error) = await _products.UpdateAsync(model.Product, User.GetUserId(), model.PriceChangeReason, cancellationToken, components);
         if (!ok)
         {
+            if (uploaded)
+                ProductImageFiles.TryDelete(_env, model.Product.ImagePath);
             ModelState.AddModelError(string.Empty, error ?? "Could not update product.");
             return View("Form", await BuildFormAsync(model.Product, cancellationToken, model.Components));
+        }
+
+        if (uploaded
+            && !string.IsNullOrWhiteSpace(previousImage)
+            && !string.Equals(previousImage, model.Product.ImagePath, StringComparison.OrdinalIgnoreCase))
+        {
+            ProductImageFiles.TryDelete(_env, previousImage);
         }
 
         TempData["Success"] = model.Product.ProductKind == ProductKind.CompleteSet ? "Complete set updated." : "Product updated.";
@@ -220,16 +240,16 @@ public class ProductsController : Controller
             .ToList();
     }
 
-    private async Task ApplyImageAsync(ProductFormViewModel model)
+    private async Task<bool> ApplyImageAsync(ProductFormViewModel model)
     {
-        if (model.ImageFile is null || model.ImageFile.Length == 0) return;
+        if (model.ImageFile is null || model.ImageFile.Length == 0) return false;
 
         var allowed = new[] { ".jpg", ".jpeg", ".png", ".webp", ".gif" };
         var ext = Path.GetExtension(model.ImageFile.FileName).ToLowerInvariant();
         if (!allowed.Contains(ext) || model.ImageFile.Length > 2_000_000)
         {
             ModelState.AddModelError(nameof(model.ImageFile), "Image must be JPG/PNG/WEBP/GIF under 2 MB.");
-            return;
+            return false;
         }
 
         var folder = Path.Combine(_env.WebRootPath, "uploads", "products");
@@ -239,5 +259,6 @@ public class ProductsController : Controller
         await using var stream = System.IO.File.Create(path);
         await model.ImageFile.CopyToAsync(stream);
         model.Product.ImagePath = $"/uploads/products/{fileName}";
+        return true;
     }
 }

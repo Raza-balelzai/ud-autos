@@ -9,7 +9,7 @@
     <form asp-action="Delete" method="post">
         <input type="hidden" name="id" value="@p.Id" />
         @Html.AntiForgeryToken()
-        <button type="submit" class="btn-app btn-app--danger" onclick="return confirm('Deactivate this product?');"><svg class="ico" aria-hidden="true"><use href="#i-ban"></use></svg> Deactivate</button>
+        <button type="submit" class="btn-app btn-app--danger" data-confirm="Deactivate this product?"><svg class="ico" aria-hidden="true"><use href="#i-ban"></use></svg> Deactivate</button>
     </form>
 }
 
@@ -28,7 +28,18 @@
             <div class="form-section__head">
                 <h3 class="form-section__title">Identity</h3>
             </div>
-            <div class="detail-grid">
+            <div class="product-overview">
+                @if (!string.IsNullOrEmpty(p.ImagePath))
+                {
+                    <button type="button" class="product-photo" data-image-preview="@p.ImagePath" data-image-title="@p.Name" aria-label="Preview @p.Name">
+                        <img src="@p.ImagePath" alt="@p.Name" />
+                    </button>
+                }
+                else
+                {
+                    <div class="product-photo product-photo--empty">No image</div>
+                }
+                <div class="detail-grid">
                 <div class="detail-item"><dt>SKU</dt><dd>@p.Sku</dd></div>
                 <div class="detail-item"><dt>Type</dt><dd>@(p.ProductKind == ProductKind.CompleteSet ? "Complete set" : "Single item")</dd></div>
                 <div class="detail-item"><dt>Barcode</dt><dd>@(p.Barcode ?? "—")</dd></div>
@@ -38,6 +49,7 @@
                 <div class="detail-item"><dt>Vehicle</dt><dd>@(string.Join(" ", new[] { p.VehicleBrand, p.VehicleModel, p.VariantYear }.Where(x => !string.IsNullOrWhiteSpace(x))))</dd></div>
                 <div class="detail-item"><dt>Unit</dt><dd>@(p.Unit?.Name ?? "—")</dd></div>
                 <div class="detail-item"><dt>Supplier</dt><dd>@(p.DefaultSupplier?.Name ?? "—")</dd></div>
+                </div>
             </div>
         </section>
         <section class="form-section">

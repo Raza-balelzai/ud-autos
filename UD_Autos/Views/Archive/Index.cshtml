@@ -9,7 +9,7 @@
         "categories" => "Permanently delete this category? Products that used it will keep working with the category cleared.",
         "units" => "Permanently delete this unit? Products that used it will keep working with the unit cleared.",
         "expenses" => "Permanently delete this expense category? This cannot be undone.",
-        _ => "Permanently delete this product? This cannot be undone."
+        _ => "Permanently delete this product, its price history, set recipe, stock adjustments, and image file? This cannot be undone."
     };
     var codeLabel = tab is "units" ? "Abbreviation" : "Code";
 }
@@ -57,7 +57,7 @@
                                         @Html.AntiForgeryToken()
                                         <input type="hidden" name="tab" value="@tab" />
                                         <input type="hidden" name="id" value="@row.Id" />
-                                        <button type="submit" class="btn-app btn-app--danger btn-app--sm" onclick="return confirm('@deleteConfirm');"><svg class="ico" aria-hidden="true"><use href="#i-trash"></use></svg> Delete permanently</button>
+                                        <button type="submit" class="btn-app btn-app--danger btn-app--sm" data-confirm="@deleteConfirm"><svg class="ico" aria-hidden="true"><use href="#i-trash"></use></svg> Delete permanently</button>
                                     </form>
                                 }
                                 else
