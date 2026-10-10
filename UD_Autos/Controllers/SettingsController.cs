@@ -27,7 +27,8 @@ public class SettingsController : Controller
             Categories = await _settings.GetCategoriesAsync(activeOnly: false, cancellationToken),
             Units = await _settings.GetUnitsAsync(activeOnly: false, cancellationToken),
             ExpenseCategories = await _settings.GetExpenseCategoriesAsync(activeOnly: false, cancellationToken),
-            BusinessSettings = await _settings.GetBusinessSettingsAsync(cancellationToken)
+            BusinessSettings = await _settings.GetBusinessSettingsAsync(cancellationToken),
+            Mail = await _settings.GetMailSettingsAsync(cancellationToken)
         };
         return View(vm);
     }
@@ -93,5 +94,20 @@ public class SettingsController : Controller
         var (ok, error) = await _settings.SaveBusinessSettingAsync(model, User.GetUserId(), cancellationToken);
         TempData[ok ? "Success" : "Error"] = ok ? "Setting saved." : error;
         return RedirectToAction(nameof(Index), new { tab = "business" });
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> SaveMailSettings(MailSettingsForm model, CancellationToken cancellationToken = default)
+    {
+        if (!ModelState.IsValid)
+        {
+            TempData["Error"] = "Check the mail settings and try again.";
+            return RedirectToAction(nameof(Index), new { tab = "email" });
+        }
+
+        var (ok, error) = await _settings.SaveMailSettingsAsync(model, User.GetUserId(), cancellationToken);
+        TempData[ok ? "Success" : "Error"] = ok ? "Mail settings saved." : error;
+        return RedirectToAction(nameof(Index), new { tab = "email" });
     }
 }

@@ -27,6 +27,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<UnitOfMeasure> UnitsOfMeasure => Set<UnitOfMeasure>();
     public DbSet<ExpenseCategory> ExpenseCategories => Set<ExpenseCategory>();
     public DbSet<BusinessSetting> BusinessSettings => Set<BusinessSetting>();
+    public DbSet<MailSetting> MailSettings => Set<MailSetting>();
     public DbSet<Supplier> Suppliers => Set<Supplier>();
     public DbSet<Customer> Customers => Set<Customer>();
     public DbSet<Product> Products => Set<Product>();
@@ -90,6 +91,11 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
         builder.Entity<BusinessSetting>(e =>
         {
             e.HasIndex(x => x.Key).IsUnique();
+        });
+
+        builder.Entity<MailSetting>(e =>
+        {
+            e.Property(x => x.ProtectedPassword).HasColumnType("nvarchar(max)");
         });
 
         builder.Entity<Supplier>(e =>

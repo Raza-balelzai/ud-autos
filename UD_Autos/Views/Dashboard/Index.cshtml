@@ -15,54 +15,169 @@
     </div>
 }
 
-<div class="kpi-grid">
-    <div class="kpi-card">
-        <div class="kpi-card__icon kpi-card__icon--blue"><svg viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="M7 14l4-4 3 3 5-6"/></svg></div>
-        <p class="kpi-card__label">Today's Sales</p>
-        <p class="kpi-card__value">Rs. @Model.TodaySales.ToString("N0")</p>
-        <p class="kpi-card__meta">Invoice bill totals</p>
-    </div>
-    <div class="kpi-card">
-        <div class="kpi-card__icon kpi-card__icon--green"><svg viewBox="0 0 24 24"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div>
-        <p class="kpi-card__label">Today's Collections</p>
-        <p class="kpi-card__value">Rs. @Model.TodayCollections.ToString("N0")</p>
-        <p class="kpi-card__meta">Separate from sales</p>
-    </div>
-    <div class="kpi-card">
-        <div class="kpi-card__icon kpi-card__icon--red"><svg viewBox="0 0 24 24"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div>
-        <p class="kpi-card__label">Today's Expenses</p>
-        <p class="kpi-card__value">Rs. @Model.TodayExpenses.ToString("N0")</p>
-        <p class="kpi-card__meta">Operating expenses only</p>
-    </div>
-    <div class="kpi-card">
-        <div class="kpi-card__icon kpi-card__icon--purple"><svg viewBox="0 0 24 24"><path d="M12 20V10M18 20V4M6 20v-4"/></svg></div>
-        <p class="kpi-card__label">Today's Profit</p>
-        <p class="kpi-card__value">@(Model.CanViewProfit ? $"Rs. {Model.TodayNetProfit:N0}" : "—")</p>
-        <p class="kpi-card__meta">@(Model.CanViewProfit ? "Gross − opex" : "Permission required")</p>
-    </div>
-</div>
+@{
+    string Trend(decimal change, bool upIsBad = false)
+    {
+        if (change == 0) return "is-flat";
+        var good = upIsBad ? change < 0 : change > 0;
+        return (change > 0 ? "is-rise " : "is-fall ") + (good ? "is-good" : "is-bad");
+    }
+}
 
-<div class="kpi-grid">
-    <div class="kpi-card">
-        <p class="kpi-card__label">Inventory Value</p>
-        <p class="kpi-card__value">Rs. @Model.InventoryValue.ToString("N0")</p>
-        <p class="kpi-card__meta">@Model.InventoryQty.ToString("N0") pcs on hand</p>
-    </div>
-    <div class="kpi-card">
-        <p class="kpi-card__label">Total Receivable</p>
-        <p class="kpi-card__value">Rs. @Model.TotalReceivable.ToString("N0")</p>
-        <p class="kpi-card__meta">Customer Khata balances</p>
-    </div>
-    <div class="kpi-card">
-        <p class="kpi-card__label">Overdue Receivable</p>
-        <p class="kpi-card__value">Rs. @Model.OverdueReceivable.ToString("N0")</p>
-        <p class="kpi-card__meta">Invoices 30+ days unpaid</p>
-    </div>
-    <div class="kpi-card">
-        <p class="kpi-card__label">Month Sales / Net</p>
-        <p class="kpi-card__value">Rs. @Model.MonthSales.ToString("N0")</p>
-        <p class="kpi-card__meta">@(Model.CanViewProfit ? $"Net Rs. {Model.MonthNetProfit:N0}" : "Profit hidden")</p>
-    </div>
+<div class="dash-kpis">
+    <article class="dash-card">
+        <span class="dash-card__icon dash-card__icon--solid dash-card__icon--blue" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path d="M8.1 6.2h12.2l-1.4 6.3a1.7 1.7 0 0 1-1.7 1.3H9.2a1.7 1.7 0 0 1-1.7-1.4L6.3 4.6H3.2V2.8h4.2l.7 3.4z"/><circle cx="9.2" cy="19.3" r="1.8"/><circle cx="17.1" cy="19.3" r="1.8"/></svg>
+        </span>
+        <div class="dash-card__main">
+            <p class="dash-card__label">Today's Sales</p>
+            <p class="dash-card__value">Rs. @Model.TodaySales.ToString("N0")</p>
+            <p class="dash-trend @Trend(Model.SalesChange)">
+                <svg viewBox="0 0 12 12" aria-hidden="true"><path d="M6 2.2 10 8.2H2z"/></svg>
+                @Math.Abs(Model.SalesChange).ToString("0")%
+            </p>
+        </div>
+        <div class="dash-spark" aria-hidden="true">
+            @{
+                var salesMax = Model.SalesSpark.DefaultIfEmpty().Max();
+                if (salesMax <= 0) salesMax = 1;
+            }
+            @foreach (var v in Model.SalesSpark)
+            {
+                var h = v <= 0 ? 4 : (int)Math.Max(6, Math.Round(32m * v / salesMax));
+                <span style="height:@(h)px"></span>
+            }
+        </div>
+    </article>
+
+    <article class="dash-card">
+        <span class="dash-card__icon dash-card__icon--solid dash-card__icon--green" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path fill-rule="evenodd" d="M3.2 7h17.6v10H3.2V7zm8.8 6.7a2.2 2.2 0 1 0 0-4.4 2.2 2.2 0 0 0 0 4.4z"/></svg>
+        </span>
+        <div class="dash-card__main">
+            <p class="dash-card__label">Today's Collections</p>
+            <p class="dash-card__value">Rs. @Model.TodayCollections.ToString("N0")</p>
+            <p class="dash-trend @Trend(Model.CollectionChange)">
+                <svg viewBox="0 0 12 12" aria-hidden="true"><path d="M6 2.2 10 8.2H2z"/></svg>
+                @Math.Abs(Model.CollectionChange).ToString("0")%
+            </p>
+        </div>
+        <div class="dash-spark" aria-hidden="true">
+            @{
+                var collectionMax = Model.CollectionSpark.DefaultIfEmpty().Max();
+                if (collectionMax <= 0) collectionMax = 1;
+            }
+            @foreach (var v in Model.CollectionSpark)
+            {
+                var h = v <= 0 ? 4 : (int)Math.Max(6, Math.Round(32m * v / collectionMax));
+                <span style="height:@(h)px"></span>
+            }
+        </div>
+    </article>
+
+    <article class="dash-card">
+        <span class="dash-card__icon dash-card__icon--solid dash-card__icon--red" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path d="M4.2 7.4A2.2 2.2 0 0 1 6.4 5.2H18V7h-1.2v.2H6.4V7.4H4.2zm0 1.6H20v7.6a2.2 2.2 0 0 1-2.2 2.2H6.4a2.2 2.2 0 0 1-2.2-2.2V9zm11.2 2.6h3.1v2.3h-3.1a1.15 1.15 0 0 1 0-2.3z"/></svg>
+        </span>
+        <div class="dash-card__main">
+            <p class="dash-card__label">Today's Expenses</p>
+            <p class="dash-card__value">Rs. @Model.TodayExpenses.ToString("N0")</p>
+            <p class="dash-trend @Trend(Model.ExpenseChange, upIsBad: true)">
+                <svg viewBox="0 0 12 12" aria-hidden="true"><path d="M6 2.2 10 8.2H2z"/></svg>
+                @Math.Abs(Model.ExpenseChange).ToString("0")%
+            </p>
+        </div>
+        <div class="dash-spark" aria-hidden="true">
+            @{
+                var expenseMax = Model.ExpenseSpark.DefaultIfEmpty().Max();
+                if (expenseMax <= 0) expenseMax = 1;
+            }
+            @foreach (var v in Model.ExpenseSpark)
+            {
+                var h = v <= 0 ? 4 : (int)Math.Max(6, Math.Round(32m * v / expenseMax));
+                <span style="height:@(h)px"></span>
+            }
+        </div>
+    </article>
+
+    <article class="dash-card">
+        <span class="dash-card__icon dash-card__icon--solid dash-card__icon--purple" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path d="M4 12.5h3.4V19H4zm6.3-5h3.4V19h-3.4zM16.6 5H20v14h-3.4z"/></svg>
+        </span>
+        <div class="dash-card__main">
+            <p class="dash-card__label">Today's Profit</p>
+            <p class="dash-card__value">@(Model.CanViewProfit ? $"Rs. {Model.TodayNetProfit:N0}" : "—")</p>
+            @if (Model.CanViewProfit)
+            {
+                <p class="dash-trend @Trend(Model.ProfitChange)">
+                    <svg viewBox="0 0 12 12" aria-hidden="true"><path d="M6 2.2 10 8.2H2z"/></svg>
+                    @Math.Abs(Model.ProfitChange).ToString("0")%
+                </p>
+            }
+            else
+            {
+                <p class="dash-card__meta">Permission required</p>
+            }
+        </div>
+        @if (Model.CanViewProfit)
+        {
+            <div class="dash-spark" aria-hidden="true">
+                @{
+                    var profitMax = Model.ProfitSpark.DefaultIfEmpty().Max();
+                    if (profitMax <= 0) profitMax = 1;
+                }
+                @foreach (var v in Model.ProfitSpark)
+                {
+                    var h = v <= 0 ? 4 : (int)Math.Max(6, Math.Round(32m * Math.Abs(v) / profitMax));
+                    <span style="height:@(h)px"></span>
+                }
+            </div>
+        }
+    </article>
+
+    <article class="dash-card dash-card--stat">
+        <span class="dash-card__icon dash-card__icon--amber" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path d="M12 2.6 20.2 7v10L12 21.4 3.8 17V7L12 2.6z"/></svg>
+        </span>
+        <div class="dash-card__main">
+            <p class="dash-card__label">Inventory Value</p>
+            <p class="dash-card__value">Rs. @Model.InventoryValue.ToString("N0")</p>
+            <p class="dash-card__meta">@Model.InventoryQty.ToString("N0") Pcs</p>
+        </div>
+    </article>
+
+    <article class="dash-card dash-card--stat">
+        <span class="dash-card__icon dash-card__icon--blue" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path d="M9 11.3a3.1 3.1 0 1 0 0-6.2 3.1 3.1 0 0 0 0 6.2zM3.1 19c.4-2.9 2.8-4.6 5.9-4.6s5.5 1.7 5.9 4.6H3.1zM16.3 10.8a2.4 2.4 0 1 0 0-4.8 2.4 2.4 0 0 0 0 4.8zM15.1 14.6c1.7.3 3 1.2 3.7 2.5.4.6.6 1.2.7 1.9h2.1c-.3-2.3-2-3.8-4.4-4.2-.7-.2-1.4-.2-2.1-.2z"/></svg>
+        </span>
+        <div class="dash-card__main">
+            <p class="dash-card__label">Total Receivable</p>
+            <p class="dash-card__value">Rs. @Model.TotalReceivable.ToString("N0")</p>
+            <p class="dash-card__meta">@Model.ReceivableCustomers.ToString("N0") Customers</p>
+        </div>
+    </article>
+
+    <article class="dash-card dash-card--stat">
+        <span class="dash-card__icon dash-card__icon--red" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path fill-rule="evenodd" d="M12 3.6a8.4 8.4 0 1 0 0 16.8 8.4 8.4 0 0 0 0-16.8zm.9 3.8v4.4l2.8 1.7-1 1.6L11 13.1V7.4h1.9z"/></svg>
+        </span>
+        <div class="dash-card__main">
+            <p class="dash-card__label">Overdue Receivable</p>
+            <p class="dash-card__value @(Model.OverdueReceivable > 0 ? "dash-card__value--alert" : null)">Rs. @Model.OverdueReceivable.ToString("N0")</p>
+            <p class="dash-card__meta">@Model.OverdueCustomers.ToString("N0") Customers</p>
+        </div>
+    </article>
+
+    <article class="dash-card dash-card--stat">
+        <span class="dash-card__icon dash-card__icon--cyan" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path d="M2.8 7.4h10.6v7.4H2.8V7.4zm10.6 2.2h3.2l2.6 2.7v2.5h-5.8V9.6zM6.5 16.2a1.8 1.8 0 1 0 .1 3.6 1.8 1.8 0 0 0-.1-3.6zm9.3 0a1.8 1.8 0 1 0 .1 3.6 1.8 1.8 0 0 0-.1-3.6z"/></svg>
+        </span>
+        <div class="dash-card__main">
+            <p class="dash-card__label">In Transit / In China</p>
+            <p class="dash-card__value">Rs. @Model.InTransitValue.ToString("N0")</p>
+            <p class="dash-card__meta">@Model.InTransitShipments.ToString("N0") Shipments</p>
+        </div>
+    </article>
 </div>
 
 <div class="card-panel">

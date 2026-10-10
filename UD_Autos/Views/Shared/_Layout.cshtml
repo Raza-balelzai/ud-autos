@@ -31,6 +31,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>@ViewData["Title"] - Auto Parts Business</title>
+    <link rel="icon" type="image/png" href="~/assets/auto_parts_gear_logo_32.png" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/theme.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/app.css" asp-append-version="true" />
 </head>
@@ -42,10 +43,7 @@
         <div class="app-sidebar-backdrop" data-nav-backdrop hidden aria-hidden="true"></div>
         <aside class="app-sidebar" id="app-sidebar" aria-label="Application navigation">
             <div class="app-brand">
-                <div class="app-brand__icon" aria-hidden="true">
-                    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M19.1 4.9 17 7M7 17l-2.1 2.1"/></svg>
-                </div>
-                <div class="app-brand__text">Auto Parts<br/>Business Solution</div>
+                <img class="app-brand__logo" src="~/assets/Glossy Auto Parts Gear Logo.png" alt="Auto Parts Business Solution" />
             </div>
             <nav class="app-nav" aria-label="Main">
                 <a class="@NavClass("Dashboard")" asp-controller="Dashboard" asp-action="Index">

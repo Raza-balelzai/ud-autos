@@ -33,6 +33,18 @@ public class DashboardVm
     public IReadOnlyList<NamedAmount> TopProducts { get; set; } = Array.Empty<NamedAmount>();
     public IReadOnlyList<NamedAmount> TopCustomers { get; set; } = Array.Empty<NamedAmount>();
     public IReadOnlyList<NamedAmount> IncomingShipments { get; set; } = Array.Empty<NamedAmount>();
+    public decimal[] SalesSpark { get; set; } = Array.Empty<decimal>();
+    public decimal SalesChange { get; set; }
+    public decimal[] CollectionSpark { get; set; } = Array.Empty<decimal>();
+    public decimal CollectionChange { get; set; }
+    public decimal[] ExpenseSpark { get; set; } = Array.Empty<decimal>();
+    public decimal ExpenseChange { get; set; }
+    public decimal[] ProfitSpark { get; set; } = Array.Empty<decimal>();
+    public decimal ProfitChange { get; set; }
+    public int ReceivableCustomers { get; set; }
+    public int OverdueCustomers { get; set; }
+    public decimal InTransitValue { get; set; }
+    public int InTransitShipments { get; set; }
 }
 
 public class ChartPoint
@@ -177,6 +189,45 @@ public class DashboardService : IDashboardService
             })
             .ToListAsync(cancellationToken);
 
+        var sparkFrom = today.AddDays(-13);
+        var collectionRows = await _db.CustomerPayments.AsNoTracking()
+            .Where(p => p.PaymentDate >= sparkFrom && p.PaymentDate <= today)
+            .Select(p => new { p.PaymentDate, p.Amount })
+            .ToListAsync(cancellationToken);
+        var expenseRows = await _db.OperatingExpenses.AsNoTracking()
+            .Where(e => e.ExpenseDate >= sparkFrom && e.ExpenseDate <= today)
+            .Select(e => new { e.ExpenseDate, e.Amount })
+            .ToListAsync(cancellationToken);
+
+        decimal[] Daily(Func<DateTime, decimal> value) =>
+            Enumerable.Range(0, 14).Select(i => value(sparkFrom.AddDays(i))).ToArray();
+
+        var salesDaily = Daily(d => trendInvoices.Where(x => x.InvoiceDate == d).Sum(x => x.BillTotal));
+        var collectionDaily = Daily(d => collectionRows.Where(x => x.PaymentDate.Date == d).Sum(x => x.Amount));
+        var expenseDaily = Daily(d => expenseRows.Where(x => x.ExpenseDate.Date == d).Sum(x => x.Amount));
+        var profitDaily = Daily(d =>
+            trendInvoices.Where(x => x.InvoiceDate == d).Sum(x => x.GrossProfit)
+            - expenseRows.Where(x => x.ExpenseDate.Date == d).Sum(x => x.Amount));
+        var (salesSpark, salesChange) = WeekChange(salesDaily);
+        var (collectionSpark, collectionChange) = WeekChange(collectionDaily);
+        var (expenseSpark, expenseChange) = WeekChange(expenseDaily);
+        var (profitSpark, profitChange) = WeekChange(profitDaily);
+
+        var receivableCustomers = await _db.Customers.AsNoTracking()
+            .CountAsync(c => c.IsActive && c.CurrentBalance > 0, cancellationToken);
+        var overdueCustomers = await _db.Invoices.AsNoTracking()
+            .Where(i => !i.IsVoided && i.OutstandingAmount > 0 && i.InvoiceDate <= overdueCutoff)
+            .Select(i => i.CustomerId)
+            .Distinct()
+            .CountAsync(cancellationToken);
+
+        var inbound = await _db.Shipments.AsNoTracking()
+            .Where(s => s.Status == ShipmentStatus.Draft
+                || s.Status == ShipmentStatus.ChinaWarehouse
+                || s.Status == ShipmentStatus.InTransit)
+            .Select(s => new { s.ChinaProductCostPkr, s.TotalDirectCostPkr })
+            .ToListAsync(cancellationToken);
+
         var operationalAlerts = await _alerts.GetAlertsAsync(cancellationToken);
         var alerts = operationalAlerts.Select(a => a.Detail).ToList();
 
@@ -209,7 +260,30 @@ public class DashboardService : IDashboardService
             ProfitTrend = canViewProfit ? profitTrend : Array.Empty<ChartPoint>(),
             TopProducts = topProducts,
             TopCustomers = topCustomers,
-            IncomingShipments = incoming
+            IncomingShipments = incoming,
+            SalesSpark = salesSpark,
+            SalesChange = salesChange,
+            CollectionSpark = collectionSpark,
+            CollectionChange = collectionChange,
+            ExpenseSpark = expenseSpark,
+            ExpenseChange = expenseChange,
+            ProfitSpark = canViewProfit ? profitSpark : Array.Empty<decimal>(),
+            ProfitChange = canViewProfit ? profitChange : 0,
+            ReceivableCustomers = receivableCustomers,
+            OverdueCustomers = overdueCustomers,
+            InTransitValue = inbound.Sum(s => s.ChinaProductCostPkr + s.TotalDirectCostPkr),
+            InTransitShipments = inbound.Count
         };
+    }
+
+    private static (decimal[] Bars, decimal Change) WeekChange(decimal[] days)
+    {
+        var recent = days.Skip(7).Take(7).ToArray();
+        var previous = days.Take(7).Sum();
+        var current = recent.Sum();
+        var change = previous == 0m
+            ? (current == 0m ? 0m : 100m)
+            : Math.Round((current - previous) / Math.Abs(previous) * 100m, 0);
+        return (recent, change);
     }
 }

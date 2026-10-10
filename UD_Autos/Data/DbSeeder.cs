@@ -121,6 +121,17 @@ public static class DbSeeder
             );
         }
 
+        if (!await db.MailSettings.AnyAsync())
+        {
+            db.MailSettings.Add(new MailSetting
+            {
+                Port = 587,
+                EnableSsl = true,
+                FromName = "Auto Parts Business Solution",
+                CreatedAt = DateTime.UtcNow
+            });
+        }
+
         await db.SaveChangesAsync();
     }
 }

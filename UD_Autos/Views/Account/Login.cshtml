@@ -1,50 +1,52 @@
 @model LoginViewModel
 @{
-    Layout = null;
+    Layout = "_AuthLayout";
     ViewData["Title"] = "Sign in";
 }
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Sign in - Auto Parts Business</title>
-    <link rel="stylesheet" href="~/css/theme.css" asp-append-version="true" />
-    <link rel="stylesheet" href="~/css/app.css" asp-append-version="true" />
-</head>
-<body>
-<partial name="_IconSprite" />
-<div class="auth-page">
-    <div class="auth-card">
-        <div class="auth-card__brand">
-            <div class="app-brand__icon" aria-hidden="true">
-                <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M19.1 4.9 17 7M7 17l-2.1 2.1"/></svg>
-            </div>
-            <div class="app-brand__text">Auto Parts<br/>Business Solution</div>
-        </div>
-        <h1>Welcome back</h1>
-        <p class="lead">Sign in to manage products, purchases, shipments and billing.</p>
+<h1>Welcome Back</h1>
+<p class="lead">Sign in to your account to continue</p>
 
-        <form asp-action="Login" method="post">
-            <div asp-validation-summary="ModelOnly" class="validation-summary-errors"></div>
-            <input type="hidden" asp-for="ReturnUrl" />
-            <div class="field">
-                <label asp-for="Email" class="is-required">Email <span class="req" aria-hidden="true">*</span></label>
-                <input asp-for="Email" class="input-app" autocomplete="username" required />
-                <span asp-validation-for="Email" class="field-error"></span>
-            </div>
-            <div class="field">
-                <label asp-for="Password" class="is-required">Password <span class="req" aria-hidden="true">*</span></label>
-                <input asp-for="Password" class="input-app" autocomplete="current-password" required />
-                <span asp-validation-for="Password" class="field-error"></span>
-            </div>
-            <label class="checkbox-row">
-                <input asp-for="RememberMe" />
-                Remember me
-            </label>
-            <button type="submit" class="btn-app btn-app--primary"><svg class="ico" aria-hidden="true"><use href="#i-login"></use></svg> Sign in</button>
-        </form>
+@if (TempData["Success"] is string saved)
+{
+    <div class="alert-app alert-app--success">@saved</div>
+}
+
+<form asp-action="Login" method="post">
+    <div asp-validation-summary="ModelOnly" class="validation-summary-errors"></div>
+    <input type="hidden" asp-for="ReturnUrl" />
+    <div class="field">
+        <label asp-for="Email" class="is-required">Email Address <span class="req" aria-hidden="true">*</span></label>
+        <div class="login-input">
+            <svg class="login-input__icon" aria-hidden="true"><use href="#i-mail"></use></svg>
+            <input asp-for="Email" class="input-app" autocomplete="username" placeholder="name@company.com" required />
+        </div>
+        <span asp-validation-for="Email" class="field-error"></span>
     </div>
+    <div class="field">
+        <label asp-for="Password" class="is-required">Password <span class="req" aria-hidden="true">*</span></label>
+        <div class="login-input login-input--secret">
+            <svg class="login-input__icon" aria-hidden="true"><use href="#i-lock"></use></svg>
+            <input asp-for="Password" id="login-password" class="input-app" autocomplete="current-password" placeholder="Enter your password" required />
+            <button type="button" class="login-input__toggle" data-toggle-password="login-password" aria-label="Show password" aria-pressed="false">
+                <svg class="ico" aria-hidden="true"><use href="#i-eye"></use></svg>
+            </button>
+        </div>
+        <span asp-validation-for="Password" class="field-error"></span>
+    </div>
+    <div class="login-extras">
+        <label class="checkbox-row login-remember">
+            <input asp-for="RememberMe" />
+            Remember me
+        </label>
+        <a asp-action="ForgotPassword">Forgot password?</a>
+    </div>
+    <button type="submit" class="btn-app btn-app--primary login-submit">
+        <svg class="ico" aria-hidden="true"><use href="#i-login"></use></svg> Sign in
+    </button>
+</form>
+
+<div class="login-or" aria-hidden="true"><span>OR</span></div>
+<div class="login-note">
+    <span class="login-note__icon" aria-hidden="true"><svg class="ico"><use href="#i-shield"></use></svg></span>
+    <span><strong>Authorized Users Only</strong><small>This system is restricted to authorized personnel.</small></span>
 </div>
-</body>
-</html>

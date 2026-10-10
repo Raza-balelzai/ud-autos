@@ -1,6 +1,8 @@
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.EntityFrameworkCore;
 using UD_Autos.Data;
 using UD_Autos.Models.Settings;
+using UD_Autos.Models.ViewModels;
 
 namespace UD_Autos.Services;
 
@@ -20,17 +22,35 @@ public interface ISettingsService
 
     Task<IReadOnlyList<BusinessSetting>> GetBusinessSettingsAsync(CancellationToken cancellationToken = default);
     Task<(bool Ok, string? Error)> SaveBusinessSettingAsync(BusinessSetting setting, string? userId, CancellationToken cancellationToken = default);
+
+    Task<MailSettingsForm> GetMailSettingsAsync(CancellationToken cancellationToken = default);
+    Task<(bool Ok, string? Error)> SaveMailSettingsAsync(MailSettingsForm form, string? userId, CancellationToken cancellationToken = default);
+    Task<(bool Ok, OutboundMail? Mail, string? Error)> GetOutboundMailAsync(CancellationToken cancellationToken = default);
+}
+
+public sealed class OutboundMail
+{
+    public string Host { get; init; } = "";
+    public int Port { get; init; }
+    public string UserName { get; init; } = "";
+    public string Password { get; init; } = "";
+    public string FromAddress { get; init; } = "";
+    public string FromName { get; init; } = "";
+    public bool EnableSsl { get; init; }
 }
 
 public class SettingsService : ISettingsService
 {
+    private const string PasswordPurpose = "UD_Autos.MailSetting.Password";
     private readonly ApplicationDbContext _db;
     private readonly IAuditService _audit;
+    private readonly IDataProtector _passwords;
 
-    public SettingsService(ApplicationDbContext db, IAuditService audit)
+    public SettingsService(ApplicationDbContext db, IAuditService audit, IDataProtectionProvider protection)
     {
         _db = db;
         _audit = audit;
+        _passwords = protection.CreateProtector(PasswordPurpose);
     }
 
     public async Task<IReadOnlyList<ProductCategory>> GetCategoriesAsync(bool activeOnly = true, CancellationToken cancellationToken = default)
@@ -201,5 +221,87 @@ public class SettingsService : ISettingsService
         await _db.SaveChangesAsync(cancellationToken);
         await _audit.LogAsync("Update", nameof(BusinessSetting), setting.Id.ToString(), setting.Key, cancellationToken: cancellationToken);
         return (true, null);
+    }
+
+    public async Task<MailSettingsForm> GetMailSettingsAsync(CancellationToken cancellationToken = default)
+    {
+        var row = await _db.MailSettings.AsNoTracking().OrderBy(m => m.Id).FirstOrDefaultAsync(cancellationToken);
+        if (row is null)
+            return new MailSettingsForm();
+
+        return new MailSettingsForm
+        {
+            Host = row.Host,
+            Port = row.Port == 0 ? 587 : row.Port,
+            UserName = row.UserName,
+            FromAddress = row.FromAddress,
+            FromName = row.FromName,
+            EnableSsl = row.EnableSsl,
+            HasPassword = !string.IsNullOrEmpty(row.ProtectedPassword)
+        };
+    }
+
+    public async Task<(bool Ok, string? Error)> SaveMailSettingsAsync(MailSettingsForm form, string? userId, CancellationToken cancellationToken = default)
+    {
+        var row = await _db.MailSettings.OrderBy(m => m.Id).FirstOrDefaultAsync(cancellationToken);
+        var created = row is null;
+        row ??= new MailSetting { CreatedAt = DateTime.UtcNow, CreatedBy = userId };
+        if (created)
+            _db.MailSettings.Add(row);
+
+        row.Host = form.Host.Trim();
+        row.Port = form.Port;
+        row.UserName = form.UserName.Trim();
+        row.FromAddress = form.FromAddress.Trim();
+        row.FromName = form.FromName.Trim();
+        row.EnableSsl = form.EnableSsl;
+        row.UpdatedAt = DateTime.UtcNow;
+        row.UpdatedBy = userId;
+
+        var passwordChanged = !string.IsNullOrWhiteSpace(form.Password);
+        if (passwordChanged)
+            row.ProtectedPassword = _passwords.Protect(form.Password!.Trim());
+        else if (string.IsNullOrEmpty(row.ProtectedPassword))
+            return (false, "SMTP password is required the first time you save mail settings.");
+
+        await _db.SaveChangesAsync(cancellationToken);
+        await _audit.LogAsync(
+            "Update",
+            nameof(MailSetting),
+            row.Id.ToString(),
+            "SMTP",
+            newValues: new { row.Host, row.Port, row.UserName, row.FromAddress, row.FromName, row.EnableSsl, PasswordChanged = passwordChanged },
+            cancellationToken: cancellationToken);
+        return (true, null);
+    }
+
+    public async Task<(bool Ok, OutboundMail? Mail, string? Error)> GetOutboundMailAsync(CancellationToken cancellationToken = default)
+    {
+        var row = await _db.MailSettings.AsNoTracking().OrderBy(m => m.Id).FirstOrDefaultAsync(cancellationToken);
+        if (row is null || string.IsNullOrWhiteSpace(row.Host) || string.IsNullOrWhiteSpace(row.FromAddress))
+            return (false, null, "Email is not configured. Ask the owner to set it in Settings.");
+        if (string.IsNullOrEmpty(row.ProtectedPassword))
+            return (false, null, "Email is not configured. Ask the owner to set it in Settings.");
+
+        string password;
+        try
+        {
+            password = _passwords.Unprotect(row.ProtectedPassword);
+        }
+        catch (Exception)
+        {
+            return (false, null, "The saved mail password could not be read. Ask the owner to enter it again in Settings.");
+        }
+
+        return (true, new OutboundMail
+        {
+            Host = row.Host,
+            Port = row.Port == 0 ? 587 : row.Port,
+            UserName = row.UserName,
+            Password = password,
+            FromAddress = row.FromAddress,
+            FromName = string.IsNullOrWhiteSpace(row.FromName) ? row.FromAddress : row.FromName,
+            EnableSsl = row.EnableSsl
+        }, null);
     }
 }

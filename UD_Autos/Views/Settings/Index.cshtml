@@ -17,6 +17,7 @@
         <a class="@(Model.ActiveTab == "units" ? "is-active" : null)" asp-action="Index" asp-route-tab="units">Units</a>
         <a class="@(Model.ActiveTab == "expenses" ? "is-active" : null)" asp-action="Index" asp-route-tab="expenses">Expense Categories</a>
         <a class="@(Model.ActiveTab == "business" ? "is-active" : null)" asp-action="Index" asp-route-tab="business">Business Settings</a>
+        <a class="@(Model.ActiveTab == "email" ? "is-active" : null)" asp-action="Index" asp-route-tab="email">Email</a>
     </div>
 
     @if (Model.ActiveTab == "categories")
@@ -120,6 +121,43 @@
                 </tbody>
             </table>
         </div>
+    }
+    else if (Model.ActiveTab == "email")
+    {
+        <form asp-action="SaveMailSettings" method="post" class="form-grid form-grid--3">
+            @Html.AntiForgeryToken()
+            <div class="field">
+                <label asp-for="Mail.Host" class="is-required">SMTP host <span class="req" aria-hidden="true">*</span></label>
+                <input asp-for="Mail.Host" class="input-app" placeholder="smtp.example.com" />
+            </div>
+            <div class="field">
+                <label asp-for="Mail.Port" class="is-required">Port <span class="req" aria-hidden="true">*</span></label>
+                <input asp-for="Mail.Port" class="input-app" />
+            </div>
+            <div class="field">
+                <label class="checkbox-row"><input asp-for="Mail.EnableSsl" /> Use SSL</label>
+            </div>
+            <div class="field">
+                <label asp-for="Mail.UserName">Username</label>
+                <input asp-for="Mail.UserName" class="input-app" autocomplete="off" />
+            </div>
+            <div class="field">
+                <label asp-for="Mail.Password">Password</label>
+                <input asp-for="Mail.Password" type="password" class="input-app" autocomplete="new-password" value="" />
+                <span class="hint">@(Model.Mail.HasPassword ? "A password is saved. Leave this blank to keep it." : "Required the first time you save.")</span>
+            </div>
+            <div class="field">
+                <label asp-for="Mail.FromAddress" class="is-required">From address <span class="req" aria-hidden="true">*</span></label>
+                <input asp-for="Mail.FromAddress" class="input-app" />
+            </div>
+            <div class="field">
+                <label asp-for="Mail.FromName">From name</label>
+                <input asp-for="Mail.FromName" class="input-app" />
+            </div>
+            <div class="field field--action">
+                <button type="submit" class="btn-app btn-app--primary"><svg class="ico" aria-hidden="true"><use href="#i-check"></use></svg> Save mail settings</button>
+            </div>
+        </form>
     }
     else
     {
