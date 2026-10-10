@@ -45,7 +45,13 @@
             @foreach (var inv in invoices)
             {
                 <tr>
-                    <td>@inv.InvoiceNumber</td>
+                    <td>
+                        @inv.InvoiceNumber
+                        @if (inv.Items.Count > 0)
+                        {
+                            <div class="hint">@string.Join(", ", inv.Items.Select(i => $"{i.Product.Name} × {i.Quantity:N0}"))</div>
+                        }
+                    </td>
                     <td>@inv.InvoiceDate.ToString("dd MMM yyyy")</td>
                     <td>Rs. @inv.BillTotal.ToString("N2")</td>
                     <td>Rs. @inv.OutstandingAmount.ToString("N2")</td>

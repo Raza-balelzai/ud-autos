@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using UD_Autos.Data;
+using UD_Autos.Models.Products;
 
 namespace UD_Autos.Services;
 
@@ -42,13 +43,13 @@ public class GlobalSearchService : IGlobalSearchService
                 (p.Brand != null && p.Brand.Contains(q))))
             .OrderBy(p => p.Sku)
             .Take(PerTypeLimit)
-            .Select(p => new { p.Id, p.Sku, p.Name, p.Brand })
+            .Select(p => new { p.Id, p.Sku, p.Name, p.Brand, p.ProductKind })
             .ToListAsync(cancellationToken);
         results.AddRange(products.Select(p => new GlobalSearchHit
         {
-            Type = "Product",
+            Type = p.ProductKind == ProductKind.CompleteSet ? "Complete set" : "Product",
             Title = p.Sku + " — " + p.Name,
-            Subtitle = p.Brand ?? "Product",
+            Subtitle = p.ProductKind == ProductKind.CompleteSet ? "Complete set" : (p.Brand ?? "Single item"),
             Url = "/Products/Details/" + p.Id
         }));
 

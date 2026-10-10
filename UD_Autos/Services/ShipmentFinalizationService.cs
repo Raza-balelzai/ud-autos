@@ -68,6 +68,11 @@ public class ShipmentFinalizationService : IShipmentFinalizationService
         if (shipment.Items.Any(i => i.LandedUnitCostPkr <= 0 && (i.ActualQuantity ?? i.ExpectedQuantity) > 0))
             return (false, "Landed unit costs missing. Recalculate landed cost after entering actuals.");
 
+        var setItem = shipment.Items.FirstOrDefault(i =>
+            i.Product.ProductKind == ProductKind.CompleteSet && (i.ActualQuantity ?? i.ExpectedQuantity) > 0);
+        if (setItem is not null)
+            return (false, $"{setItem.Product.Name} is a complete set and cannot receive stock.");
+
         foreach (var item in shipment.Items)
         {
             if (item.ActualQuantity is null)

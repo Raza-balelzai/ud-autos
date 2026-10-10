@@ -13,6 +13,16 @@ public class ProductFormViewModel
     public IReadOnlyList<Supplier> Suppliers { get; set; } = Array.Empty<Supplier>();
     public string? PriceChangeReason { get; set; }
     public IFormFile? ImageFile { get; set; }
+    public List<SetComponentFormRow> Components { get; set; } = new();
+}
+
+public class SetComponentFormRow
+{
+    public int ComponentProductId { get; set; }
+    public string? Sku { get; set; }
+    public string? Name { get; set; }
+    public decimal RequiredQuantity { get; set; } = 1;
+    public decimal AvailableStock { get; set; }
 }
 
 public class SettingsIndexViewModel

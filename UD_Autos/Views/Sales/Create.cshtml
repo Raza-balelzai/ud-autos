@@ -1,4 +1,9 @@
 @model BillingPageViewModel
+@{
+    string SaleOption(Product p) => p.ProductKind == ProductKind.CompleteSet
+        ? $"{p.Sku} — {p.Name} (Complete set, {(p.VirtualAvailableSets ?? 0):N0} available)"
+        : $"{p.Sku} — {p.Name}";
+}
 
 <form asp-action="Create" method="post" class="card-panel" id="billing-form">
     @Html.AntiForgeryToken()
@@ -6,6 +11,11 @@
     <div asp-validation-summary="ModelOnly" class="validation-summary-errors"></div>
     <p class="form-legend"><span class="req" aria-hidden="true">*</span> Required field</p>
 
+    <section class="form-section form-section--first">
+        <div class="form-section__head">
+            <h3 class="form-section__title">Sale</h3>
+            <p class="form-section__text">Choose the customer and the invoice date. The invoice number is assigned when you save.</p>
+        </div>
     <div class="form-grid form-grid--3">
         <div class="field">
             <label class="is-required">Customer <span class="req" aria-hidden="true">*</span></label>
@@ -23,33 +33,44 @@
             <span class="hint">Auto-generated</span>
         </div>
     </div>
+        <div class="detail-grid" id="customer-info">
+            <div class="detail-item"><dt>Previous balance</dt><dd id="cust-balance">Rs. @(Model.Customer?.CurrentBalance.ToString("N2") ?? "—")</dd></div>
+            <div class="detail-item"><dt>Credit limit</dt><dd id="cust-limit">@(Model.Customer?.CreditLimit is decimal lim ? $"Rs. {lim:N2}" : "—")</dd></div>
+            <div class="detail-item"><dt>Customer type</dt><dd id="cust-type">@(Model.Customer?.CustomerType.ToString() ?? "—")</dd></div>
+        </div>
+    </section>
 
-    <div class="detail-grid" id="customer-info">
-        <div class="detail-item"><dt>Previous balance</dt><dd id="cust-balance">Rs. @(Model.Customer?.CurrentBalance.ToString("N2") ?? "—")</dd></div>
-        <div class="detail-item"><dt>Credit limit</dt><dd id="cust-limit">@(Model.Customer?.CreditLimit is decimal lim ? $"Rs. {lim:N2}" : "—")</dd></div>
-        <div class="detail-item"><dt>Type</dt><dd id="cust-type">@(Model.Customer?.CustomerType.ToString() ?? "—")</dd></div>
-    </div>
-
-    <h3 class="card-panel__title">Line items</h3>
+    <section class="form-section">
+        <div class="form-section__head">
+            <h3 class="form-section__title">Line items</h3>
+            <p class="form-section__text">Add each product or complete set. A set is one line at the set price. Its items are taken from stock when you save.</p>
+        </div>
     <div class="table-toolbar">
-        <input class="input-app" id="product-search" placeholder="Product (Search by SKU or Name)" />
+        <input class="input-app" id="product-search" placeholder="Filter products by SKU or name" autocomplete="off" />
     </div>
+    <div class="line-head" aria-hidden="true"><span>Product</span><span>Quantity</span><span>Unit price</span><span>Discount</span><span></span></div>
     <div class="line-items-editor" id="sale-lines">
         @for (var i = 0; i < Model.Items.Count; i++)
         {
             <div class="line-row">
-                <select class="select-app" name="Items[@i].ProductId" asp-items="@(new SelectList(Model.Products.Select(p => new { p.Id, Label = p.Sku + " — " + p.Name }), "Id", "Label", Model.Items[i].ProductId))">
+                <select class="select-app" name="Items[@i].ProductId" asp-items="@(new SelectList(Model.Products.Select(p => new { p.Id, Label = SaleOption(p) }), "Id", "Label", Model.Items[i].ProductId))">
                     <option value="">Product</option>
                 </select>
-                <input class="input-app" name="Items[@i].Quantity" value="@Model.Items[i].Quantity" placeholder="Qty" />
-                <input class="input-app" name="Items[@i].UnitPrice" value="@Model.Items[i].UnitPrice" placeholder="Price" />
-                <input class="input-app" name="Items[@i].LineDiscount" value="@Model.Items[i].LineDiscount" placeholder="Discount" />
+                <input class="input-app" name="Items[@i].Quantity" value="@Model.Items[i].Quantity" placeholder="Quantity" aria-label="Quantity" />
+                <input class="input-app" name="Items[@i].UnitPrice" value="@Model.Items[i].UnitPrice" placeholder="Unit price" aria-label="Unit price" />
+                <input class="input-app" name="Items[@i].LineDiscount" value="@Model.Items[i].LineDiscount" placeholder="Discount" aria-label="Discount" />
                 <button type="button" class="btn-app btn-app--ghost btn-app--sm" data-remove-line>✕</button>
             </div>
         }
     </div>
-    <button type="button" class="btn-app btn-app--outline btn-app--sm" id="add-sale-line">+ Add item</button>
+    <button type="button" class="btn-app btn-app--outline btn-app--sm" id="add-sale-line">Add line</button>
+    </section>
 
+    <section class="form-section">
+        <div class="form-section__head">
+            <h3 class="form-section__title">Charges and payment</h3>
+            <p class="form-section__text">Optional charges are added to the bill. Record any amount received now.</p>
+        </div>
     <div class="form-grid form-grid--3">
         <div class="field">
             <label>Bill discount</label>
@@ -89,9 +110,10 @@
             <textarea asp-for="Notes" class="textarea-app"></textarea>
         </div>
     </div>
+    </section>
 
     <div class="form-actions">
-        <button type="submit" class="btn-app btn-app--success" id="save-invoice">Save Invoice</button>
+        <button type="submit" class="btn-app btn-app--success" id="save-invoice">Save invoice</button>
         <a class="btn-app btn-app--outline" asp-action="Index">Cancel</a>
     </div>
 </form>
@@ -102,12 +124,12 @@
             <option value="">Product</option>
             @foreach (var p in Model.Products)
             {
-                <option value="@p.Id" data-price="@p.WholesalePrice">@p.Sku — @p.Name</option>
+                <option value="@p.Id" data-price="@p.WholesalePrice">@SaleOption(p)</option>
             }
         </select>
-        <input class="input-app" name="Items[__i__].Quantity" placeholder="Qty" />
-        <input class="input-app" name="Items[__i__].UnitPrice" placeholder="Price" />
-        <input class="input-app" name="Items[__i__].LineDiscount" placeholder="Discount" />
+        <input class="input-app" name="Items[__i__].Quantity" placeholder="Quantity" aria-label="Quantity" />
+        <input class="input-app" name="Items[__i__].UnitPrice" placeholder="Unit price" aria-label="Unit price" />
+        <input class="input-app" name="Items[__i__].LineDiscount" placeholder="Discount" aria-label="Discount" />
         <button type="button" class="btn-app btn-app--ghost btn-app--sm" data-remove-line>✕</button>
     </div>
 </template>
@@ -117,9 +139,32 @@
 (() => {
   const lines = document.getElementById('sale-lines');
   const tpl = document.getElementById('sale-line-template');
+  const search = document.getElementById('product-search');
+  const prices = {};
+  tpl?.querySelectorAll('option[data-price]').forEach(option => { prices[option.value] = option.dataset.price; });
+
+  function applyFilter() {
+    const query = (search?.value || '').trim().toLowerCase();
+    lines?.querySelectorAll('select').forEach(select => {
+      [...select.options].forEach(option => {
+        if (!option.value) return;
+        const matches = !query || option.textContent.toLowerCase().includes(query);
+        option.hidden = !matches && option.value !== select.value;
+      });
+    });
+  }
+
   document.getElementById('add-sale-line')?.addEventListener('click', () => {
     const i = lines.querySelectorAll('.line-row').length;
     lines.insertAdjacentHTML('beforeend', tpl.innerHTML.replaceAll('__i__', i));
+    applyFilter();
+  });
+  search?.addEventListener('input', applyFilter);
+  lines?.addEventListener('change', (e) => {
+    const select = e.target.closest('select');
+    if (!select || prices[select.value] == null) return;
+    const price = select.closest('.line-row')?.querySelector('input[name$=".UnitPrice"]');
+    if (price) price.value = prices[select.value];
   });
   lines?.addEventListener('click', e => {
     const btn = e.target.closest('[data-remove-line]');

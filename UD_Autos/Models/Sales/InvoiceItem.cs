@@ -41,4 +41,5 @@ public class InvoiceItem : AuditableEntity
     public string? Notes { get; set; }
 
     public ICollection<InvoiceItemBatchAllocation> BatchAllocations { get; set; } = new List<InvoiceItemBatchAllocation>();
+    public ICollection<InvoiceSetComponent> SetComponents { get; set; } = new List<InvoiceSetComponent>();
 }

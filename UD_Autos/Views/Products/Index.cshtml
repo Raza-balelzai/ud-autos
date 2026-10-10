@@ -55,7 +55,9 @@
             {
                 foreach (var item in Model.Items)
                 {
-                    var low = item.CurrentStock <= item.ReorderLevel;
+                    var low = item.ProductKind == ProductKind.CompleteSet
+                        ? (item.VirtualAvailableSets ?? 0) <= 0
+                        : item.CurrentStock <= item.ReorderLevel;
                     <tr>
                         <td>
                             @if (!string.IsNullOrEmpty(item.ImagePath))
@@ -68,18 +70,41 @@
                             }
                         </td>
                         <td>@item.Sku</td>
-                        <td>@item.Name</td>
+                        <td>
+                            @item.Name
+                            @if (item.ProductKind == ProductKind.CompleteSet)
+                            {
+                                <span class="badge-app badge-app--neutral">Complete set</span>
+                            }
+                        </td>
                         <td>@(item.Category?.Name ?? "—")</td>
                         <td>Rs. @item.WholesalePrice.ToString("N2")</td>
-                        <td>@item.CurrentStock.ToString("N0")</td>
                         <td>
-                            @if (low)
+                            @if (item.ProductKind == ProductKind.CompleteSet)
                             {
-                                <span class="badge-app badge-app--danger">Low Stock</span>
+                                @((item.VirtualAvailableSets ?? 0).ToString("N0"))
+                                @if (!string.IsNullOrEmpty(item.LimitingComponentName))
+                                {
+                                    <div class="hint">Limited by @item.LimitingComponentName</div>
+                                }
                             }
                             else
                             {
-                                <span class="badge-app badge-app--success">In Stock</span>
+                                @item.CurrentStock.ToString("N0")
+                            }
+                        </td>
+                        <td>
+                            @if (item.ProductKind == ProductKind.CompleteSet && (item.VirtualAvailableSets ?? 0) <= 0)
+                            {
+                                <span class="badge-app badge-app--danger">Out of stock</span>
+                            }
+                            else if (low)
+                            {
+                                <span class="badge-app badge-app--warning">Low stock</span>
+                            }
+                            else
+                            {
+                                <span class="badge-app badge-app--success">In stock</span>
                             }
                         </td>
                         <td class="actions">

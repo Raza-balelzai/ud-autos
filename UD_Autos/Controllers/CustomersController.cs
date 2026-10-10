@@ -45,7 +45,7 @@ public class CustomersController : Controller
         ViewData["Subtitle"] = $"{customer.CustomerCode} — {customer.ShopName ?? customer.Name}";
         ViewBag.Customer = customer;
         ViewBag.Ledger = await _aging.GetLedgerAsync(id, cancellationToken);
-        ViewBag.Invoices = (await _sales.SearchInvoicesAsync(null, id, null, null, 1, 50, cancellationToken)).Items;
+        ViewBag.Invoices = (await _sales.SearchInvoicesAsync(null, id, null, null, 1, 50, cancellationToken, includeItems: true)).Items;
         return View();
     }
 

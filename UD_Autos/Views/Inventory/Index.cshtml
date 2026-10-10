@@ -32,6 +32,7 @@
             <tr>
                 <th>SKU</th>
                 <th>Product</th>
+                <th>Type</th>
                 <th>Current</th>
                 <th>Available</th>
                 <th>Reserved</th>
@@ -46,7 +47,7 @@
             <tbody>
             @if (Model.Items.Count == 0)
             {
-                <tr><td colspan="11"><div class="empty-state">No stock rows. Finalize a shipment to post inventory.</div></td></tr>
+                <tr><td colspan="12"><div class="empty-state">No stock rows. Finalize a shipment to post inventory.</div></td></tr>
             }
             else
             {
@@ -54,33 +55,59 @@
                 {
                     <tr>
                         <td>@p.Sku</td>
-                        <td>@p.Name</td>
-                        <td>@p.CurrentStock.ToString("N2")</td>
-                        <td>@p.AvailableQuantity.ToString("N2")</td>
+                        <td>
+                            @p.Name
+                            @if (p.ProductKind == ProductKind.CompleteSet && !string.IsNullOrEmpty(p.LimitingComponentName))
+                            {
+                                <div class="hint">Limited by @p.LimitingComponentName</div>
+                            }
+                        </td>
+                        <td>@(p.ProductKind == ProductKind.CompleteSet ? "Complete set" : "Single item")</td>
+                        <td>@(p.ProductKind == ProductKind.CompleteSet ? "—" : p.CurrentStock.ToString("N2"))</td>
+                        <td>@(p.ProductKind == ProductKind.CompleteSet ? (p.VirtualAvailableSets ?? 0).ToString("N0") : p.AvailableQuantity.ToString("N2"))</td>
                         <td>@p.ReservedQuantity.ToString("N2")</td>
                         <td>@p.DamagedStock.ToString("N2")</td>
                         <td>@(User.IsInRole(AppRoles.Salesman) ? "—" : $"Rs. {(p.AverageCost ?? 0):N4}")</td>
                         <td>@(User.IsInRole(AppRoles.Salesman) ? "—" : $"Rs. {(p.LatestLandedCost ?? 0):N4}")</td>
                         <td>@(User.IsInRole(AppRoles.Salesman) ? "—" : $"Rs. {p.StockValue:N2}")</td>
                         <td>
-                            @if (p.CurrentStock <= 0)
+                            @if (p.ProductKind == ProductKind.CompleteSet)
                             {
-                                <span class="badge-app badge-app--danger">Out of Stock</span>
+                                if ((p.VirtualAvailableSets ?? 0) <= 0)
+                                {
+                                    <span class="badge-app badge-app--danger">Out of stock</span>
+                                }
+                                else
+                                {
+                                    <span class="badge-app badge-app--success">In stock</span>
+                                }
+                            }
+                            else if (p.CurrentStock <= 0)
+                            {
+                                <span class="badge-app badge-app--danger">Out of stock</span>
                             }
                             else if (p.CurrentStock <= p.ReorderLevel)
                             {
-                                <span class="badge-app badge-app--warning">Low Stock</span>
+                                <span class="badge-app badge-app--warning">Low stock</span>
                             }
                             else
                             {
-                                <span class="badge-app badge-app--success">In Stock</span>
+                                <span class="badge-app badge-app--success">In stock</span>
                             }
                         </td>
                         <td class="actions">
-                            <a class="btn-app btn-app--outline btn-app--sm" asp-action="Batches" asp-route-productId="@p.Id">Batches</a>
-                            <a class="btn-app btn-app--outline btn-app--sm" asp-action="Hold" asp-route-productId="@p.Id">Hold</a>
-                            <a class="btn-app btn-app--outline btn-app--sm" asp-action="Release" asp-route-productId="@p.Id">Release</a>
-                            <a class="btn-app btn-app--outline btn-app--sm" asp-action="Movements" asp-route-productId="@p.Id">Moves</a>
+                            @if (p.ProductKind == ProductKind.CompleteSet)
+                            {
+                                <a class="btn-app btn-app--outline btn-app--sm" asp-controller="Products" asp-action="Details" asp-route-id="@p.Id">Set items</a>
+                                <a class="btn-app btn-app--outline btn-app--sm" asp-controller="Products" asp-action="Edit" asp-route-id="@p.Id">Edit</a>
+                            }
+                            else
+                            {
+                                <a class="btn-app btn-app--outline btn-app--sm" asp-action="Batches" asp-route-productId="@p.Id">Batches</a>
+                                <a class="btn-app btn-app--outline btn-app--sm" asp-action="Hold" asp-route-productId="@p.Id">Hold</a>
+                                <a class="btn-app btn-app--outline btn-app--sm" asp-action="Release" asp-route-productId="@p.Id">Release</a>
+                                <a class="btn-app btn-app--outline btn-app--sm" asp-action="Movements" asp-route-productId="@p.Id">Moves</a>
+                            }
                         </td>
                     </tr>
                 }

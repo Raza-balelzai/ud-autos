@@ -30,6 +30,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<Supplier> Suppliers => Set<Supplier>();
     public DbSet<Customer> Customers => Set<Customer>();
     public DbSet<Product> Products => Set<Product>();
+    public DbSet<ProductSetComponent> ProductSetComponents => Set<ProductSetComponent>();
     public DbSet<ProductRmbPriceHistory> ProductRmbPriceHistories => Set<ProductRmbPriceHistory>();
     public DbSet<ProductLandedCostHistory> ProductLandedCostHistories => Set<ProductLandedCostHistory>();
     public DbSet<PurchaseOrder> PurchaseOrders => Set<PurchaseOrder>();
@@ -47,6 +48,8 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<Invoice> Invoices => Set<Invoice>();
     public DbSet<InvoiceItem> InvoiceItems => Set<InvoiceItem>();
     public DbSet<InvoiceItemBatchAllocation> InvoiceItemBatchAllocations => Set<InvoiceItemBatchAllocation>();
+    public DbSet<InvoiceSetComponent> InvoiceSetComponents => Set<InvoiceSetComponent>();
+    public DbSet<InvoiceSetComponentBatchAllocation> InvoiceSetComponentBatchAllocations => Set<InvoiceSetComponentBatchAllocation>();
     public DbSet<CustomerLedgerEntry> CustomerLedgerEntries => Set<CustomerLedgerEntry>();
     public DbSet<CustomerPayment> CustomerPayments => Set<CustomerPayment>();
     public DbSet<PaymentAllocation> PaymentAllocations => Set<PaymentAllocation>();
@@ -66,6 +69,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
         builder.ConfigurePhase6();
         builder.ConfigurePhase7();
         builder.ConfigurePhase8();
+        builder.ConfigurePhase9();
 
         builder.Entity<ProductCategory>(e =>
         {

@@ -1,112 +1,358 @@
 @model ProductFormViewModel
 @{
     var isEdit = Model.Product.Id > 0;
+    var isSet = Model.Product.ProductKind == ProductKind.CompleteSet;
 }
 
 <form asp-action="@(isEdit ? "Edit" : "Create")" method="post" enctype="multipart/form-data" class="card-panel">
     @if (isEdit)
     {
         <input type="hidden" asp-for="Product.Id" />
+        <input type="hidden" asp-for="Product.IsActive" />
     }
     <div asp-validation-summary="ModelOnly" class="validation-summary-errors"></div>
     <p class="form-legend"><span class="req" aria-hidden="true">*</span> Required field</p>
 
-    <div class="form-grid form-grid--3">
-        <div class="field">
-            <label asp-for="Product.Sku">SKU / Item Code @(isEdit ? Html.Raw("<span class=\"req\" aria-hidden=\"true\">*</span>") : null)</label>
-            <input asp-for="Product.Sku" class="input-app" placeholder="@(isEdit ? "" : "Leave blank to auto-generate")" aria-required="@(isEdit ? "true" : "false")" />
-            @if (!isEdit)
-            {
-                <span class="hint">Optional — blank generates a new SKU</span>
-            }
-            <span asp-validation-for="Product.Sku" class="field-error"></span>
+    <section class="form-section form-section--first">
+        <div class="form-section__head">
+            <h3 class="form-section__title">Product</h3>
+            <p class="form-section__text">Name and type come first. A single item is stocked on its own. A complete set is sold as one line and takes stock from its items.</p>
         </div>
-        <div class="field">
-            <label asp-for="Product.Barcode">Barcode</label>
-            <input asp-for="Product.Barcode" class="input-app" placeholder="Optional barcode / scan code" />
-            <span class="hint">Optional</span>
-            <span asp-validation-for="Product.Barcode" class="field-error"></span>
+        <div class="form-grid form-grid--3">
+            <div class="field form-grid--full">
+                <label asp-for="Product.Name" class="is-required">Product name <span class="req" aria-hidden="true">*</span></label>
+                <input asp-for="Product.Name" class="input-app" required aria-required="true" placeholder="e.g. Complete truck bumper set" />
+                <span asp-validation-for="Product.Name" class="field-error"></span>
+            </div>
+            <div class="field">
+                <label class="is-required">Product type <span class="req" aria-hidden="true">*</span></label>
+                <select asp-for="Product.ProductKind" class="select-app" id="product-kind">
+                    <option value="@((int)ProductKind.SingleItem)">Single item</option>
+                    <option value="@((int)ProductKind.CompleteSet)">Complete set</option>
+                </select>
+            </div>
+            <div class="field">
+                <label asp-for="Product.Sku">SKU @(isEdit ? Html.Raw("<span class=\"req\" aria-hidden=\"true\">*</span>") : null)</label>
+                <input asp-for="Product.Sku" class="input-app" placeholder="@(isEdit ? "" : "Leave blank to auto-generate")" aria-required="@(isEdit ? "true" : "false")" />
+                @if (!isEdit)
+                {
+                    <span class="hint">Optional. A blank SKU is generated on save.</span>
+                }
+                <span asp-validation-for="Product.Sku" class="field-error"></span>
+            </div>
+            <div class="field">
+                <label asp-for="Product.Barcode">Barcode</label>
+                <input asp-for="Product.Barcode" class="input-app" placeholder="Scan code, if you use one" />
+                <span class="hint">Optional</span>
+                <span asp-validation-for="Product.Barcode" class="field-error"></span>
+            </div>
         </div>
-        <div class="field form-grid--full">
-            <label asp-for="Product.Name" class="is-required">Product Name <span class="req" aria-hidden="true">*</span></label>
-            <input asp-for="Product.Name" class="input-app" required aria-required="true" />
-            <span asp-validation-for="Product.Name" class="field-error"></span>
-        </div>
-        <div class="field">
-            <label asp-for="Product.CategoryId">Category</label>
-            <select asp-for="Product.CategoryId" class="select-app" asp-items="@(new SelectList(Model.Categories, "Id", "Name"))">
-                <option value="">— Select —</option>
-            </select>
-            <span class="hint">Optional</span>
-        </div>
-        <div class="field">
-            <label asp-for="Product.UnitId">Unit</label>
-            <select asp-for="Product.UnitId" class="select-app" asp-items="@(new SelectList(Model.Units, "Id", "Name"))">
-                <option value="">— Select —</option>
-            </select>
-            <span class="hint">Optional</span>
-        </div>
-        <div class="field">
-            <label asp-for="Product.DefaultSupplierId">Default Supplier / Factory</label>
-            <select asp-for="Product.DefaultSupplierId" class="select-app" asp-items="@(new SelectList(Model.Suppliers, "Id", "Name"))">
-                <option value="">— Select —</option>
-            </select>
-            <span class="hint">Optional</span>
-        </div>
-        <div class="field">
-            <label asp-for="Product.Brand">Brand</label>
-            <input asp-for="Product.Brand" class="input-app" />
-        </div>
-        <div class="field">
-            <label asp-for="Product.VehicleBrand">Vehicle Brand</label>
-            <input asp-for="Product.VehicleBrand" class="input-app" />
-        </div>
-        <div class="field">
-            <label asp-for="Product.VehicleModel">Vehicle Model</label>
-            <input asp-for="Product.VehicleModel" class="input-app" />
-        </div>
-        <div class="field">
-            <label asp-for="Product.VariantYear">Variant / Year</label>
-            <input asp-for="Product.VariantYear" class="input-app" />
-        </div>
-        <div class="field">
-            <label asp-for="ImageFile">Product Image</label>
-            <input asp-for="ImageFile" type="file" class="input-app" accept=".jpg,.jpeg,.png,.webp,.gif" />
-            @if (!string.IsNullOrEmpty(Model.Product.ImagePath))
-            {
-                <span class="hint">Current: @Model.Product.ImagePath</span>
-                <input type="hidden" asp-for="Product.ImagePath" />
-            }
-        </div>
-    </div>
+    </section>
 
-    <h3 class="card-panel__title">Physical</h3>
-    <div class="form-grid form-grid--3">
-        <div class="field"><label asp-for="Product.UnitWeightKg">Unit Weight (Kg)</label><input asp-for="Product.UnitWeightKg" class="input-app" /></div>
-        <div class="field"><label asp-for="Product.CartonWeightKg">Carton Weight (Kg)</label><input asp-for="Product.CartonWeightKg" class="input-app" /></div>
-        <div class="field"><label asp-for="Product.PiecesPerCarton">Pieces / Carton</label><input asp-for="Product.PiecesPerCarton" class="input-app" /></div>
-        <div class="field"><label asp-for="Product.LengthCm">Length (cm)</label><input asp-for="Product.LengthCm" class="input-app" /></div>
-        <div class="field"><label asp-for="Product.WidthCm">Width (cm)</label><input asp-for="Product.WidthCm" class="input-app" /></div>
-        <div class="field"><label asp-for="Product.HeightCm">Height (cm)</label><input asp-for="Product.HeightCm" class="input-app" /></div>
-    </div>
+    <section id="set-editor" class="form-section" @(isSet ? null : "hidden")>
+        <div class="form-section__head">
+            <h3 class="form-section__title">Set items</h3>
+            <p class="form-section__text">Add each single item in this set and how many are required. The same item can still be sold on its own. A set cannot contain another set.</p>
+        </div>
+        <div class="table-toolbar">
+            <input class="input-app" id="component-search" placeholder="Search by SKU or name" autocomplete="off" />
+            <button type="button" class="btn-app btn-app--outline btn-app--sm" id="component-add">Add selected item</button>
+        </div>
+        <div id="component-results"></div>
+        <div class="table-wrap">
+            <table class="table-app" id="component-table">
+                <thead>
+                <tr><th>Item</th><th>Required quantity</th><th>Available stock</th><th></th></tr>
+                </thead>
+                <tbody>
+                @for (var i = 0; i < Model.Components.Count; i++)
+                {
+                    <tr data-component-row data-id="@Model.Components[i].ComponentProductId">
+                        <td>
+                            @Model.Components[i].Sku — @Model.Components[i].Name
+                            <input type="hidden" name="Components[@i].ComponentProductId" value="@Model.Components[i].ComponentProductId" />
+                            <input type="hidden" name="Components[@i].Sku" value="@Model.Components[i].Sku" />
+                            <input type="hidden" name="Components[@i].Name" value="@Model.Components[i].Name" />
+                            <input type="hidden" name="Components[@i].AvailableStock" value="@Model.Components[i].AvailableStock" />
+                        </td>
+                        <td><input class="input-app qty-input" name="Components[@i].RequiredQuantity" value="@Model.Components[i].RequiredQuantity" /></td>
+                        <td>@Model.Components[i].AvailableStock.ToString("N2")</td>
+                        <td><button type="button" class="btn-app btn-app--ghost btn-app--sm" data-remove-component>Remove</button></td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+        <p class="hint" id="component-empty" @(Model.Components.Count > 0 ? "hidden" : null)>No items yet. Search above and add at least one.</p>
+    </section>
 
-    <h3 class="card-panel__title">Pricing</h3>
-    <div class="form-grid form-grid--3">
-        @if (User.IsInRole(AppRoles.Owner) || User.IsInRole(AppRoles.Manager) || User.IsInRole(AppRoles.Accountant))
-        {
-            <div class="field"><label asp-for="Product.LatestRmbPrice">Latest RMB Price</label><input asp-for="Product.LatestRmbPrice" class="input-app" /><span class="hint">Optional — history preserved on change</span></div>
-            <div class="field"><label asp-for="Product.LatestLandedCost">Latest Landed Cost (PKR)</label><input asp-for="Product.LatestLandedCost" class="input-app" /><span class="hint">Optional — history preserved on change</span></div>
-            <div class="field"><label asp-for="PriceChangeReason">Price change reason</label><input asp-for="PriceChangeReason" class="input-app" /><span class="hint">Required only when sale prices change</span></div>
-        }
-        <div class="field"><label asp-for="Product.WholesalePrice">Wholesale Price</label><input asp-for="Product.WholesalePrice" class="input-app" /></div>
-        <div class="field"><label asp-for="Product.RetailPrice">Retail Price</label><input asp-for="Product.RetailPrice" class="input-app" /></div>
-        <div class="field"><label asp-for="Product.MinimumSalePrice">Minimum Sale Price</label><input asp-for="Product.MinimumSalePrice" class="input-app" /></div>
-        <div class="field"><label asp-for="Product.ReorderLevel">Reorder Level</label><input asp-for="Product.ReorderLevel" class="input-app" /></div>
-        <div class="field form-grid--full"><label asp-for="Product.Description">Details</label><textarea asp-for="Product.Description" class="textarea-app"></textarea></div>
-    </div>
+    <section class="form-section">
+        <div class="form-section__head">
+            <h3 class="form-section__title">Classification</h3>
+            <p class="form-section__text">Optional. Use these so the item is easy to find by vehicle or supplier.</p>
+        </div>
+        <div class="form-grid form-grid--3">
+            <div class="field">
+                <label asp-for="Product.CategoryId">Category</label>
+                <select asp-for="Product.CategoryId" class="select-app" asp-items="@(new SelectList(Model.Categories, "Id", "Name"))">
+                    <option value="">Select category</option>
+                </select>
+            </div>
+            <div class="field">
+                <label asp-for="Product.UnitId">Unit</label>
+                <select asp-for="Product.UnitId" class="select-app" asp-items="@(new SelectList(Model.Units, "Id", "Name"))">
+                    <option value="">Select unit</option>
+                </select>
+            </div>
+            <div class="field">
+                <label asp-for="Product.DefaultSupplierId">Default supplier</label>
+                <select asp-for="Product.DefaultSupplierId" class="select-app" asp-items="@(new SelectList(Model.Suppliers, "Id", "Name"))">
+                    <option value="">Select supplier</option>
+                </select>
+            </div>
+            <div class="field">
+                <label asp-for="Product.Brand">Brand</label>
+                <input asp-for="Product.Brand" class="input-app" />
+            </div>
+            <div class="field">
+                <label asp-for="Product.VehicleBrand">Vehicle brand</label>
+                <input asp-for="Product.VehicleBrand" class="input-app" />
+            </div>
+            <div class="field">
+                <label asp-for="Product.VehicleModel">Vehicle model</label>
+                <input asp-for="Product.VehicleModel" class="input-app" />
+            </div>
+            <div class="field">
+                <label asp-for="Product.VariantYear">Variant or year</label>
+                <input asp-for="Product.VariantYear" class="input-app" />
+            </div>
+            <div class="field">
+                <label asp-for="ImageFile">Product image</label>
+                <input asp-for="ImageFile" type="file" class="input-app" accept=".jpg,.jpeg,.png,.webp,.gif" />
+                @if (!string.IsNullOrEmpty(Model.Product.ImagePath))
+                {
+                    <span class="hint">Current image: @Model.Product.ImagePath</span>
+                    <input type="hidden" asp-for="Product.ImagePath" />
+                }
+                else
+                {
+                    <span class="hint">Optional. JPG, PNG, WEBP, or GIF under 2 MB.</span>
+                }
+            </div>
+        </div>
+    </section>
+
+    <section class="form-section">
+        <div class="form-section__head">
+            <h3 class="form-section__title">Prices</h3>
+            <p class="form-section__text" id="price-section-text">Wholesale is the default price when this item is added to a sale. All amounts are in PKR.</p>
+        </div>
+        <div class="form-grid form-grid--3">
+            <div class="field">
+                <label asp-for="Product.WholesalePrice" id="selling-price-label">Wholesale price</label>
+                <input asp-for="Product.WholesalePrice" class="input-app" />
+                <span class="hint" id="selling-price-hint">Default price on a sale.</span>
+            </div>
+            <div class="field">
+                <label asp-for="Product.RetailPrice">Retail price</label>
+                <input asp-for="Product.RetailPrice" class="input-app" />
+                <span class="hint">Optional reference price.</span>
+            </div>
+            <div class="field">
+                <label asp-for="Product.MinimumSalePrice">Minimum sale price</label>
+                <input asp-for="Product.MinimumSalePrice" class="input-app" />
+                <span class="hint">Leave 0 if there is no minimum.</span>
+            </div>
+        </div>
+    </section>
+
+    <section class="form-section" id="stock-section" @(isSet ? "hidden" : null)>
+        <div class="form-section__head">
+            <h3 class="form-section__title">Stock alert</h3>
+            <p class="form-section__text">Optional. The low-stock list uses this level. A complete set does not keep its own quantity.</p>
+        </div>
+        <div class="form-grid form-grid--3">
+            <div class="field">
+                <label asp-for="Product.ReorderLevel">Reorder level</label>
+                <input asp-for="Product.ReorderLevel" class="input-app" />
+            </div>
+        </div>
+    </section>
+
+    <section class="form-section" id="size-section">
+        <div class="form-section__head">
+            <h3 class="form-section__title">Size and weight</h3>
+            <p class="form-section__text">Optional. Used for cartons, shipping, and landed cost.</p>
+        </div>
+        <div class="form-grid form-grid--3">
+            <div class="field"><label asp-for="Product.UnitWeightKg">Unit weight (kg)</label><input asp-for="Product.UnitWeightKg" class="input-app" /></div>
+            <div class="field"><label asp-for="Product.CartonWeightKg">Carton weight (kg)</label><input asp-for="Product.CartonWeightKg" class="input-app" /></div>
+            <div class="field"><label asp-for="Product.PiecesPerCarton">Pieces per carton</label><input asp-for="Product.PiecesPerCarton" class="input-app" /></div>
+            <div class="field"><label asp-for="Product.LengthCm">Length (cm)</label><input asp-for="Product.LengthCm" class="input-app" /></div>
+            <div class="field"><label asp-for="Product.WidthCm">Width (cm)</label><input asp-for="Product.WidthCm" class="input-app" /></div>
+            <div class="field"><label asp-for="Product.HeightCm">Height (cm)</label><input asp-for="Product.HeightCm" class="input-app" /></div>
+        </div>
+    </section>
+
+    @if (User.IsInRole(AppRoles.Owner) || User.IsInRole(AppRoles.Manager) || User.IsInRole(AppRoles.Accountant))
+    {
+        <section class="form-section">
+            <div class="form-section__head">
+                <h3 class="form-section__title">Cost</h3>
+                <p class="form-section__text">Optional. A reason is required only when wholesale, retail, or the minimum price changes.</p>
+            </div>
+            <div class="form-grid form-grid--3">
+                <div class="field">
+                    <label asp-for="Product.LatestRmbPrice">Latest RMB price</label>
+                    <input asp-for="Product.LatestRmbPrice" class="input-app" />
+                    <span class="hint">History is kept when this changes.</span>
+                </div>
+                <div class="field">
+                    <label asp-for="Product.LatestLandedCost">Latest landed cost (PKR)</label>
+                    <input asp-for="Product.LatestLandedCost" class="input-app" />
+                    <span class="hint">History is kept when this changes.</span>
+                </div>
+                <div class="field">
+                    <label asp-for="PriceChangeReason">Price change reason</label>
+                    <input asp-for="PriceChangeReason" class="input-app" placeholder="Required only if a sale price changed" />
+                </div>
+            </div>
+        </section>
+    }
+
+    <section class="form-section">
+        <div class="form-section__head">
+            <h3 class="form-section__title">Notes</h3>
+        </div>
+        <div class="field">
+            <label asp-for="Product.Description">Description</label>
+            <textarea asp-for="Product.Description" class="textarea-app" placeholder="Optional notes for the shop"></textarea>
+        </div>
+    </section>
 
     <div class="form-actions">
-        <button type="submit" class="btn-app btn-app--primary">@(isEdit ? "Save Changes" : "Create Product")</button>
+        <button type="submit" class="btn-app btn-app--primary" id="product-save">@(isEdit ? "Save changes" : "Create product")</button>
         <a class="btn-app btn-app--outline" asp-action="Index">Cancel</a>
     </div>
 </form>
+
+@section Scripts {
+<script>
+(() => {
+  const kind = document.getElementById('product-kind');
+  const editor = document.getElementById('set-editor');
+  const stock = document.getElementById('stock-section');
+  const save = document.getElementById('product-save');
+  const priceLabel = document.getElementById('selling-price-label');
+  const priceHint = document.getElementById('selling-price-hint');
+  const priceText = document.getElementById('price-section-text');
+  const isEdit = @(isEdit ? "true" : "false");
+  const search = document.getElementById('component-search');
+  const results = document.getElementById('component-results');
+  const tableBody = document.querySelector('#component-table tbody');
+  const emptyNote = document.getElementById('component-empty');
+
+  function syncEmpty() {
+    if (!emptyNote || !tableBody) return;
+    emptyNote.hidden = tableBody.querySelectorAll('[data-component-row]').length > 0;
+  }
+
+  function syncKind() {
+    const isSet = kind && kind.value === '1';
+    if (editor) editor.hidden = !isSet;
+    if (stock) stock.hidden = !!isSet;
+    if (priceLabel) priceLabel.textContent = isSet ? 'Set price' : 'Wholesale price';
+    if (priceHint) priceHint.textContent = isSet
+      ? 'Price charged for one complete set. You can still change it on the sale.'
+      : 'Default price on a sale.';
+    if (priceText) priceText.textContent = isSet
+      ? 'Set price is what the customer pays for one complete set. Component prices are not added on top.'
+      : 'Wholesale is the default price when this item is added to a sale. All amounts are in PKR.';
+    if (save) save.textContent = isEdit ? 'Save changes' : (isSet ? 'Create set' : 'Create product');
+  }
+
+  function reindex() {
+    tableBody.querySelectorAll('[data-component-row]').forEach((row, i) => {
+      row.querySelectorAll('[name]').forEach(input => {
+        input.name = input.name.replace(/Components\[\d+\]/, 'Components[' + i + ']');
+      });
+    });
+    syncEmpty();
+  }
+
+  function hasId(id) {
+    return !!tableBody.querySelector('[data-component-row][data-id="' + id + '"]');
+  }
+
+  function text(value) {
+    return String(value ?? '').replace(/[&<>"']/g, ch => ({
+      '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    }[ch]));
+  }
+
+  function addRow(item) {
+    if (hasId(item.id)) return;
+    const i = tableBody.querySelectorAll('[data-component-row]').length;
+    const tr = document.createElement('tr');
+    tr.dataset.componentRow = '';
+    tr.dataset.id = item.id;
+    tr.innerHTML =
+      '<td>' + text(item.sku) + ' — ' + text(item.name) +
+      '<input type="hidden" name="Components[' + i + '].ComponentProductId" value="' + text(item.id) + '" />' +
+      '<input type="hidden" name="Components[' + i + '].Sku" value="' + text(item.sku) + '" />' +
+      '<input type="hidden" name="Components[' + i + '].Name" value="' + text(item.name) + '" />' +
+      '<input type="hidden" name="Components[' + i + '].AvailableStock" value="' + text(item.available) + '" />' +
+      '</td>' +
+      '<td><input class="input-app qty-input" name="Components[' + i + '].RequiredQuantity" value="1" /></td>' +
+      '<td>' + Number(item.available).toFixed(2) + '</td>' +
+      '<td><button type="button" class="btn-app btn-app--ghost btn-app--sm" data-remove-component>Remove</button></td>';
+    tableBody.appendChild(tr);
+    syncEmpty();
+  }
+
+  let matches = [];
+  async function runSearch() {
+    const q = search.value.trim();
+    if (q.length < 1) {
+      matches = [];
+      results.innerHTML = '';
+      return;
+    }
+    const res = await fetch('/Products/SearchComponents?q=' + encodeURIComponent(q));
+    if (!res.ok) return;
+    matches = await res.json();
+    results.innerHTML = matches.length === 0
+      ? '<p class="hint">No matching single items.</p>'
+      : '<div class="component-picks">' + matches.map((m, idx) =>
+        '<button type="button" class="btn-app btn-app--outline btn-app--sm" data-pick="' + idx + '">' +
+        text(m.sku) + ' — ' + text(m.name) + ' · ' + Number(m.available).toFixed(0) + ' in stock</button>').join('') + '</div>';
+  }
+
+  kind?.addEventListener('change', syncKind);
+  search?.addEventListener('input', () => { runSearch(); });
+  search?.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      if (matches[0]) addRow(matches[0]);
+    }
+  });
+  document.getElementById('component-add')?.addEventListener('click', () => {
+    if (matches[0]) addRow(matches[0]);
+  });
+  results?.addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-pick]');
+    if (!btn) return;
+    const item = matches[Number(btn.dataset.pick)];
+    if (item) addRow(item);
+  });
+  tableBody?.addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-remove-component]');
+    if (!btn) return;
+    btn.closest('[data-component-row]')?.remove();
+    reindex();
+  });
+  syncKind();
+  syncEmpty();
+})();
+</script>
+}

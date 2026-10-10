@@ -3,6 +3,7 @@ using UD_Autos.Data;
 using UD_Autos.Models.Common;
 using UD_Autos.Models.Finance;
 using UD_Autos.Models.Inventory;
+using UD_Autos.Models.Products;
 using UD_Autos.Models.Sales;
 
 namespace UD_Autos.Services;
@@ -52,7 +53,7 @@ public interface ISalesService
     Task<(bool Ok, string? Error, Invoice? Invoice)> CreateSaleAsync(CreateSaleRequest request, string? userId, bool canViewCosts, CancellationToken cancellationToken = default);
     Task<(bool Ok, string? Error)> VoidInvoiceAsync(int invoiceId, string reason, string? userId, CancellationToken cancellationToken = default);
     Task<Invoice?> GetInvoiceAsync(int id, CancellationToken cancellationToken = default);
-    Task<PagedResult<Invoice>> SearchInvoicesAsync(string? search, int? customerId, DateTime? from, DateTime? to, int page, int pageSize, CancellationToken cancellationToken = default);
+    Task<PagedResult<Invoice>> SearchInvoicesAsync(string? search, int? customerId, DateTime? from, DateTime? to, int page, int pageSize, CancellationToken cancellationToken = default, bool includeItems = false);
     Task<DailySalesSummary> GetDailySalesAsync(DateTime from, DateTime to, CancellationToken cancellationToken = default);
 }
 
@@ -115,17 +116,15 @@ public class SalesService : ISalesService
         decimal subtotal = 0;
         decimal totalCogs = 0;
 
+        var prepared = new List<PreparedSaleLine>();
         foreach (var line in request.Items)
         {
             if (line.Quantity <= 0) return (false, "Quantity must be greater than zero.", null);
             if (line.UnitPrice < 0 || line.LineDiscount < 0) return (false, "Price/discount cannot be negative.", null);
 
-            var product = await _db.Products.FirstOrDefaultAsync(p => p.Id == line.ProductId && p.IsActive, cancellationToken);
+            var product = await _db.Products.AsNoTracking()
+                .FirstOrDefaultAsync(p => p.Id == line.ProductId && p.IsActive, cancellationToken);
             if (product is null) return (false, $"Product {line.ProductId} not found.", null);
-
-            var available = product.CurrentStock - product.ReservedQuantity;
-            if (line.Quantity > available)
-                return (false, $"Insufficient stock for {product.Sku}. Available {available:N2}.", null);
 
             if (!request.AllowBelowMinimum && product.MinimumSalePrice > 0 && line.UnitPrice < product.MinimumSalePrice)
                 return (false, $"{product.Sku} is below minimum sale price Rs. {product.MinimumSalePrice:N2}.", null);
@@ -133,28 +132,147 @@ public class SalesService : ISalesService
             var lineTotal = Math.Round((line.Quantity * line.UnitPrice) - line.LineDiscount, 2);
             if (lineTotal < 0) return (false, "Line total cannot be negative.", null);
 
-            var (okConsume, consumeError, allocations, lineCogs) = await ConsumeStockFifoAsync(
-                product, line.Quantity, invoice.InvoiceNumber, userId, cancellationToken);
-            if (!okConsume) return (false, consumeError, null);
-
-            var item = new InvoiceItem
+            var preparedLine = new PreparedSaleLine
             {
                 ProductId = product.Id,
+                ProductName = product.Name,
+                Sku = product.Sku ?? product.Id.ToString(),
+                IsSet = product.ProductKind == ProductKind.CompleteSet,
                 Quantity = line.Quantity,
                 UnitPrice = line.UnitPrice,
                 LineDiscount = line.LineDiscount,
                 LineTotal = lineTotal,
-                UnitCogsPkr = line.Quantity > 0 ? Math.Round(lineCogs / line.Quantity, 4) : 0,
-                LineCogsPkr = lineCogs,
-                Notes = line.Notes,
-                CreatedAt = DateTime.UtcNow,
-                CreatedBy = userId,
-                BatchAllocations = allocations
+                Notes = line.Notes
             };
 
-            invoice.Items.Add(item);
-            subtotal += lineTotal;
-            totalCogs += lineCogs;
+            if (preparedLine.IsSet)
+            {
+                var components = await _db.ProductSetComponents.AsNoTracking()
+                    .Where(c => c.SetProductId == product.Id && c.IsActive)
+                    .Select(c => new
+                    {
+                        c.ComponentProductId,
+                        c.RequiredQuantity,
+                        c.ComponentProduct.Name,
+                        c.ComponentProduct.Sku,
+                        c.ComponentProduct.IsActive,
+                        c.ComponentProduct.ProductKind
+                    })
+                    .ToListAsync(cancellationToken);
+
+                if (components.Count == 0)
+                    return (false, $"{product.Name} has no items. Edit the set before selling.", null);
+
+                foreach (var component in components)
+                {
+                    if (!component.IsActive || component.ProductKind != ProductKind.SingleItem)
+                        return (false, $"{component.Name} cannot be used in {product.Name}. Edit the set before selling.", null);
+                    if (component.RequiredQuantity <= 0)
+                        return (false, $"{product.Name} has an invalid item quantity.", null);
+
+                    preparedLine.Components.Add(new PreparedComponent
+                    {
+                        ProductId = component.ComponentProductId,
+                        Name = component.Name,
+                        Sku = component.Sku ?? component.ComponentProductId.ToString(),
+                        PerSet = component.RequiredQuantity
+                    });
+                }
+            }
+
+            prepared.Add(preparedLine);
+        }
+
+        var demand = ProductSetPlanner.AggregateDemand(prepared.Select(p => new SaleDemandLine
+        {
+            ProductId = p.ProductId,
+            IsSet = p.IsSet,
+            Quantity = p.Quantity,
+            Components = p.Components.Select(c => (c.ProductId, c.PerSet)).ToList()
+        }));
+
+        var lockIds = demand.Keys.Concat(prepared.Where(p => p.IsSet).Select(p => p.ProductId)).Distinct().ToList();
+        await LockProductRowsAsync(lockIds, cancellationToken);
+
+        var stockProducts = await _db.Products
+            .Where(p => demand.Keys.Contains(p.Id))
+            .ToListAsync(cancellationToken);
+        var stockById = stockProducts.ToDictionary(p => p.Id);
+
+        foreach (var (productId, required) in demand)
+        {
+            if (!stockById.TryGetValue(productId, out var stockProduct) || !stockProduct.IsActive)
+                return (false, $"Product {productId} not found.", null);
+
+            var available = stockProduct.CurrentStock - stockProduct.ReservedQuantity;
+            if (required > available)
+            {
+                var setNames = prepared
+                    .Where(p => p.IsSet && p.Components.Any(c => c.ProductId == productId))
+                    .Select(p => p.ProductName)
+                    .Distinct()
+                    .ToList();
+                var forSet = setNames.Count > 0 ? $" for {string.Join(", ", setNames)}" : "";
+                return (false, $"Not enough stock: {stockProduct.Name}. Available {available:N2}, required {required:N2}{forSet}.", null);
+            }
+        }
+
+        foreach (var line in prepared)
+        {
+            if (!line.IsSet)
+            {
+                var product = stockById[line.ProductId];
+                var (okConsume, consumeError, takes, lineCogs) = await ConsumeStockFifoAsync(
+                    product, line.Quantity, invoice.InvoiceNumber, userId,
+                    StockMovementType.Sale, "Sale", cancellationToken);
+                if (!okConsume) return (false, consumeError, null);
+
+                invoice.Items.Add(BuildInvoiceItem(line, lineCogs, takes, userId));
+                subtotal += line.LineTotal;
+                totalCogs += lineCogs;
+                continue;
+            }
+
+            decimal setCogs = 0;
+            var setItem = BuildInvoiceItem(line, 0, Array.Empty<FifoTake>(), userId);
+            foreach (var component in line.Components)
+            {
+                var need = line.Quantity * component.PerSet;
+                var componentProduct = stockById[component.ProductId];
+                var (okConsume, consumeError, takes, componentCogs) = await ConsumeStockFifoAsync(
+                    componentProduct, need, invoice.InvoiceNumber, userId,
+                    StockMovementType.SetConsumption, $"Complete set: {line.ProductName}", cancellationToken);
+                if (!okConsume) return (false, consumeError, null);
+
+                setCogs += componentCogs;
+                setItem.SetComponents.Add(new InvoiceSetComponent
+                {
+                    ComponentProductId = component.ProductId,
+                    RequiredQuantityPerSet = component.PerSet,
+                    QuantityConsumed = need,
+                    ReturnedQuantity = 0,
+                    UnitCogsPkr = need > 0 ? Math.Round(componentCogs / need, 4) : 0,
+                    LineCogsPkr = componentCogs,
+                    CreatedAt = DateTime.UtcNow,
+                    CreatedBy = userId,
+                    BatchAllocations = takes.Select(t => new InvoiceSetComponentBatchAllocation
+                    {
+                        InventoryBatchId = t.InventoryBatchId,
+                        Quantity = t.Quantity,
+                        ReturnedQuantity = 0,
+                        UnitCostPkr = t.UnitCostPkr,
+                        LineCostPkr = t.LineCostPkr,
+                        CreatedAt = DateTime.UtcNow,
+                        CreatedBy = userId
+                    }).ToList()
+                });
+            }
+
+            setItem.UnitCogsPkr = line.Quantity > 0 ? Math.Round(setCogs / line.Quantity, 4) : 0;
+            setItem.LineCogsPkr = Math.Round(setCogs, 2);
+            invoice.Items.Add(setItem);
+            subtotal += line.LineTotal;
+            totalCogs += setItem.LineCogsPkr;
         }
 
         invoice.Subtotal = Math.Round(subtotal, 2);
@@ -267,6 +385,8 @@ public class SalesService : ISalesService
             .Include(i => i.Customer)
             .Include(i => i.Items).ThenInclude(ii => ii.BatchAllocations)
             .Include(i => i.Items).ThenInclude(ii => ii.Product)
+            .Include(i => i.Items).ThenInclude(ii => ii.SetComponents).ThenInclude(c => c.BatchAllocations)
+            .Include(i => i.Items).ThenInclude(ii => ii.SetComponents).ThenInclude(c => c.ComponentProduct)
             .Include(i => i.Returns)
             .FirstOrDefaultAsync(i => i.Id == invoiceId, cancellationToken);
 
@@ -277,6 +397,15 @@ public class SalesService : ISalesService
 
         foreach (var item in invoice.Items)
         {
+            if (item.SetComponents.Count > 0)
+            {
+                var restored = await RestoreSetSnapshotAsync(
+                    item, item.Quantity - item.ReturnedQuantity, invoice.InvoiceNumber, $"Void invoice: {reason}",
+                    StockMovementType.Adjustment, nameof(Invoice), invoice.Id.ToString(), userId, cancellationToken);
+                if (!restored.Ok) return (false, restored.Error);
+                continue;
+            }
+
             foreach (var alloc in item.BatchAllocations)
             {
                 var batch = await _db.InventoryBatches.FirstOrDefaultAsync(b => b.Id == alloc.InventoryBatchId, cancellationToken);
@@ -368,15 +497,18 @@ public class SalesService : ISalesService
             .Include(i => i.Customer)
             .Include(i => i.Items).ThenInclude(x => x.Product)
             .Include(i => i.Items).ThenInclude(x => x.BatchAllocations)
+            .Include(i => i.Items).ThenInclude(x => x.SetComponents).ThenInclude(c => c.ComponentProduct)
             .Include(i => i.Allocations)
             .FirstOrDefaultAsync(i => i.Id == id, cancellationToken);
 
     public async Task<PagedResult<Invoice>> SearchInvoicesAsync(
-        string? search, int? customerId, DateTime? from, DateTime? to, int page, int pageSize, CancellationToken cancellationToken = default)
+        string? search, int? customerId, DateTime? from, DateTime? to, int page, int pageSize, CancellationToken cancellationToken = default, bool includeItems = false)
     {
         page = Math.Max(1, page);
         pageSize = Math.Clamp(pageSize, 5, 100);
         var query = _db.Invoices.AsNoTracking().Include(i => i.Customer).Where(i => !i.IsVoided);
+        if (includeItems)
+            query = query.Include(i => i.Items).ThenInclude(x => x.Product);
         if (!string.IsNullOrWhiteSpace(search))
         {
             var term = search.Trim();
@@ -436,8 +568,9 @@ public class SalesService : ISalesService
         };
     }
 
-    private async Task<(bool Ok, string? Error, List<InvoiceItemBatchAllocation> Allocations, decimal LineCogs)> ConsumeStockFifoAsync(
-        Models.Products.Product product, decimal quantity, string invoiceNumber, string? userId, CancellationToken cancellationToken)
+    private async Task<(bool Ok, string? Error, List<FifoTake> Takes, decimal LineCogs)> ConsumeStockFifoAsync(
+        Product product, decimal quantity, string invoiceNumber, string? userId,
+        StockMovementType movementType, string reason, CancellationToken cancellationToken)
     {
         var batches = await _db.InventoryBatches
             .Where(b => b.ProductId == product.Id && b.RemainingQuantity > 0)
@@ -445,7 +578,7 @@ public class SalesService : ISalesService
             .ToListAsync(cancellationToken);
 
         var remaining = quantity;
-        var allocations = new List<InvoiceItemBatchAllocation>();
+        var takes = new List<FifoTake>();
         decimal lineCogs = 0;
 
         foreach (var batch in batches)
@@ -460,23 +593,20 @@ public class SalesService : ISalesService
 
             var cost = Math.Round(take * batch.LandedUnitCostPkr, 2);
             lineCogs += cost;
-            allocations.Add(new InvoiceItemBatchAllocation
+            takes.Add(new FifoTake
             {
                 InventoryBatchId = batch.Id,
                 Quantity = take,
                 UnitCostPkr = batch.LandedUnitCostPkr,
-                LineCostPkr = cost,
-                CreatedAt = DateTime.UtcNow,
-                CreatedBy = userId
+                LineCostPkr = cost
             });
             remaining -= take;
         }
 
         if (remaining > 0)
         {
-            // Allow selling without batches if stock exists from opening/manual (use average/latest cost).
             if (product.CurrentStock < quantity)
-                return (false, $"Insufficient batch/stock for {product.Sku}.", allocations, 0);
+                return (false, $"Insufficient batch/stock for {product.Sku}.", takes, 0);
 
             var unitCost = product.AverageCost ?? product.LatestLandedCost ?? 0;
             lineCogs += Math.Round(remaining * unitCost, 2);
@@ -484,7 +614,7 @@ public class SalesService : ISalesService
         }
 
         product.CurrentStock -= quantity;
-        if (product.CurrentStock < 0) return (false, $"Stock would go negative for {product.Sku}.", allocations, 0);
+        if (product.CurrentStock < 0) return (false, $"Stock would go negative for {product.Sku}.", takes, 0);
         product.StockValue = Math.Round(product.CurrentStock * (product.AverageCost ?? product.LatestLandedCost ?? 0), 2);
         product.UpdatedAt = DateTime.UtcNow;
         product.UpdatedBy = userId;
@@ -492,20 +622,116 @@ public class SalesService : ISalesService
         _db.StockMovements.Add(new StockMovement
         {
             ProductId = product.Id,
-            InventoryBatchId = allocations.FirstOrDefault()?.InventoryBatchId,
-            MovementType = StockMovementType.Sale,
+            InventoryBatchId = takes.FirstOrDefault()?.InventoryBatchId,
+            MovementType = movementType,
             Quantity = -quantity,
             UnitCostPkr = quantity > 0 ? Math.Round(lineCogs / quantity, 4) : 0,
             QuantityAfter = product.CurrentStock,
             ReferenceType = nameof(Invoice),
             ReferenceNumber = invoiceNumber,
-            Reason = "Sale",
+            Reason = reason,
             OccurredAt = DateTime.UtcNow,
             CreatedAt = DateTime.UtcNow,
             CreatedBy = userId
         });
 
-        return (true, null, allocations, Math.Round(lineCogs, 2));
+        return (true, null, takes, Math.Round(lineCogs, 2));
+    }
+
+    private static InvoiceItem BuildInvoiceItem(PreparedSaleLine line, decimal lineCogs, IReadOnlyList<FifoTake> takes, string? userId)
+        => new()
+        {
+            ProductId = line.ProductId,
+            Quantity = line.Quantity,
+            UnitPrice = line.UnitPrice,
+            LineDiscount = line.LineDiscount,
+            LineTotal = line.LineTotal,
+            UnitCogsPkr = line.Quantity > 0 ? Math.Round(lineCogs / line.Quantity, 4) : 0,
+            LineCogsPkr = lineCogs,
+            Notes = line.Notes,
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = userId,
+            BatchAllocations = takes.Select(t => new InvoiceItemBatchAllocation
+            {
+                InventoryBatchId = t.InventoryBatchId,
+                Quantity = t.Quantity,
+                UnitCostPkr = t.UnitCostPkr,
+                LineCostPkr = t.LineCostPkr,
+                CreatedAt = DateTime.UtcNow,
+                CreatedBy = userId
+            }).ToList()
+        };
+
+    private async Task LockProductRowsAsync(IReadOnlyCollection<int> productIds, CancellationToken cancellationToken)
+    {
+        if (productIds.Count == 0) return;
+        var provider = _db.Database.ProviderName ?? string.Empty;
+        if (!provider.Contains("SqlServer", StringComparison.OrdinalIgnoreCase))
+            return;
+
+        var sql = ProductSetPlanner.BuildProductLockSql(productIds);
+        await _db.Database.ExecuteSqlRawAsync(sql, cancellationToken);
+    }
+
+    private async Task<(bool Ok, string? Error)> RestoreSetSnapshotAsync(
+        InvoiceItem item, decimal setQuantity, string referenceNumber, string reason,
+        StockMovementType movementType, string referenceType, string? referenceId, string? userId,
+        CancellationToken cancellationToken)
+    {
+        if (setQuantity <= 0) return (true, null);
+
+        foreach (var component in item.SetComponents)
+        {
+            var plan = ProductSetPlanner.PlanComponentRestore(
+                setQuantity,
+                component.RequiredQuantityPerSet,
+                component.QuantityConsumed,
+                component.ReturnedQuantity,
+                component.BatchAllocations.Select(a => (a.InventoryBatchId, a.Quantity, a.ReturnedQuantity)));
+            if (!plan.Ok) return (false, plan.Error);
+
+            foreach (var slice in plan.Slices)
+            {
+                var batch = await _db.InventoryBatches.FirstOrDefaultAsync(b => b.Id == slice.BatchId, cancellationToken);
+                if (batch is null) continue;
+                batch.RemainingQuantity += slice.Quantity;
+                batch.UpdatedAt = DateTime.UtcNow;
+                batch.UpdatedBy = userId;
+
+                var allocation = component.BatchAllocations.First(a => a.InventoryBatchId == slice.BatchId);
+                allocation.ReturnedQuantity += slice.Quantity;
+                allocation.UpdatedAt = DateTime.UtcNow;
+                allocation.UpdatedBy = userId;
+            }
+
+            var product = component.ComponentProduct;
+            product.CurrentStock += plan.Quantity;
+            product.StockValue = Math.Round(product.CurrentStock * (product.AverageCost ?? product.LatestLandedCost ?? component.UnitCogsPkr), 2);
+            product.UpdatedAt = DateTime.UtcNow;
+            product.UpdatedBy = userId;
+            component.ReturnedQuantity += plan.Quantity;
+            component.UpdatedAt = DateTime.UtcNow;
+            component.UpdatedBy = userId;
+
+            _db.StockMovements.Add(new StockMovement
+            {
+                ProductId = product.Id,
+                InventoryBatchId = plan.Slices.FirstOrDefault()?.BatchId,
+                MovementType = movementType,
+                Quantity = plan.Quantity,
+                UnitCostPkr = component.UnitCogsPkr,
+                QuantityAfter = product.CurrentStock,
+                ReferenceType = referenceType,
+                ReferenceId = referenceId,
+                ReferenceNumber = referenceNumber,
+                Reason = reason,
+                OccurredAt = DateTime.UtcNow,
+                CreatedAt = DateTime.UtcNow,
+                CreatedBy = userId
+            });
+        }
+
+        return (true, null);
     }
 
     private async Task AddLedgerAsync(
@@ -535,5 +761,35 @@ public class SalesService : ISalesService
             CreatedAt = DateTime.UtcNow,
             CreatedBy = userId
         });
+    }
+
+    private sealed class FifoTake
+    {
+        public int InventoryBatchId { get; set; }
+        public decimal Quantity { get; set; }
+        public decimal UnitCostPkr { get; set; }
+        public decimal LineCostPkr { get; set; }
+    }
+
+    private sealed class PreparedComponent
+    {
+        public int ProductId { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public string Sku { get; set; } = string.Empty;
+        public decimal PerSet { get; set; }
+    }
+
+    private sealed class PreparedSaleLine
+    {
+        public int ProductId { get; set; }
+        public string ProductName { get; set; } = string.Empty;
+        public string Sku { get; set; } = string.Empty;
+        public bool IsSet { get; set; }
+        public decimal Quantity { get; set; }
+        public decimal UnitPrice { get; set; }
+        public decimal LineDiscount { get; set; }
+        public decimal LineTotal { get; set; }
+        public string? Notes { get; set; }
+        public List<PreparedComponent> Components { get; set; } = new();
     }
 }

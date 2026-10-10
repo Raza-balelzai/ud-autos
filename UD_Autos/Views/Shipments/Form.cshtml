@@ -12,6 +12,11 @@
     <div asp-validation-summary="ModelOnly" class="validation-summary-errors"></div>
     <p class="form-legend"><span class="req" aria-hidden="true">*</span> Required field</p>
 
+    <section class="form-section form-section--first">
+        <div class="form-section__head">
+            <h3 class="form-section__title">Shipment</h3>
+            <p class="form-section__text">Shipping agent and status are required. Dates can be filled in as the shipment moves.</p>
+        </div>
     <div class="form-grid form-grid--3">
         @if (!isEdit)
         {
@@ -22,7 +27,7 @@
             </div>
         }
         <div class="field">
-            <label asp-for="Shipment.ShippingAgent" class="is-required">Shipping Agent <span class="req" aria-hidden="true">*</span></label>
+            <label asp-for="Shipment.ShippingAgent" class="is-required">Shipping agent <span class="req" aria-hidden="true">*</span></label>
             <input asp-for="Shipment.ShippingAgent" class="input-app" required aria-required="true" />
         </div>
         <div class="field">
@@ -30,15 +35,15 @@
             <select asp-for="Shipment.Status" class="select-app" asp-items="Html.GetEnumSelectList<ShipmentStatus>()"></select>
         </div>
         <div class="field">
-            <label asp-for="Shipment.ChinaWarehouseReceivedDate">China WH Received</label>
+            <label asp-for="Shipment.ChinaWarehouseReceivedDate">China warehouse received</label>
             <input asp-for="Shipment.ChinaWarehouseReceivedDate" type="date" class="input-app" />
         </div>
         <div class="field">
-            <label asp-for="Shipment.ChinaDepartureDate">China Departure</label>
+            <label asp-for="Shipment.ChinaDepartureDate">China departure</label>
             <input asp-for="Shipment.ChinaDepartureDate" type="date" class="input-app" />
         </div>
         <div class="field">
-            <label asp-for="Shipment.KarachiArrivalDate">Karachi Arrival</label>
+            <label asp-for="Shipment.KarachiArrivalDate">Karachi arrival</label>
             <input asp-for="Shipment.KarachiArrivalDate" type="date" class="input-app" />
         </div>
         <div class="field form-grid--full">
@@ -46,27 +51,34 @@
             <textarea asp-for="Shipment.Notes" class="textarea-app"></textarea>
         </div>
     </div>
+    </section>
 
-    <h3 class="card-panel__title">Shipment items (by ProductId/SKU)</h3>
+    <section class="form-section">
+        <div class="form-section__head">
+            <h3 class="form-section__title">Shipment items</h3>
+            <p class="form-section__text">Each line is a product on this shipment. Purchase order and supplier are optional.</p>
+        </div>
+    <div class="line-head" aria-hidden="true"><span>Product</span><span>Purchase order</span><span>Supplier</span><span>Expected quantity</span><span></span></div>
     <div class="line-items-editor" id="shp-lines">
         @for (var i = 0; i < Model.Items.Count; i++)
         {
             <div class="line-row">
                 <select class="select-app" name="Items[@i].ProductId" asp-items="@(new SelectList(Model.Products.Select(p => new { p.Id, Label = p.Sku + " — " + p.Name }), "Id", "Label", Model.Items[i].ProductId))">
-                    <option value="">Product</option>
+                    <option value="">Select product</option>
                 </select>
                 <select class="select-app" name="Items[@i].PurchaseOrderId" asp-items="@(new SelectList(Model.PurchaseOrders, "Id", "PoNumber", Model.Items[i].PurchaseOrderId))">
-                    <option value="">PO (optional)</option>
+                    <option value="">Purchase order (optional)</option>
                 </select>
                 <select class="select-app" name="Items[@i].SupplierId" asp-items="@(new SelectList(Model.Suppliers, "Id", "Name", Model.Items[i].SupplierId))">
                     <option value="">Supplier</option>
                 </select>
-                <input class="input-app" name="Items[@i].ExpectedQuantity" value="@Model.Items[i].ExpectedQuantity" placeholder="Expected qty" />
+                <input class="input-app" name="Items[@i].ExpectedQuantity" value="@Model.Items[i].ExpectedQuantity" placeholder="Expected quantity" aria-label="Expected quantity" />
                 <button type="button" class="btn-app btn-app--ghost btn-app--sm" data-remove-line>✕</button>
             </div>
         }
     </div>
-    <button type="button" class="btn-app btn-app--outline btn-app--sm" id="add-shp-line">+ Add item</button>
+    <button type="button" class="btn-app btn-app--outline btn-app--sm" id="add-shp-line">Add item</button>
+    </section>
 
     <div class="form-actions">
         <button type="submit" class="btn-app btn-app--primary">@(isEdit ? "Save Shipment" : "Create Shipment")</button>
@@ -77,14 +89,14 @@
 <template id="shp-line-template">
     <div class="line-row">
         <select class="select-app" name="Items[__i__].ProductId">
-            <option value="">Product</option>
+            <option value="">Select product</option>
             @foreach (var p in Model.Products)
             {
                 <option value="@p.Id">@p.Sku — @p.Name</option>
             }
         </select>
         <select class="select-app" name="Items[__i__].PurchaseOrderId">
-            <option value="">PO (optional)</option>
+            <option value="">Purchase order (optional)</option>
             @foreach (var po in Model.PurchaseOrders)
             {
                 <option value="@po.Id">@po.PoNumber</option>

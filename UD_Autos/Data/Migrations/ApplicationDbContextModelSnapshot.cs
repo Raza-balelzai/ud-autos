@@ -978,6 +978,11 @@ namespace UD_Autos.Data.Migrations
                     b.Property<decimal?>("PreviousRmbPrice")
                         .HasColumnType("decimal(18,4)");
 
+                    b.Property<int>("ProductKind")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(0);
+
                     b.Property<decimal>("ReorderLevel")
                         .HasColumnType("decimal(18,4)");
 
@@ -1036,6 +1041,8 @@ namespace UD_Autos.Data.Migrations
                     b.HasIndex("DefaultSupplierId");
 
                     b.HasIndex("Name");
+
+                    b.HasIndex("ProductKind");
 
                     b.HasIndex("Sku")
                         .IsUnique();
@@ -1140,6 +1147,55 @@ namespace UD_Autos.Data.Migrations
                     b.HasIndex("ProductId", "EffectiveDate");
 
                     b.ToTable("ProductRmbPriceHistories");
+                });
+
+            modelBuilder.Entity("UD_Autos.Models.Products.ProductSetComponent", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("ComponentProductId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<decimal>("RequiredQuantity")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<int>("SetProductId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ComponentProductId");
+
+                    b.HasIndex("SetProductId", "ComponentProductId")
+                        .IsUnique()
+                        .HasFilter("[IsActive] = 1");
+
+                    b.ToTable("ProductSetComponents", t =>
+                        {
+                            t.HasCheckConstraint("CK_ProductSetComponents_NotSelf", "[SetProductId] <> [ComponentProductId]");
+
+                            t.HasCheckConstraint("CK_ProductSetComponents_RequiredQuantity", "[RequiredQuantity] > 0");
+                        });
                 });
 
             modelBuilder.Entity("UD_Autos.Models.Purchases.PurchaseOrder", b =>
@@ -1614,6 +1670,112 @@ namespace UD_Autos.Data.Migrations
                     b.HasIndex("InvoiceItemId", "InventoryBatchId");
 
                     b.ToTable("InvoiceItemBatchAllocations");
+                });
+
+            modelBuilder.Entity("UD_Autos.Models.Sales.InvoiceSetComponent", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("ComponentProductId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("InvoiceItemId")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("LineCogsPkr")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("QuantityConsumed")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<decimal>("RequiredQuantityPerSet")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<decimal>("ReturnedQuantity")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<decimal>("UnitCogsPkr")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ComponentProductId");
+
+                    b.HasIndex("InvoiceItemId", "ComponentProductId");
+
+                    b.ToTable("InvoiceSetComponents");
+                });
+
+            modelBuilder.Entity("UD_Autos.Models.Sales.InvoiceSetComponentBatchAllocation", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("InventoryBatchId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("InvoiceSetComponentId")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("LineCostPkr")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("Quantity")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<decimal>("ReturnedQuantity")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<decimal>("UnitCostPkr")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("InventoryBatchId");
+
+                    b.HasIndex("InvoiceSetComponentId", "InventoryBatchId");
+
+                    b.ToTable("InvoiceSetComponentBatchAllocations");
                 });
 
             modelBuilder.Entity("UD_Autos.Models.Sales.PaymentAllocation", b =>
@@ -2655,6 +2817,25 @@ namespace UD_Autos.Data.Migrations
                     b.Navigation("Supplier");
                 });
 
+            modelBuilder.Entity("UD_Autos.Models.Products.ProductSetComponent", b =>
+                {
+                    b.HasOne("UD_Autos.Models.Products.Product", "ComponentProduct")
+                        .WithMany("UsedInSets")
+                        .HasForeignKey("ComponentProductId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("UD_Autos.Models.Products.Product", "SetProduct")
+                        .WithMany("SetComponents")
+                        .HasForeignKey("SetProductId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("ComponentProduct");
+
+                    b.Navigation("SetProduct");
+                });
+
             modelBuilder.Entity("UD_Autos.Models.Purchases.PurchaseOrder", b =>
                 {
                     b.HasOne("UD_Autos.Models.Suppliers.Supplier", "Supplier")
@@ -2761,6 +2942,44 @@ namespace UD_Autos.Data.Migrations
                     b.Navigation("InventoryBatch");
 
                     b.Navigation("InvoiceItem");
+                });
+
+            modelBuilder.Entity("UD_Autos.Models.Sales.InvoiceSetComponent", b =>
+                {
+                    b.HasOne("UD_Autos.Models.Products.Product", "ComponentProduct")
+                        .WithMany()
+                        .HasForeignKey("ComponentProductId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("UD_Autos.Models.Sales.InvoiceItem", "InvoiceItem")
+                        .WithMany("SetComponents")
+                        .HasForeignKey("InvoiceItemId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ComponentProduct");
+
+                    b.Navigation("InvoiceItem");
+                });
+
+            modelBuilder.Entity("UD_Autos.Models.Sales.InvoiceSetComponentBatchAllocation", b =>
+                {
+                    b.HasOne("UD_Autos.Models.Inventory.InventoryBatch", "InventoryBatch")
+                        .WithMany()
+                        .HasForeignKey("InventoryBatchId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("UD_Autos.Models.Sales.InvoiceSetComponent", "InvoiceSetComponent")
+                        .WithMany("BatchAllocations")
+                        .HasForeignKey("InvoiceSetComponentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("InventoryBatch");
+
+                    b.Navigation("InvoiceSetComponent");
                 });
 
             modelBuilder.Entity("UD_Autos.Models.Sales.PaymentAllocation", b =>
@@ -2919,6 +3138,10 @@ namespace UD_Autos.Data.Migrations
                     b.Navigation("LandedCostHistory");
 
                     b.Navigation("RmbPriceHistory");
+
+                    b.Navigation("SetComponents");
+
+                    b.Navigation("UsedInSets");
                 });
 
             modelBuilder.Entity("UD_Autos.Models.Purchases.PurchaseOrder", b =>
@@ -2941,6 +3164,13 @@ namespace UD_Autos.Data.Migrations
                 });
 
             modelBuilder.Entity("UD_Autos.Models.Sales.InvoiceItem", b =>
+                {
+                    b.Navigation("BatchAllocations");
+
+                    b.Navigation("SetComponents");
+                });
+
+            modelBuilder.Entity("UD_Autos.Models.Sales.InvoiceSetComponent", b =>
                 {
                     b.Navigation("BatchAllocations");
                 });

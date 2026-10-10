@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using UD_Autos.Authorization;
+using UD_Autos.Data;
 using UD_Autos.Models.Products;
 using UD_Autos.Models.ViewModels;
 using UD_Autos.Services;
@@ -14,17 +16,20 @@ public class ProductsController : Controller
     private readonly ISettingsService _settings;
     private readonly ISupplierService _suppliers;
     private readonly IWebHostEnvironment _env;
+    private readonly ApplicationDbContext _db;
 
     public ProductsController(
         IProductService products,
         ISettingsService settings,
         ISupplierService suppliers,
-        IWebHostEnvironment env)
+        IWebHostEnvironment env,
+        ApplicationDbContext db)
     {
         _products = products;
         _settings = settings;
         _suppliers = suppliers;
         _env = env;
+        _db = db;
     }
 
     public async Task<IActionResult> Index(string? search, int? categoryId, string? sortBy, bool sortDesc = false, int page = 1, CancellationToken cancellationToken = default)
@@ -73,18 +78,21 @@ public class ProductsController : Controller
 
         if (!ModelState.IsValid)
         {
-            return View("Form", await BuildFormAsync(model.Product, cancellationToken));
+            return View("Form", await BuildFormAsync(model.Product, cancellationToken, model.Components));
         }
 
         await ApplyImageAsync(model);
-        var (ok, error, product) = await _products.CreateAsync(model.Product, User.GetUserId(), cancellationToken);
+        var components = ComponentsOf(model);
+        var (ok, error, product) = await _products.CreateAsync(model.Product, User.GetUserId(), cancellationToken, components);
         if (!ok)
         {
             ModelState.AddModelError(string.Empty, error ?? "Could not create product.");
-            return View("Form", await BuildFormAsync(model.Product, cancellationToken));
+            return View("Form", await BuildFormAsync(model.Product, cancellationToken, model.Components));
         }
 
-        TempData["Success"] = $"Product {product!.Sku} created.";
+        TempData["Success"] = product!.ProductKind == ProductKind.CompleteSet
+            ? $"Complete set {product.Sku} saved."
+            : $"Product {product.Sku} created.";
         return RedirectToAction(nameof(Details), new { id = product.Id });
     }
 
@@ -103,18 +111,19 @@ public class ProductsController : Controller
         if (id != model.Product.Id) return BadRequest();
         if (!ModelState.IsValid)
         {
-            return View("Form", await BuildFormAsync(model.Product, cancellationToken));
+            return View("Form", await BuildFormAsync(model.Product, cancellationToken, model.Components));
         }
 
         await ApplyImageAsync(model);
-        var (ok, error) = await _products.UpdateAsync(model.Product, User.GetUserId(), model.PriceChangeReason, cancellationToken);
+        var components = ComponentsOf(model);
+        var (ok, error) = await _products.UpdateAsync(model.Product, User.GetUserId(), model.PriceChangeReason, cancellationToken, components);
         if (!ok)
         {
             ModelState.AddModelError(string.Empty, error ?? "Could not update product.");
-            return View("Form", await BuildFormAsync(model.Product, cancellationToken));
+            return View("Form", await BuildFormAsync(model.Product, cancellationToken, model.Components));
         }
 
-        TempData["Success"] = "Product updated.";
+        TempData["Success"] = model.Product.ProductKind == ProductKind.CompleteSet ? "Complete set updated." : "Product updated.";
         return RedirectToAction(nameof(Details), new { id });
     }
 
@@ -127,15 +136,88 @@ public class ProductsController : Controller
         return RedirectToAction(nameof(Index));
     }
 
-    private async Task<ProductFormViewModel> BuildFormAsync(Product product, CancellationToken cancellationToken)
+    [HttpGet]
+    public async Task<IActionResult> SearchComponents(string? q, CancellationToken cancellationToken = default)
     {
+        q = (q ?? string.Empty).Trim();
+        var query = _db.Products.AsNoTracking()
+            .Where(p => p.IsActive && p.ProductKind == ProductKind.SingleItem);
+        if (q.Length > 0)
+        {
+            query = query.Where(p =>
+                p.Sku.Contains(q) ||
+                p.Name.Contains(q) ||
+                (p.Barcode != null && p.Barcode.Contains(q)));
+        }
+
+        var rows = await query.OrderBy(p => p.Name).Take(20)
+            .Select(p => new
+            {
+                p.Id,
+                p.Sku,
+                p.Name,
+                Available = p.CurrentStock - p.ReservedQuantity
+            })
+            .ToListAsync(cancellationToken);
+        return Json(rows);
+    }
+
+    private async Task<ProductFormViewModel> BuildFormAsync(Product product, CancellationToken cancellationToken, List<SetComponentFormRow>? posted = null)
+    {
+        var components = posted ?? product.SetComponents
+            .Where(c => c.IsActive)
+            .Select(c => new SetComponentFormRow
+            {
+                ComponentProductId = c.ComponentProductId,
+                Sku = c.ComponentProduct?.Sku,
+                Name = c.ComponentProduct?.Name,
+                RequiredQuantity = c.RequiredQuantity,
+                AvailableStock = c.ComponentProduct is null ? 0 : c.ComponentProduct.CurrentStock - c.ComponentProduct.ReservedQuantity
+            })
+            .ToList();
+
+        if (posted is not null)
+        {
+            var ids = components.Where(c => c.ComponentProductId > 0 && string.IsNullOrEmpty(c.Name)).Select(c => c.ComponentProductId).ToList();
+            if (ids.Count > 0)
+            {
+                var names = await _db.Products.AsNoTracking()
+                    .Where(p => ids.Contains(p.Id))
+                    .Select(p => new { p.Id, p.Sku, p.Name, Available = p.CurrentStock - p.ReservedQuantity })
+                    .ToListAsync(cancellationToken);
+                foreach (var row in components)
+                {
+                    var match = names.FirstOrDefault(n => n.Id == row.ComponentProductId);
+                    if (match is null) continue;
+                    row.Sku = match.Sku;
+                    row.Name = match.Name;
+                    row.AvailableStock = match.Available;
+                }
+            }
+        }
+
         return new ProductFormViewModel
         {
             Product = product,
             Categories = await _settings.GetCategoriesAsync(cancellationToken: cancellationToken),
             Units = await _settings.GetUnitsAsync(cancellationToken: cancellationToken),
-            Suppliers = await _suppliers.GetActiveLookupAsync(cancellationToken)
+            Suppliers = await _suppliers.GetActiveLookupAsync(cancellationToken),
+            Components = components
         };
+    }
+
+    private static List<SetComponentInput>? ComponentsOf(ProductFormViewModel model)
+    {
+        if (model.Product.ProductKind != ProductKind.CompleteSet)
+            return null;
+        return model.Components
+            .Where(c => c.ComponentProductId > 0)
+            .Select(c => new SetComponentInput
+            {
+                ComponentProductId = c.ComponentProductId,
+                RequiredQuantity = c.RequiredQuantity
+            })
+            .ToList();
     }
 
     private async Task ApplyImageAsync(ProductFormViewModel model)

@@ -42,13 +42,44 @@
             {
                 <tr>
                     <td>@(n++)</td>
-                    <td>@item.Product.Sku — @item.Product.Name</td>
+                    <td>
+                        @item.Product.Sku — @item.Product.Name
+                        @if (item.Product.ProductKind == ProductKind.CompleteSet)
+                        {
+                            <span class="badge-app badge-app--neutral">Complete set</span>
+                        }
+                    </td>
                     <td>@item.Quantity.ToString("N2")</td>
                     <td>Rs. @item.UnitPrice.ToString("N2")</td>
                     <td>Rs. @item.LineDiscount.ToString("N2")</td>
                     <td>Rs. @item.LineTotal.ToString("N2")</td>
                     @if (canViewCosts) { <td>Rs. @item.LineCogsPkr.ToString("N2")</td> }
                 </tr>
+                @if (item.SetComponents.Count > 0)
+                {
+                    <tr>
+                        <td></td>
+                        <td colspan="@(canViewCosts ? 6 : 5)">
+                            <details>
+                                <summary>Set items</summary>
+                                <table class="table-app">
+                                    <thead><tr><th>Item</th><th>Per set</th><th>Consumed</th>@if (canViewCosts){<th>COGS</th>}</tr></thead>
+                                    <tbody>
+                                    @foreach (var component in item.SetComponents)
+                                    {
+                                        <tr>
+                                            <td>@component.ComponentProduct.Sku — @component.ComponentProduct.Name</td>
+                                            <td>@component.RequiredQuantityPerSet.ToString("N2")</td>
+                                            <td>@component.QuantityConsumed.ToString("N2")</td>
+                                            @if (canViewCosts) { <td>Rs. @component.LineCogsPkr.ToString("N2")</td> }
+                                        </tr>
+                                    }
+                                    </tbody>
+                                </table>
+                            </details>
+                        </td>
+                    </tr>
+                }
             }
             </tbody>
         </table>

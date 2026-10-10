@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using UD_Autos.Authorization;
 using UD_Autos.Data;
+using UD_Autos.Models.Products;
 using UD_Autos.Models.Sales;
 using UD_Autos.Models.ViewModels;
 using UD_Autos.Services;
@@ -148,11 +149,32 @@ public class SalesController : Controller
                 p.WholesalePrice,
                 p.RetailPrice,
                 p.MinimumSalePrice,
+                p.ProductKind,
                 Available = p.CurrentStock - p.ReservedQuantity,
                 p.ImagePath
             })
             .ToListAsync(cancellationToken);
-        return Json(products);
+
+        var setStubs = products
+            .Where(p => p.ProductKind == ProductKind.CompleteSet)
+            .Select(p => new Product { Id = p.Id, ProductKind = ProductKind.CompleteSet, Name = p.Name })
+            .ToList();
+        await ProductSetAvailability.AttachAsync(_db, setStubs, cancellationToken);
+        var setAvailable = setStubs.ToDictionary(p => p.Id, p => p.VirtualAvailableSets ?? 0);
+
+        return Json(products.Select(p => new
+        {
+            p.Id,
+            p.Sku,
+            p.Barcode,
+            p.Name,
+            p.WholesalePrice,
+            p.RetailPrice,
+            p.MinimumSalePrice,
+            isSet = p.ProductKind == ProductKind.CompleteSet,
+            available = p.ProductKind == ProductKind.CompleteSet ? setAvailable.GetValueOrDefault(p.Id) : p.Available,
+            p.ImagePath
+        }));
     }
 
     [HttpGet]
@@ -177,6 +199,7 @@ public class SalesController : Controller
     {
         var customers = await _db.Customers.AsNoTracking().Where(c => c.IsActive).OrderBy(c => c.Name).ToListAsync(cancellationToken);
         var products = await _db.Products.AsNoTracking().Where(p => p.IsActive).OrderBy(p => p.Name).Take(200).ToListAsync(cancellationToken);
+        await ProductSetAvailability.AttachAsync(_db, products, cancellationToken);
         var customer = customerId.HasValue ? customers.FirstOrDefault(c => c.Id == customerId) : null;
         return new BillingPageViewModel
         {

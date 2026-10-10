@@ -1,3 +1,5 @@
+using System.ComponentModel.DataAnnotations;
+
 namespace UD_Autos.Models.Inventory;
 
 public enum LandedCostAllocationMethod
@@ -16,5 +18,8 @@ public enum StockMovementType
     CustomerReturn = 3,
     SupplierReturn = 4,
     Damaged = 5,
-    Adjustment = 6
+    Adjustment = 6,
+
+    [Display(Name = "Set sale")]
+    SetConsumption = 7
 }

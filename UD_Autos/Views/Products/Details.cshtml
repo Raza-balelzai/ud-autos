@@ -23,39 +23,101 @@
         <a href="#sales">Sales</a>
     </div>
 
-    <div id="overview" class="detail-grid">
-        <div class="detail-item"><dt>SKU</dt><dd>@p.Sku</dd></div>
-        <div class="detail-item"><dt>Barcode</dt><dd>@(p.Barcode ?? "—")</dd></div>
-        <div class="detail-item"><dt>Name</dt><dd>@p.Name</dd></div>
-        <div class="detail-item"><dt>Category</dt><dd>@(p.Category?.Name ?? "—")</dd></div>
-        <div class="detail-item"><dt>Brand</dt><dd>@(p.Brand ?? "—")</dd></div>
-        <div class="detail-item"><dt>Vehicle</dt><dd>@(p.VehicleBrand) @(p.VehicleModel) @(p.VariantYear)</dd></div>
-        <div class="detail-item"><dt>Unit</dt><dd>@(p.Unit?.Name ?? "—")</dd></div>
-        <div class="detail-item"><dt>Supplier</dt><dd>@(p.DefaultSupplier?.Name ?? "—")</dd></div>
-        <div class="detail-item"><dt>Wholesale</dt><dd>Rs. @p.WholesalePrice.ToString("N2")</dd></div>
-        <div class="detail-item"><dt>Retail</dt><dd>Rs. @p.RetailPrice.ToString("N2")</dd></div>
-        <div class="detail-item"><dt>Min Sale</dt><dd>Rs. @p.MinimumSalePrice.ToString("N2")</dd></div>
-        @if (canViewCosts)
-        {
-            <div class="detail-item"><dt>Latest RMB</dt><dd>¥ @(p.LatestRmbPrice?.ToString("N4") ?? "—")</dd></div>
-            <div class="detail-item"><dt>Previous RMB</dt><dd>¥ @(p.PreviousRmbPrice?.ToString("N4") ?? "—")</dd></div>
-            <div class="detail-item"><dt>Latest Landed</dt><dd>Rs. @(p.LatestLandedCost?.ToString("N4") ?? "—")</dd></div>
-            <div class="detail-item"><dt>Average Cost</dt><dd>Rs. @(p.AverageCost?.ToString("N4") ?? "—")</dd></div>
-        }
-        <div class="detail-item"><dt>CBM</dt><dd>@(p.Cbm?.ToString("N6") ?? "—")</dd></div>
-        <div class="detail-item"><dt>Pcs / Carton</dt><dd>@(p.PiecesPerCarton?.ToString() ?? "—")</dd></div>
+    <div id="overview">
+        <section class="form-section form-section--first">
+            <div class="form-section__head">
+                <h3 class="form-section__title">Identity</h3>
+            </div>
+            <div class="detail-grid">
+                <div class="detail-item"><dt>SKU</dt><dd>@p.Sku</dd></div>
+                <div class="detail-item"><dt>Type</dt><dd>@(p.ProductKind == ProductKind.CompleteSet ? "Complete set" : "Single item")</dd></div>
+                <div class="detail-item"><dt>Barcode</dt><dd>@(p.Barcode ?? "—")</dd></div>
+                <div class="detail-item"><dt>Name</dt><dd>@p.Name</dd></div>
+                <div class="detail-item"><dt>Category</dt><dd>@(p.Category?.Name ?? "—")</dd></div>
+                <div class="detail-item"><dt>Brand</dt><dd>@(p.Brand ?? "—")</dd></div>
+                <div class="detail-item"><dt>Vehicle</dt><dd>@(string.Join(" ", new[] { p.VehicleBrand, p.VehicleModel, p.VariantYear }.Where(x => !string.IsNullOrWhiteSpace(x))))</dd></div>
+                <div class="detail-item"><dt>Unit</dt><dd>@(p.Unit?.Name ?? "—")</dd></div>
+                <div class="detail-item"><dt>Supplier</dt><dd>@(p.DefaultSupplier?.Name ?? "—")</dd></div>
+            </div>
+        </section>
+        <section class="form-section">
+            <div class="form-section__head">
+                <h3 class="form-section__title">Prices</h3>
+            </div>
+            <div class="detail-grid">
+                <div class="detail-item"><dt>@(p.ProductKind == ProductKind.CompleteSet ? "Set price" : "Wholesale price")</dt><dd>Rs. @p.WholesalePrice.ToString("N2")</dd></div>
+                <div class="detail-item"><dt>Retail price</dt><dd>Rs. @p.RetailPrice.ToString("N2")</dd></div>
+                <div class="detail-item"><dt>Minimum sale price</dt><dd>Rs. @p.MinimumSalePrice.ToString("N2")</dd></div>
+                @if (canViewCosts)
+                {
+                    <div class="detail-item"><dt>Latest RMB price</dt><dd>¥ @(p.LatestRmbPrice?.ToString("N4") ?? "—")</dd></div>
+                    <div class="detail-item"><dt>Previous RMB price</dt><dd>¥ @(p.PreviousRmbPrice?.ToString("N4") ?? "—")</dd></div>
+                    <div class="detail-item"><dt>Latest landed cost</dt><dd>Rs. @(p.LatestLandedCost?.ToString("N4") ?? "—")</dd></div>
+                    <div class="detail-item"><dt>Average cost</dt><dd>Rs. @(p.AverageCost?.ToString("N4") ?? "—")</dd></div>
+                }
+            </div>
+        </section>
+        <section class="form-section">
+            <div class="form-section__head">
+                <h3 class="form-section__title">Size and weight</h3>
+            </div>
+            <div class="detail-grid">
+                <div class="detail-item"><dt>CBM</dt><dd>@(p.Cbm?.ToString("N6") ?? "—")</dd></div>
+                <div class="detail-item"><dt>Pieces per carton</dt><dd>@(p.PiecesPerCarton?.ToString() ?? "—")</dd></div>
+            </div>
+        </section>
     </div>
 
-    <h3 id="stock" class="card-panel__title">Stock summary</h3>
-    <div class="detail-grid">
-        <div class="detail-item"><dt>Current Stock</dt><dd>@p.CurrentStock.ToString("N2")</dd></div>
-        <div class="detail-item"><dt>Reorder Level</dt><dd>@p.ReorderLevel.ToString("N2")</dd></div>
-        <div class="detail-item"><dt>Stock Value</dt><dd>Rs. @p.StockValue.ToString("N2")</dd></div>
+    <section id="stock" class="form-section">
+    <div class="form-section__head">
+        <h3 class="form-section__title">Stock</h3>
+        <p class="form-section__text">@(p.ProductKind == ProductKind.CompleteSet ? "This set has no stock of its own. Availability comes from the items below." : "Quantity on hand for this item.")</p>
     </div>
+    @if (p.ProductKind == ProductKind.CompleteSet)
+    {
+        <div class="detail-grid">
+            <div class="detail-item"><dt>Sets available</dt><dd>@((p.VirtualAvailableSets ?? 0).ToString("N0"))</dd></div>
+            <div class="detail-item"><dt>Limited by</dt><dd>@(p.LimitingComponentName ?? "—")</dd></div>
+        </div>
+        <h3 class="form-section__title" style="margin-top:1.25rem">Set items</h3>
+        <div class="table-wrap">
+            <table class="table-app">
+                <thead><tr><th>Item</th><th>Required Qty</th><th>Available Stock</th></tr></thead>
+                <tbody>
+                @if (p.SetComponents.Count == 0)
+                {
+                    <tr><td colspan="3">No items in this set.</td></tr>
+                }
+                else
+                {
+                    foreach (var component in p.SetComponents.Where(c => c.IsActive))
+                    {
+                        var available = component.ComponentProduct.CurrentStock - component.ComponentProduct.ReservedQuantity;
+                        <tr>
+                            <td>@component.ComponentProduct.Sku — @component.ComponentProduct.Name</td>
+                            <td>@component.RequiredQuantity.ToString("N2")</td>
+                            <td>@available.ToString("N2")</td>
+                        </tr>
+                    }
+                }
+                </tbody>
+            </table>
+        </div>
+    }
+    else
+    {
+        <div class="detail-grid">
+            <div class="detail-item"><dt>Current Stock</dt><dd>@p.CurrentStock.ToString("N2")</dd></div>
+            <div class="detail-item"><dt>Reorder Level</dt><dd>@p.ReorderLevel.ToString("N2")</dd></div>
+            <div class="detail-item"><dt>Stock Value</dt><dd>Rs. @p.StockValue.ToString("N2")</dd></div>
+        </div>
+    }
+    </section>
 
     @if (canViewCosts)
     {
-        <h3 id="price" class="card-panel__title">RMB price history</h3>
+        <section id="price" class="form-section">
+        <div class="form-section__head"><h3 class="form-section__title">RMB price history</h3></div>
         <div class="table-wrap">
             <table class="table-app">
                 <thead><tr><th>Date</th><th>RMB</th><th>Source</th><th>Notes</th></tr></thead>
@@ -80,7 +142,7 @@
             </table>
         </div>
 
-        <h3 class="card-panel__title">Landed cost history</h3>
+        <div class="form-section__head" style="margin-top:1.25rem"><h3 class="form-section__title">Landed cost history</h3></div>
         <div class="table-wrap">
             <table class="table-app">
                 <thead><tr><th>Date</th><th>Landed PKR</th><th>Shipment</th><th>Notes</th></tr></thead>
@@ -104,14 +166,18 @@
                 </tbody>
             </table>
         </div>
+        </section>
     }
     else
     {
-        <h3 id="price" class="card-panel__title">Price History</h3>
-        <p class="hint">Cost history is visible to Owner / Manager / Accountant only.</p>
+        <section id="price" class="form-section">
+            <div class="form-section__head"><h3 class="form-section__title">Price history</h3></div>
+            <p class="hint">Cost history is visible to Owner, Manager, and Accountant only.</p>
+        </section>
     }
 
-    <h3 id="purchases" class="card-panel__title">Purchase history</h3>
+    <section id="purchases" class="form-section">
+    <div class="form-section__head"><h3 class="form-section__title">Purchase history</h3></div>
     <div class="table-wrap">
         <table class="table-app">
             <thead>
@@ -152,8 +218,10 @@
             </tbody>
         </table>
     </div>
+    </section>
 
-    <h3 id="shipments" class="card-panel__title">Shipment history</h3>
+    <section id="shipments" class="form-section">
+    <div class="form-section__head"><h3 class="form-section__title">Shipment history</h3></div>
     <div class="table-wrap">
         <table class="table-app">
             <thead>
@@ -196,8 +264,10 @@
             </tbody>
         </table>
     </div>
+    </section>
 
-    <h3 id="sales" class="card-panel__title">Sales history</h3>
+    <section id="sales" class="form-section">
+    <div class="form-section__head"><h3 class="form-section__title">Sales history</h3></div>
     <div class="table-wrap">
         <table class="table-app">
             <thead>
@@ -232,4 +302,5 @@
             </tbody>
         </table>
     </div>
+    </section>
 </div>

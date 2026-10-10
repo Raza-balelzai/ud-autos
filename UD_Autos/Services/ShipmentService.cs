@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using UD_Autos.Data;
 using UD_Autos.Models.Common;
+using UD_Autos.Models.Products;
 using UD_Autos.Models.Shipments;
 
 namespace UD_Autos.Services;
@@ -364,8 +365,13 @@ public class ShipmentService : IShipmentService
         {
             if (item.ProductId <= 0) return "Each item needs a ProductId/SKU link.";
             if (item.ExpectedQuantity <= 0) return "Expected quantity must be greater than zero.";
-            if (!await _db.Products.AnyAsync(p => p.Id == item.ProductId && p.IsActive, cancellationToken))
-                return $"Product {item.ProductId} not found.";
+            if (!await _db.Products.AnyAsync(p => p.Id == item.ProductId && p.IsActive && p.ProductKind == ProductKind.SingleItem, cancellationToken))
+            {
+                var isSet = await _db.Products.AnyAsync(p => p.Id == item.ProductId && p.ProductKind == ProductKind.CompleteSet, cancellationToken);
+                return isSet
+                    ? "A complete set cannot be received on a shipment. Receive its items instead."
+                    : $"Product {item.ProductId} not found.";
+            }
             if (item.PurchaseOrderId.HasValue &&
                 !await _db.PurchaseOrders.AnyAsync(p => p.Id == item.PurchaseOrderId.Value, cancellationToken))
                 return $"PO {item.PurchaseOrderId} not found.";

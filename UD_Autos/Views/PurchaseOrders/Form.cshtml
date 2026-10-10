@@ -11,20 +11,25 @@
     <div asp-validation-summary="ModelOnly" class="validation-summary-errors"></div>
     <p class="form-legend"><span class="req" aria-hidden="true">*</span> Required field</p>
 
+    <section class="form-section form-section--first">
+        <div class="form-section__head">
+            <h3 class="form-section__title">Order</h3>
+            <p class="form-section__text">Supplier and date are required. Leave the PO number blank to generate one.</p>
+        </div>
     <div class="form-grid form-grid--3">
         <div class="field">
-            <label asp-for="PurchaseOrder.PoNumber">PO Number</label>
+            <label asp-for="PurchaseOrder.PoNumber">PO number</label>
             <input asp-for="PurchaseOrder.PoNumber" class="input-app" placeholder="Auto if blank" />
             <span class="hint">Optional — blank generates PO number</span>
         </div>
         <div class="field">
-            <label asp-for="PurchaseOrder.SupplierId" class="is-required">Supplier / Factory <span class="req" aria-hidden="true">*</span></label>
+            <label asp-for="PurchaseOrder.SupplierId" class="is-required">Supplier <span class="req" aria-hidden="true">*</span></label>
             <select asp-for="PurchaseOrder.SupplierId" class="select-app" asp-items="@(new SelectList(Model.Suppliers, "Id", "Name"))" required>
-                <option value="">— Select —</option>
+                <option value="">Select supplier</option>
             </select>
         </div>
         <div class="field">
-            <label asp-for="PurchaseOrder.OrderDate" class="is-required">Date <span class="req" aria-hidden="true">*</span></label>
+            <label asp-for="PurchaseOrder.OrderDate" class="is-required">Order date <span class="req" aria-hidden="true">*</span></label>
             <input asp-for="PurchaseOrder.OrderDate" type="date" class="input-app" required />
         </div>
         <div class="field">
@@ -32,32 +37,39 @@
             <select asp-for="PurchaseOrder.Status" class="select-app" asp-items="Html.GetEnumSelectList<PurchaseOrderStatus>()"></select>
         </div>
         <div class="field">
-            <label asp-for="PurchaseOrder.EstimatedExchangeRate">Est. RMB→PKR rate</label>
+            <label asp-for="PurchaseOrder.EstimatedExchangeRate">Estimated RMB to PKR rate</label>
             <input asp-for="PurchaseOrder.EstimatedExchangeRate" class="input-app" />
-            <span class="hint">Optional — planning only, not landed cost</span>
+            <span class="hint">Optional. Planning only. This is not the landed cost.</span>
         </div>
         <div class="field form-grid--full">
             <label asp-for="PurchaseOrder.Notes">Notes</label>
             <textarea asp-for="PurchaseOrder.Notes" class="textarea-app"></textarea>
         </div>
     </div>
+    </section>
 
-    <h3 class="card-panel__title">Line items</h3>
+    <section class="form-section">
+        <div class="form-section__head">
+            <h3 class="form-section__title">Line items</h3>
+            <p class="form-section__text">Add each product, the quantity ordered, and the unit price in RMB.</p>
+        </div>
+    <div class="line-head" aria-hidden="true"><span>Product</span><span>Quantity</span><span>RMB unit price</span><span>Notes</span><span></span></div>
     <div class="line-items-editor" id="po-lines">
         @for (var i = 0; i < Model.Items.Count; i++)
         {
             <div class="line-row">
-                <select class="select-app" name="Items[@i].ProductId" asp-items="@(new SelectList(Model.Products, "Id", "Name", Model.Items[i].ProductId))">
-                    <option value="">Product (SKU)</option>
+                <select class="select-app" name="Items[@i].ProductId" asp-items="@(new SelectList(Model.Products.Select(p => new { p.Id, Label = p.Sku + " — " + p.Name }), "Id", "Label", Model.Items[i].ProductId))">
+                    <option value="">Select product</option>
                 </select>
-                <input class="input-app" name="Items[@i].Quantity" value="@Model.Items[i].Quantity" placeholder="Qty" />
-                <input class="input-app" name="Items[@i].UnitPriceRmb" value="@Model.Items[i].UnitPriceRmb" placeholder="RMB unit" />
-                <input class="input-app" name="Items[@i].Notes" value="@Model.Items[i].Notes" placeholder="Notes" />
+                <input class="input-app" name="Items[@i].Quantity" value="@Model.Items[i].Quantity" placeholder="Quantity" aria-label="Quantity" />
+                <input class="input-app" name="Items[@i].UnitPriceRmb" value="@Model.Items[i].UnitPriceRmb" placeholder="RMB unit price" aria-label="RMB unit price" />
+                <input class="input-app" name="Items[@i].Notes" value="@Model.Items[i].Notes" placeholder="Notes" aria-label="Notes" />
                 <button type="button" class="btn-app btn-app--ghost btn-app--sm" data-remove-line>✕</button>
             </div>
         }
     </div>
-    <button type="button" class="btn-app btn-app--outline btn-app--sm" id="add-po-line">+ Add line</button>
+    <button type="button" class="btn-app btn-app--outline btn-app--sm" id="add-po-line">Add line</button>
+    </section>
 
     <div class="form-actions">
         <button type="submit" class="btn-app btn-app--primary">@(isEdit ? "Save PO" : "Create PO")</button>
@@ -68,15 +80,15 @@
 <template id="po-line-template">
     <div class="line-row">
         <select class="select-app" name="Items[__i__].ProductId">
-            <option value="">Product (SKU)</option>
+            <option value="">Select product</option>
             @foreach (var p in Model.Products)
             {
                 <option value="@p.Id">@p.Sku — @p.Name</option>
             }
         </select>
-        <input class="input-app" name="Items[__i__].Quantity" placeholder="Qty" />
-        <input class="input-app" name="Items[__i__].UnitPriceRmb" placeholder="RMB unit" />
-        <input class="input-app" name="Items[__i__].Notes" placeholder="Notes" />
+        <input class="input-app" name="Items[__i__].Quantity" placeholder="Quantity" aria-label="Quantity" />
+        <input class="input-app" name="Items[__i__].UnitPriceRmb" placeholder="RMB unit price" aria-label="RMB unit price" />
+        <input class="input-app" name="Items[__i__].Notes" placeholder="Notes" aria-label="Notes" />
         <button type="button" class="btn-app btn-app--ghost btn-app--sm" data-remove-line>✕</button>
     </div>
 </template>

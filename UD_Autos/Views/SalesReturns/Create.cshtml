@@ -33,6 +33,10 @@
                 <tr>
                     <td>
                         @item.Product.Sku — @item.Product.Name
+                        @if (item.Product.ProductKind == ProductKind.CompleteSet)
+                        {
+                            <div class="hint">Complete set. Return whole sets only. The items go back into stock.</div>
+                        }
                         <input type="hidden" name="Lines[@i].InvoiceItemId" value="@item.Id" />
                     </td>
                     <td>@item.Quantity.ToString("N2")</td>

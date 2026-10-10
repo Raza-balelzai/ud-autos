@@ -59,6 +59,8 @@ public class SalesReturnService : ISalesReturnService
             .Include(i => i.Customer)
             .Include(i => i.Items).ThenInclude(x => x.Product)
             .Include(i => i.Items).ThenInclude(x => x.BatchAllocations)
+            .Include(i => i.Items).ThenInclude(x => x.SetComponents).ThenInclude(c => c.BatchAllocations)
+            .Include(i => i.Items).ThenInclude(x => x.SetComponents).ThenInclude(c => c.ComponentProduct)
             .FirstOrDefaultAsync(i => i.Id == invoiceId && !i.IsVoided, cancellationToken);
         if (invoice is null) return (false, "Invoice not found.", null);
 
@@ -92,40 +94,93 @@ public class SalesReturnService : ISalesReturnService
             item.ReturnedQuantity += line.Quantity;
             total += lineTotal;
 
-            // Restock using original COGS; prefer original batches if available.
-            var product = item.Product;
-            var qtyLeft = line.Quantity;
-            foreach (var alloc in item.BatchAllocations.OrderByDescending(a => a.Id))
+            if (item.SetComponents.Count > 0)
             {
-                if (qtyLeft <= 0) break;
-                var batch = await _db.InventoryBatches.FirstOrDefaultAsync(b => b.Id == alloc.InventoryBatchId, cancellationToken);
-                if (batch is null) continue;
-                var put = Math.Min(qtyLeft, alloc.Quantity);
-                batch.RemainingQuantity += put;
-                batch.UpdatedAt = DateTime.UtcNow;
-                batch.UpdatedBy = userId;
-                qtyLeft -= put;
+                foreach (var component in item.SetComponents)
+                {
+                    var plan = ProductSetPlanner.PlanComponentRestore(
+                        line.Quantity,
+                        component.RequiredQuantityPerSet,
+                        component.QuantityConsumed,
+                        component.ReturnedQuantity,
+                        component.BatchAllocations.Select(a => (a.InventoryBatchId, a.Quantity, a.ReturnedQuantity)));
+                    if (!plan.Ok) return (false, plan.Error, null);
+
+                    foreach (var slice in plan.Slices)
+                    {
+                        var batch = await _db.InventoryBatches.FirstOrDefaultAsync(b => b.Id == slice.BatchId, cancellationToken);
+                        if (batch is null) continue;
+                        batch.RemainingQuantity += slice.Quantity;
+                        batch.UpdatedAt = DateTime.UtcNow;
+                        batch.UpdatedBy = userId;
+                        var allocation = component.BatchAllocations.First(a => a.InventoryBatchId == slice.BatchId);
+                        allocation.ReturnedQuantity += slice.Quantity;
+                        allocation.UpdatedAt = DateTime.UtcNow;
+                        allocation.UpdatedBy = userId;
+                    }
+
+                    var componentProduct = component.ComponentProduct;
+                    componentProduct.CurrentStock += plan.Quantity;
+                    componentProduct.StockValue = Math.Round(componentProduct.CurrentStock * (componentProduct.AverageCost ?? componentProduct.LatestLandedCost ?? component.UnitCogsPkr), 2);
+                    componentProduct.UpdatedAt = DateTime.UtcNow;
+                    componentProduct.UpdatedBy = userId;
+                    component.ReturnedQuantity += plan.Quantity;
+                    component.UpdatedAt = DateTime.UtcNow;
+                    component.UpdatedBy = userId;
+
+                    _db.StockMovements.Add(new StockMovement
+                    {
+                        ProductId = componentProduct.Id,
+                        InventoryBatchId = plan.Slices.FirstOrDefault()?.BatchId,
+                        MovementType = StockMovementType.CustomerReturn,
+                        Quantity = plan.Quantity,
+                        UnitCostPkr = component.UnitCogsPkr,
+                        QuantityAfter = componentProduct.CurrentStock,
+                        ReferenceType = nameof(SalesReturn),
+                        ReferenceNumber = salesReturn.ReturnNumber,
+                        Reason = reason,
+                        OccurredAt = DateTime.UtcNow,
+                        CreatedAt = DateTime.UtcNow,
+                        CreatedBy = userId
+                    });
+                }
             }
-
-            product.CurrentStock += line.Quantity;
-            product.StockValue = Math.Round(product.CurrentStock * (product.AverageCost ?? product.LatestLandedCost ?? item.UnitCogsPkr), 2);
-            product.UpdatedAt = DateTime.UtcNow;
-            product.UpdatedBy = userId;
-
-            _db.StockMovements.Add(new StockMovement
+            else
             {
-                ProductId = product.Id,
-                MovementType = StockMovementType.CustomerReturn,
-                Quantity = line.Quantity,
-                UnitCostPkr = item.UnitCogsPkr,
-                QuantityAfter = product.CurrentStock,
-                ReferenceType = nameof(SalesReturn),
-                ReferenceNumber = salesReturn.ReturnNumber,
-                Reason = reason,
-                OccurredAt = DateTime.UtcNow,
-                CreatedAt = DateTime.UtcNow,
-                CreatedBy = userId
-            });
+                var product = item.Product;
+                var qtyLeft = line.Quantity;
+                foreach (var alloc in item.BatchAllocations.OrderByDescending(a => a.Id))
+                {
+                    if (qtyLeft <= 0) break;
+                    var batch = await _db.InventoryBatches.FirstOrDefaultAsync(b => b.Id == alloc.InventoryBatchId, cancellationToken);
+                    if (batch is null) continue;
+                    var put = Math.Min(qtyLeft, alloc.Quantity);
+                    batch.RemainingQuantity += put;
+                    batch.UpdatedAt = DateTime.UtcNow;
+                    batch.UpdatedBy = userId;
+                    qtyLeft -= put;
+                }
+
+                product.CurrentStock += line.Quantity;
+                product.StockValue = Math.Round(product.CurrentStock * (product.AverageCost ?? product.LatestLandedCost ?? item.UnitCogsPkr), 2);
+                product.UpdatedAt = DateTime.UtcNow;
+                product.UpdatedBy = userId;
+
+                _db.StockMovements.Add(new StockMovement
+                {
+                    ProductId = product.Id,
+                    MovementType = StockMovementType.CustomerReturn,
+                    Quantity = line.Quantity,
+                    UnitCostPkr = item.UnitCogsPkr,
+                    QuantityAfter = product.CurrentStock,
+                    ReferenceType = nameof(SalesReturn),
+                    ReferenceNumber = salesReturn.ReturnNumber,
+                    Reason = reason,
+                    OccurredAt = DateTime.UtcNow,
+                    CreatedAt = DateTime.UtcNow,
+                    CreatedBy = userId
+                });
+            }
 
             salesReturn.Items.Add(new SalesReturnItem
             {

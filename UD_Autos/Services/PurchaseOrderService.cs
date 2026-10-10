@@ -198,8 +198,13 @@ public class PurchaseOrderService : IPurchaseOrderService
             if (item.ProductId <= 0) return "Each line needs a product.";
             if (item.Quantity <= 0) return "Quantity must be greater than zero.";
             if (item.UnitPriceRmb < 0) return "Unit RMB price cannot be negative.";
-            if (!await _db.Products.AnyAsync(p => p.Id == item.ProductId && p.IsActive, cancellationToken))
-                return $"Product Id {item.ProductId} not found.";
+            if (!await _db.Products.AnyAsync(p => p.Id == item.ProductId && p.IsActive && p.ProductKind == ProductKind.SingleItem, cancellationToken))
+            {
+                var isSet = await _db.Products.AnyAsync(p => p.Id == item.ProductId && p.ProductKind == ProductKind.CompleteSet, cancellationToken);
+                return isSet
+                    ? "A complete set cannot be purchased. Buy its items instead."
+                    : $"Product Id {item.ProductId} not found.";
+            }
         }
 
         return null;

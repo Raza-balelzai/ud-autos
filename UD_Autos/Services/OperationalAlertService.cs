@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using UD_Autos.Data;
+using UD_Autos.Models.Products;
 using UD_Autos.Models.Shipments;
 
 namespace UD_Autos.Services;
@@ -29,7 +30,7 @@ public class OperationalAlertService : IOperationalAlertService
         var alerts = new List<OperationalAlertItem>();
 
         var lowStock = await _db.Products.AsNoTracking()
-            .Where(p => p.IsActive && p.ReorderLevel > 0 && p.CurrentStock <= p.ReorderLevel)
+            .Where(p => p.IsActive && p.ProductKind == ProductKind.SingleItem && p.ReorderLevel > 0 && p.CurrentStock <= p.ReorderLevel)
             .CountAsync(cancellationToken);
         if (lowStock > 0)
         {

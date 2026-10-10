@@ -42,7 +42,7 @@
                 <tr>
                     <td>@m.OccurredAt.ToLocalTime().ToString("dd MMM yyyy HH:mm")</td>
                     <td>@m.Product.Sku</td>
-                    <td><span class="badge-app badge-app--neutral">@m.MovementType</span></td>
+                    <td><span class="badge-app badge-app--neutral">@(m.MovementType == StockMovementType.SetConsumption ? "Set sale" : m.MovementType.ToString())</span></td>
                     <td>@m.Quantity.ToString("N2")</td>
                     <td>@m.QuantityAfter.ToString("N2")</td>
                     <td>Rs. @m.UnitCostPkr.ToString("N4")</td>

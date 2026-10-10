@@ -11,8 +11,8 @@ public interface IProductService
     Task<PagedResult<Product>> SearchAsync(string? search, int? categoryId, string? sortBy, bool sortDesc, int page, int pageSize, CancellationToken cancellationToken = default);
     Task<Product?> GetByIdAsync(int id, bool includeHistory = false, CancellationToken cancellationToken = default);
     Task<(IReadOnlyList<ProductPurchaseHistoryRow> Purchases, IReadOnlyList<ProductShipmentHistoryRow> Shipments, IReadOnlyList<ProductSalesHistoryRow> Sales)> GetHistoryAsync(int productId, CancellationToken cancellationToken = default);
-    Task<(bool Ok, string? Error, Product? Product)> CreateAsync(Product product, string? userId, CancellationToken cancellationToken = default);
-    Task<(bool Ok, string? Error)> UpdateAsync(Product product, string? userId, string? priceChangeReason = null, CancellationToken cancellationToken = default);
+    Task<(bool Ok, string? Error, Product? Product)> CreateAsync(Product product, string? userId, CancellationToken cancellationToken = default, IReadOnlyList<SetComponentInput>? components = null);
+    Task<(bool Ok, string? Error)> UpdateAsync(Product product, string? userId, string? priceChangeReason = null, CancellationToken cancellationToken = default, IReadOnlyList<SetComponentInput>? components = null);
     Task<(bool Ok, string? Error)> SoftDeleteAsync(int id, string? userId, CancellationToken cancellationToken = default);
 }
 
@@ -71,6 +71,7 @@ public class ProductService : IProductService
 
         var total = await query.CountAsync(cancellationToken);
         var items = await query.Skip((page - 1) * pageSize).Take(pageSize).ToListAsync(cancellationToken);
+        await ProductSetAvailability.AttachAsync(_db, items, cancellationToken);
 
         return new PagedResult<Product>
         {
@@ -90,6 +91,8 @@ public class ProductService : IProductService
             .Include(p => p.Category)
             .Include(p => p.Unit)
             .Include(p => p.DefaultSupplier)
+            .Include(p => p.SetComponents.Where(c => c.IsActive))
+                .ThenInclude(c => c.ComponentProduct)
             .AsQueryable();
 
         if (includeHistory)
@@ -99,7 +102,10 @@ public class ProductService : IProductService
                 .Include(p => p.LandedCostHistory.OrderByDescending(h => h.EffectiveDate));
         }
 
-        return await query.FirstOrDefaultAsync(p => p.Id == id, cancellationToken);
+        var product = await query.FirstOrDefaultAsync(p => p.Id == id, cancellationToken);
+        if (product is not null)
+            await ProductSetAvailability.AttachAsync(_db, new[] { product }, cancellationToken);
+        return product;
     }
 
     public async Task<(IReadOnlyList<ProductPurchaseHistoryRow> Purchases, IReadOnlyList<ProductShipmentHistoryRow> Shipments, IReadOnlyList<ProductSalesHistoryRow> Sales)> GetHistoryAsync(
@@ -162,7 +168,7 @@ public class ProductService : IProductService
     }
 
     public async Task<(bool Ok, string? Error, Product? Product)> CreateAsync(
-        Product product, string? userId, CancellationToken cancellationToken = default)
+        Product product, string? userId, CancellationToken cancellationToken = default, IReadOnlyList<SetComponentInput>? components = null)
     {
         if (string.IsNullOrWhiteSpace(product.Name))
         {
@@ -193,11 +199,38 @@ public class ProductService : IProductService
             return (false, "Wholesale/Retail price cannot be below Minimum Sale Price.", null);
         }
 
+        if (product.ProductKind == ProductKind.CompleteSet)
+        {
+            var componentError = await ValidateComponentsAsync(null, components, cancellationToken);
+            if (componentError is not null)
+                return (false, componentError, null);
+            product.CurrentStock = 0;
+            product.ReservedQuantity = 0;
+            product.DamagedStock = 0;
+        }
+
         RecalculateCbm(product);
         product.CreatedAt = DateTime.UtcNow;
         product.CreatedBy = userId;
         product.IsActive = true;
-        product.StockValue = Math.Round(product.CurrentStock * (product.AverageCost ?? product.LatestLandedCost ?? 0), 2);
+        product.StockValue = product.ProductKind == ProductKind.CompleteSet
+            ? 0
+            : Math.Round(product.CurrentStock * (product.AverageCost ?? product.LatestLandedCost ?? 0), 2);
+
+        if (product.ProductKind == ProductKind.CompleteSet && components is not null)
+        {
+            foreach (var component in components)
+            {
+                product.SetComponents.Add(new ProductSetComponent
+                {
+                    ComponentProductId = component.ComponentProductId,
+                    RequiredQuantity = component.RequiredQuantity,
+                    IsActive = true,
+                    CreatedAt = DateTime.UtcNow,
+                    CreatedBy = userId
+                });
+            }
+        }
 
         _db.Products.Add(product);
 
@@ -234,7 +267,7 @@ public class ProductService : IProductService
     }
 
     public async Task<(bool Ok, string? Error)> UpdateAsync(
-        Product product, string? userId, string? priceChangeReason = null, CancellationToken cancellationToken = default)
+        Product product, string? userId, string? priceChangeReason = null, CancellationToken cancellationToken = default, IReadOnlyList<SetComponentInput>? components = null)
     {
         var existing = await _db.Products.FirstOrDefaultAsync(p => p.Id == product.Id, cancellationToken);
         if (existing is null)
@@ -266,6 +299,21 @@ public class ProductService : IProductService
             return (false, "Wholesale/Retail price cannot be below Minimum Sale Price.");
         }
 
+        if (product.ProductKind == ProductKind.CompleteSet && existing.ProductKind != ProductKind.CompleteSet && existing.CurrentStock != 0)
+            return (false, "This item has stock. A complete set does not keep its own stock.");
+
+        if (product.ProductKind == ProductKind.CompleteSet)
+        {
+            var usedInSet = await _db.ProductSetComponents.AnyAsync(
+                c => c.IsActive && c.ComponentProductId == existing.Id && c.SetProductId != existing.Id, cancellationToken);
+            if (usedInSet)
+                return (false, "This item is inside a complete set. Remove it there before making it a set.");
+
+            var componentError = await ValidateComponentsAsync(existing.Id, components, cancellationToken);
+            if (componentError is not null)
+                return (false, componentError);
+        }
+
         var oldRmb = existing.LatestRmbPrice;
         var oldLanded = existing.LatestLandedCost;
         var oldWholesale = existing.WholesalePrice;
@@ -295,6 +343,7 @@ public class ProductService : IProductService
         existing.ReorderLevel = product.ReorderLevel;
         existing.Description = product.Description;
         existing.IsActive = product.IsActive;
+        existing.ProductKind = product.ProductKind;
         RecalculateCbm(existing);
 
         var salePriceChanged = oldWholesale != product.WholesalePrice
@@ -337,9 +386,16 @@ public class ProductService : IProductService
             });
         }
 
-        existing.StockValue = Math.Round(existing.CurrentStock * (existing.AverageCost ?? existing.LatestLandedCost ?? 0), 2);
+        existing.StockValue = existing.ProductKind == ProductKind.CompleteSet
+            ? 0
+            : Math.Round(existing.CurrentStock * (existing.AverageCost ?? existing.LatestLandedCost ?? 0), 2);
         existing.UpdatedAt = DateTime.UtcNow;
         existing.UpdatedBy = userId;
+
+        if (existing.ProductKind == ProductKind.CompleteSet)
+            await ReplaceComponentsAsync(existing.Id, components ?? Array.Empty<SetComponentInput>(), userId, cancellationToken);
+        else if (existing.ProductKind == ProductKind.SingleItem)
+            await DeactivateComponentsAsync(existing.Id, userId, cancellationToken);
 
         await _db.SaveChangesAsync(cancellationToken);
         await _audit.LogAsync(
@@ -370,6 +426,74 @@ public class ProductService : IProductService
         await _db.SaveChangesAsync(cancellationToken);
         await _audit.LogAsync("SoftDelete", nameof(Product), existing.Id.ToString(), existing.Sku, cancellationToken: cancellationToken);
         return (true, null);
+    }
+
+    private async Task<string?> ValidateComponentsAsync(int? setProductId, IReadOnlyList<SetComponentInput>? components, CancellationToken cancellationToken)
+    {
+        var list = components?.Where(c => c.ComponentProductId > 0).ToList() ?? new List<SetComponentInput>();
+        var ids = list.Select(c => c.ComponentProductId).Distinct().ToList();
+        var products = ids.Count == 0
+            ? new List<(int Id, bool IsActive, ProductKind ProductKind)>()
+            : (await _db.Products.AsNoTracking()
+                .Where(p => ids.Contains(p.Id))
+                .Select(p => new { p.Id, p.IsActive, p.ProductKind })
+                .ToListAsync(cancellationToken))
+                .Select(p => (p.Id, p.IsActive, p.ProductKind))
+                .ToList();
+
+        var active = products.Where(p => p.IsActive).Select(p => p.Id).ToHashSet();
+        var kinds = products.ToDictionary(p => p.Id, p => p.ProductKind);
+        return ProductSetPlanner.ValidateComposition(setProductId, list, kinds, active);
+    }
+
+    private async Task ReplaceComponentsAsync(int setProductId, IReadOnlyList<SetComponentInput> components, string? userId, CancellationToken cancellationToken)
+    {
+        var existing = await _db.ProductSetComponents.Where(c => c.SetProductId == setProductId).ToListAsync(cancellationToken);
+        var incoming = components.Where(c => c.ComponentProductId > 0).ToList();
+        var incomingIds = incoming.Select(c => c.ComponentProductId).ToHashSet();
+
+        foreach (var row in existing.Where(c => c.IsActive && !incomingIds.Contains(c.ComponentProductId)))
+        {
+            row.IsActive = false;
+            row.UpdatedAt = DateTime.UtcNow;
+            row.UpdatedBy = userId;
+        }
+
+        foreach (var input in incoming)
+        {
+            var row = existing.FirstOrDefault(c => c.ComponentProductId == input.ComponentProductId);
+            if (row is null)
+            {
+                _db.ProductSetComponents.Add(new ProductSetComponent
+                {
+                    SetProductId = setProductId,
+                    ComponentProductId = input.ComponentProductId,
+                    RequiredQuantity = input.RequiredQuantity,
+                    IsActive = true,
+                    CreatedAt = DateTime.UtcNow,
+                    CreatedBy = userId
+                });
+                continue;
+            }
+
+            row.RequiredQuantity = input.RequiredQuantity;
+            row.IsActive = true;
+            row.UpdatedAt = DateTime.UtcNow;
+            row.UpdatedBy = userId;
+        }
+    }
+
+    private async Task DeactivateComponentsAsync(int setProductId, string? userId, CancellationToken cancellationToken)
+    {
+        var rows = await _db.ProductSetComponents
+            .Where(c => c.SetProductId == setProductId && c.IsActive)
+            .ToListAsync(cancellationToken);
+        foreach (var row in rows)
+        {
+            row.IsActive = false;
+            row.UpdatedAt = DateTime.UtcNow;
+            row.UpdatedBy = userId;
+        }
     }
 
     private static string? NormalizeBarcode(string? barcode)

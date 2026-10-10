@@ -45,12 +45,25 @@ public class InventoryService : IInventoryService
             query = query.Where(p => p.Sku.Contains(term) || p.Name.Contains(term));
         }
 
-        if (outOfStockOnly == true) query = query.Where(p => p.CurrentStock <= 0);
-        else if (lowStockOnly == true) query = query.Where(p => p.CurrentStock > 0 && p.CurrentStock <= p.ReorderLevel);
+        if (outOfStockOnly == true)
+        {
+            query = query.Where(p =>
+                (p.ProductKind == ProductKind.SingleItem && p.CurrentStock <= 0)
+                || (p.ProductKind == ProductKind.CompleteSet && (
+                    !p.SetComponents.Any(c => c.IsActive)
+                    || p.SetComponents.Any(c => c.IsActive && (
+                        !c.ComponentProduct.IsActive
+                        || (c.ComponentProduct.CurrentStock - c.ComponentProduct.ReservedQuantity) < c.RequiredQuantity)))));
+        }
+        else if (lowStockOnly == true)
+        {
+            query = query.Where(p => p.ProductKind == ProductKind.SingleItem && p.CurrentStock > 0 && p.CurrentStock <= p.ReorderLevel);
+        }
 
         query = query.OrderBy(p => p.Name);
         var total = await query.CountAsync(cancellationToken);
         var items = await query.Skip((page - 1) * pageSize).Take(pageSize).ToListAsync(cancellationToken);
+        await ProductSetAvailability.AttachAsync(_db, items, cancellationToken);
 
         return new PagedResult<Product>
         {
@@ -118,6 +131,8 @@ public class InventoryService : IInventoryService
 
         var product = await _db.Products.FirstOrDefaultAsync(p => p.Id == productId, cancellationToken);
         if (product is null) return (false, "Product not found.");
+        if (product.ProductKind == ProductKind.CompleteSet)
+            return (false, "A complete set has no stock of its own. Stock comes from its items.");
 
         InventoryBatch? batch = null;
         if (batchId.HasValue)
@@ -173,6 +188,8 @@ public class InventoryService : IInventoryService
         var product = await _db.Products.FirstOrDefaultAsync(p => p.Id == productId, cancellationToken);
         var batch = await _db.InventoryBatches.FirstOrDefaultAsync(b => b.Id == batchId && b.ProductId == productId, cancellationToken);
         if (product is null || batch is null) return (false, "Product/batch not found.");
+        if (product.ProductKind == ProductKind.CompleteSet)
+            return (false, "A complete set has no stock of its own. Stock comes from its items.");
         if (batch.RemainingQuantity < quantity) return (false, "Not enough batch quantity to mark damaged.");
 
         batch.RemainingQuantity -= quantity;
@@ -219,6 +236,8 @@ public class InventoryService : IInventoryService
 
         var product = await _db.Products.FirstOrDefaultAsync(p => p.Id == productId, cancellationToken);
         if (product is null) return (false, "Product not found.");
+        if (product.ProductKind == ProductKind.CompleteSet)
+            return (false, "A complete set has no stock of its own. Stock comes from its items.");
 
         InventoryBatch? batch = null;
         if (batchId.HasValue)
@@ -264,6 +283,8 @@ public class InventoryService : IInventoryService
 
         var product = await _db.Products.FirstOrDefaultAsync(p => p.Id == productId, cancellationToken);
         if (product is null) return (false, "Product not found.");
+        if (product.ProductKind == ProductKind.CompleteSet)
+            return (false, "A complete set has no stock of its own. Stock comes from its items.");
 
         InventoryBatch? batch = null;
         if (batchId.HasValue)

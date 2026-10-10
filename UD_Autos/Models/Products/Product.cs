@@ -111,6 +111,16 @@ public class Product : AuditableEntity
 
     public bool IsActive { get; set; } = true;
 
+    public ProductKind ProductKind { get; set; } = ProductKind.SingleItem;
+
+    [NotMapped]
+    public decimal? VirtualAvailableSets { get; set; }
+
+    [NotMapped]
+    public string? LimitingComponentName { get; set; }
+
     public ICollection<ProductRmbPriceHistory> RmbPriceHistory { get; set; } = new List<ProductRmbPriceHistory>();
     public ICollection<ProductLandedCostHistory> LandedCostHistory { get; set; } = new List<ProductLandedCostHistory>();
+    public ICollection<ProductSetComponent> SetComponents { get; set; } = new List<ProductSetComponent>();
+    public ICollection<ProductSetComponent> UsedInSets { get; set; } = new List<ProductSetComponent>();
 }
