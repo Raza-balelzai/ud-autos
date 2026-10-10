@@ -58,6 +58,7 @@
                 <input class="input-app" name="Items[@i].UnitPrice" value="@Model.Items[i].UnitPrice" placeholder="Unit price" aria-label="Unit price" />
                 <input class="input-app" name="Items[@i].LineDiscount" value="@Model.Items[i].LineDiscount" placeholder="Discount" aria-label="Discount" />
                 <button type="button" class="btn-app btn-app--ghost btn-app--sm" data-remove-line>✕</button>
+                <p class="hint line-row__note" data-layer-note hidden></p>
             </div>
         }
     </div>
@@ -128,6 +129,7 @@
         <input class="input-app" name="Items[__i__].UnitPrice" placeholder="Unit price" aria-label="Unit price" />
         <input class="input-app" name="Items[__i__].LineDiscount" placeholder="Discount" aria-label="Discount" />
         <button type="button" class="btn-app btn-app--ghost btn-app--sm" data-remove-line>✕</button>
+        <p class="hint line-row__note" data-layer-note hidden></p>
     </div>
 </template>
 
@@ -155,18 +157,120 @@
     const i = lines.querySelectorAll('.line-row').length;
     lines.insertAdjacentHTML('beforeend', tpl.innerHTML.replaceAll('__i__', i));
     applyFilter();
+    refreshLayerNotes();
   });
   search?.addEventListener('input', applyFilter);
+  const layerCache = {};
+
+  function qtyText(value) {
+    const n = Number(value);
+    if (!Number.isFinite(n)) return '0';
+    return Math.abs(n - Math.round(n)) < 0.0000001 ? String(Math.round(n)) : String(Math.round(n * 100) / 100);
+  }
+
+  function moneyText(value) {
+    const n = Number(value);
+    const whole = Math.abs(n - Math.round(n)) < 0.0000001;
+    return n.toLocaleString('en-US', { minimumFractionDigits: whole ? 0 : 2, maximumFractionDigits: whole ? 0 : 2 });
+  }
+
+  function joinParts(parts) {
+    if (parts.length <= 1) return parts[0] || '';
+    if (parts.length === 2) return parts[0] + ' and ' + parts[1];
+    return parts.slice(0, -1).join(', ') + ', and ' + parts[parts.length - 1];
+  }
+
+  function planLayers(layers, quantity, skip) {
+    let remainingSkip = Math.max(0, Number(skip) || 0);
+    let remaining = quantity;
+    const slices = [];
+    let oldest = 0;
+    for (const layer of layers) {
+      let available = Number(layer.available) || 0;
+      if (available <= 0) continue;
+      if (remainingSkip > 0) {
+        const skipped = Math.min(available, remainingSkip);
+        available -= skipped;
+        remainingSkip -= skipped;
+      }
+      if (available <= 0) continue;
+      if (oldest === 0) oldest = available;
+      if (remaining <= 0) continue;
+      const take = Math.min(available, remaining);
+      slices.push({ quantity: take, unitCost: layer.unitCost });
+      remaining -= take;
+    }
+    return { slices, oldest };
+  }
+
+  function describeLayers(slices, oldest, includeCost) {
+    if (!slices.length) return '';
+    if (slices.length === 1) {
+      const left = oldest > 0 ? oldest : slices[0].quantity;
+      const text = 'Oldest stock: ' + qtyText(left) + ' left.';
+      return includeCost ? text + ' Cost Rs ' + moneyText(slices[0].unitCost) + '.' : text;
+    }
+    const parts = includeCost
+      ? slices.map(s => qtyText(s.quantity) + ' at Rs ' + moneyText(s.unitCost))
+      : slices.map(s => qtyText(s.quantity));
+    return 'This quantity uses ' + joinParts(parts) + '. Add a second line if those should have different sale prices.';
+  }
+
+  function layersFor(productId) {
+    if (!layerCache[productId]) {
+      layerCache[productId] = fetch('/Sales/OpenLayers?productId=' + encodeURIComponent(productId))
+        .then(res => res.ok ? res.json() : { isSet: false, includeCost: false, layers: [] });
+    }
+    return layerCache[productId];
+  }
+
+  async function refreshLayerNotes() {
+    const rows = [...lines.querySelectorAll('.line-row')];
+    const used = {};
+    for (const row of rows) {
+      const note = row.querySelector('[data-layer-note]');
+      const productId = row.querySelector('select')?.value;
+      const quantity = Number(row.querySelector('input[name$=".Quantity"]')?.value);
+      if (!note) continue;
+      if (!productId || !(quantity > 0)) {
+        note.hidden = true;
+        note.textContent = '';
+        continue;
+      }
+      const data = await layersFor(productId);
+      if (data.isSet) {
+        note.hidden = false;
+        note.textContent = 'The set price is for the whole set. Item stock comes from the oldest receipts.';
+        continue;
+      }
+      const skip = used[productId] || 0;
+      const planned = planLayers(data.layers || [], quantity, skip);
+      used[productId] = skip + quantity;
+      const text = describeLayers(planned.slices, planned.oldest, !!data.includeCost);
+      note.hidden = !text;
+      note.textContent = text;
+    }
+  }
+
   lines?.addEventListener('change', (e) => {
     const select = e.target.closest('select');
-    if (!select || prices[select.value] == null) return;
-    const price = select.closest('.line-row')?.querySelector('input[name$=".UnitPrice"]');
-    if (price) price.value = prices[select.value];
+    if (select && prices[select.value] != null) {
+      const price = select.closest('.line-row')?.querySelector('input[name$=".UnitPrice"]');
+      if (price) price.value = prices[select.value];
+    }
+    refreshLayerNotes();
+  });
+  lines?.addEventListener('input', (e) => {
+    if (e.target.matches('input[name$=".Quantity"]')) refreshLayerNotes();
   });
   lines?.addEventListener('click', e => {
     const btn = e.target.closest('[data-remove-line]');
-    if (btn && lines.querySelectorAll('.line-row').length > 1) btn.closest('.line-row').remove();
+    if (btn && lines.querySelectorAll('.line-row').length > 1) {
+      btn.closest('.line-row').remove();
+      refreshLayerNotes();
+    }
   });
+  refreshLayerNotes();
   document.getElementById('customer-select')?.addEventListener('change', async (e) => {
     const id = e.target.value;
     if (!id) return;

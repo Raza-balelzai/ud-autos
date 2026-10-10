@@ -130,6 +130,37 @@ public class SalesController : Controller
     }
 
     [HttpGet]
+    public async Task<IActionResult> OpenLayers(int productId, CancellationToken cancellationToken = default)
+    {
+        var product = await _db.Products.AsNoTracking()
+            .Where(p => p.Id == productId && p.IsActive)
+            .Select(p => new { p.ProductKind })
+            .FirstOrDefaultAsync(cancellationToken);
+        if (product is null) return NotFound();
+
+        var includeCost = User.IsInRole(AppRoles.Owner) || User.IsInRole(AppRoles.Manager) || User.IsInRole(AppRoles.Accountant);
+        if (product.ProductKind == ProductKind.CompleteSet)
+            return Json(new { isSet = true, includeCost, layers = Array.Empty<object>() });
+
+        var rows = await _db.InventoryBatches.AsNoTracking()
+            .Where(b => b.ProductId == productId && b.RemainingQuantity > b.ReservedQuantity)
+            .OrderBy(b => b.ReceivedAt).ThenBy(b => b.Id)
+            .Select(b => new { Available = b.RemainingQuantity - b.ReservedQuantity, b.LandedUnitCostPkr })
+            .ToListAsync(cancellationToken);
+
+        return Json(new
+        {
+            isSet = false,
+            includeCost,
+            layers = rows.Select(b => new
+            {
+                available = b.Available,
+                unitCost = includeCost ? b.LandedUnitCostPkr : (decimal?)null
+            })
+        });
+    }
+
+    [HttpGet]
     public async Task<IActionResult> SearchProducts(string? q, CancellationToken cancellationToken = default)
     {
         q ??= "";

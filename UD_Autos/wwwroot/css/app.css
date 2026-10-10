@@ -1380,6 +1380,15 @@ label.is-required .req {
   margin-bottom: var(--space-2);
 }
 
+.line-row__note {
+  grid-column: 1 / -1;
+  margin: 0;
+}
+
+.line-row__note[hidden] {
+  display: none;
+}
+
 @media (max-width: 1023px) {
   .line-head {
     display: none;

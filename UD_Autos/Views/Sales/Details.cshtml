@@ -50,6 +50,10 @@
                         {
                             <span class="badge-app badge-app--neutral">Complete set</span>
                         }
+                        @if (canViewCosts && item.BatchAllocations.Count > 0)
+                        {
+                            <div class="hint">@SaleLayerPreview.FormatSplit(item.BatchAllocations.OrderBy(a => a.Id).Select(a => (a.Quantity, a.UnitCostPkr)))</div>
+                        }
                     </td>
                     <td>@item.Quantity.ToString("N2")</td>
                     <td>Rs. @item.UnitPrice.ToString("N2")</td>
