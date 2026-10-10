@@ -718,19 +718,51 @@ label.is-required .req {
 
 .input-app:focus,
 .select-app:focus,
-.textarea-app:focus {
+.textarea-app:focus,
+.select-app:focus-visible,
+.select-app:active {
   border-color: var(--color-primary);
-  background: #fff;
+  background-color: #fff;
   box-shadow: 0 0 0 3px var(--color-primary-soft);
 }
 
 .input-app:disabled,
 .select-app:disabled,
 .textarea-app:disabled {
-  background: #f1f5f9;
+  background-color: #f1f5f9;
   color: var(--color-text-muted);
   cursor: not-allowed;
   opacity: 0.85;
+}
+
+.input-app[type="file"] {
+  padding: 0;
+  color: var(--color-text-muted);
+  line-height: 40px;
+  cursor: pointer;
+}
+
+.input-app[type="file"]::file-selector-button,
+.input-app[type="file"]::-webkit-file-upload-button {
+  appearance: none;
+  -webkit-appearance: none;
+  height: 40px;
+  margin: 0 0.85rem 0 0;
+  padding: 0 1rem;
+  border: 0;
+  border-radius: calc(var(--radius-md) - 1px) 0 0 calc(var(--radius-md) - 1px);
+  background: var(--color-primary);
+  color: #fff;
+  font-family: inherit;
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-semibold);
+  cursor: pointer;
+  vertical-align: top;
+}
+
+.input-app[type="file"]::file-selector-button:hover,
+.input-app[type="file"]::-webkit-file-upload-button:hover {
+  background: var(--color-primary-hover);
 }
 
 /* Native inputs without utility class (safety net) */
