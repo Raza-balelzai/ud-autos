@@ -16,6 +16,7 @@
 }
 
 <div class="card-panel">
+    <h3 class="form-section__title">Shipment</h3>
     <div class="detail-grid">
         <div class="detail-item"><dt>Shipment</dt><dd>@Model.ShipmentNumber</dd></div>
         <div class="detail-item"><dt>Agent</dt><dd>@Model.ShippingAgent</dd></div>
@@ -27,7 +28,7 @@
         <div class="detail-item"><dt>Finalized</dt><dd>@(Model.IsFinalized ? "Yes" : "No (Phase 3)")</dd></div>
     </div>
 
-    <h3 class="card-panel__title">Items</h3>
+    <h3 class="form-section__title">Items</h3>
     <div class="table-wrap">
         <table class="table-app">
             <thead><tr><th>SKU</th><th>Product</th><th>PO</th><th>Supplier</th><th>Expected Qty</th></tr></thead>
@@ -46,7 +47,7 @@
         </table>
     </div>
 
-    <h3 class="card-panel__title">China warehouse receiving slips</h3>
+    <h3 class="form-section__title">China warehouse receiving slips</h3>
     <div class="table-wrap">
         <table class="table-app">
             <thead><tr><th>Slip</th><th>Date</th><th>Factory</th><th>Cartons</th><th>Kg</th><th>CBM</th><th>File</th></tr></thead>
@@ -80,7 +81,7 @@
         </table>
     </div>
 
-    <h3 class="card-panel__title">Freight (KG / CBM) &amp; variance</h3>
+    <h3 class="form-section__title">Freight (KG / CBM) &amp; variance</h3>
     <form asp-action="UpdateFreight" method="post" class="form-grid form-grid--3">
         @Html.AntiForgeryToken()
         <input type="hidden" name="Id" value="@Model.Id" />
@@ -146,7 +147,7 @@
             </div>
         </div>
 
-        <h3 class="card-panel__title form-grid--full">Karachi → Tarnol</h3>
+        <h3 class="form-section__title form-grid--full">Karachi → Tarnol</h3>
         <div class="field"><label>Transporter</label><input class="input-app" name="Transporter" value="@Model.Transporter" /></div>
         <div class="field"><label>Bilty No</label><input class="input-app" name="BiltyNumber" value="@Model.BiltyNumber" /></div>
         <div class="field"><label>Tarnol Dispatch</label><input class="input-app" type="date" name="TarnolDispatchDate" value="@Model.TarnolDispatchDate?.ToString("yyyy-MM-dd")" /></div>
@@ -160,7 +161,7 @@
         </div>
     </form>
 
-    <h3 class="card-panel__title">Status workflow</h3>
+    <h3 class="form-section__title">Status workflow</h3>
     <form asp-action="ChangeStatus" method="post" class="table-toolbar">
         @Html.AntiForgeryToken()
         <input type="hidden" name="id" value="@Model.Id" />
@@ -170,7 +171,7 @@
     </form>
     <p class="dashboard-note">Use <strong>Final Receiving</strong> to finalize &amp; post inventory (Phase 3). Manual status “Received” remains blocked outside finalization.</p>
 
-    <h3 class="card-panel__title">Documents</h3>
+    <h3 class="form-section__title">Documents</h3>
     <form asp-action="UploadDocument" method="post" enctype="multipart/form-data" class="table-toolbar">
         @Html.AntiForgeryToken()
         <input type="hidden" name="ShipmentId" value="@Model.Id" />
@@ -196,7 +197,7 @@
         </table>
     </div>
 
-    <h3 class="card-panel__title">Timeline</h3>
+    <h3 class="form-section__title">Timeline</h3>
     <form asp-action="AddTimeline" method="post" class="table-toolbar">
         @Html.AntiForgeryToken()
         <input type="hidden" name="shipmentId" value="@Model.Id" />

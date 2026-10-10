@@ -7,6 +7,7 @@
 <form asp-action="Damage" method="post" class="card-panel">
     @Html.AntiForgeryToken()
     <p class="form-legend"><span class="req" aria-hidden="true">*</span> Required field</p>
+    <h3 class="form-section__title">Damaged stock</h3>
     <div class="form-grid">
         <div class="field">
             <label asp-for="ProductId" class="is-required">Product <span class="req" aria-hidden="true">*</span></label>

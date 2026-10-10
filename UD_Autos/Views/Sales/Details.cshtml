@@ -16,6 +16,7 @@
 }
 
 <div class="card-panel">
+    <h3 class="form-section__title">Invoice</h3>
     <div class="detail-grid">
         <div class="detail-item"><dt>Invoice</dt><dd>@Model.InvoiceNumber</dd></div>
         <div class="detail-item"><dt>Date</dt><dd>@Model.InvoiceDate.ToString("dd MMM yyyy")</dd></div>
@@ -33,6 +34,7 @@
         }
     </div>
 
+    <h3 class="form-section__title">Line items</h3>
     <div class="table-wrap">
         <table class="table-app">
             <thead><tr><th>#</th><th>Product</th><th>Qty</th><th>Price</th><th>Discount</th><th>Total</th>@if (canViewCosts){<th>COGS</th>}</tr></thead>
@@ -94,7 +96,7 @@
         <form asp-action="Void" method="post" class="card-panel">
             @Html.AntiForgeryToken()
             <input type="hidden" name="id" value="@Model.Id" />
-            <h3 class="card-panel__title">Authorized void (Owner/Manager)</h3>
+            <h3 class="form-section__title">Void invoice</h3>
             <p class="dashboard-note">Restores stock, reverses Khata/cash effects, and keeps the invoice row for audit. Not a silent delete.</p>
             <div class="field"><label>Reason</label><textarea class="textarea-app" name="reason" required></textarea></div>
             <button type="submit" class="btn-app btn-app--danger">Void invoice</button>

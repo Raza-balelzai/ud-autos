@@ -71,7 +71,6 @@
     <section id="stock" class="form-section">
     <div class="form-section__head">
         <h3 class="form-section__title">Stock</h3>
-        <p class="form-section__text">@(p.ProductKind == ProductKind.CompleteSet ? "This set has no stock of its own. Availability comes from the items below." : "Quantity on hand for this item.")</p>
     </div>
     @if (p.ProductKind == ProductKind.CompleteSet)
     {
@@ -79,7 +78,7 @@
             <div class="detail-item"><dt>Sets available</dt><dd>@((p.VirtualAvailableSets ?? 0).ToString("N0"))</dd></div>
             <div class="detail-item"><dt>Limited by</dt><dd>@(p.LimitingComponentName ?? "—")</dd></div>
         </div>
-        <h3 class="form-section__title" style="margin-top:1.25rem">Set items</h3>
+        <div class="form-section__head"><h3 class="form-section__title">Set items</h3></div>
         <div class="table-wrap">
             <table class="table-app">
                 <thead><tr><th>Item</th><th>Required Qty</th><th>Available Stock</th></tr></thead>
@@ -142,7 +141,7 @@
             </table>
         </div>
 
-        <div class="form-section__head" style="margin-top:1.25rem"><h3 class="form-section__title">Landed cost history</h3></div>
+        <div class="form-section__head"><h3 class="form-section__title">Landed cost history</h3></div>
         <div class="table-wrap">
             <table class="table-app">
                 <thead><tr><th>Date</th><th>Landed PKR</th><th>Shipment</th><th>Notes</th></tr></thead>

@@ -6,6 +6,7 @@
 }
 
 <div class="card-panel">
+    <h3 class="form-section__title">Order</h3>
     <div class="detail-grid">
         <div class="detail-item"><dt>PO No</dt><dd>@Model.PoNumber</dd></div>
         <div class="detail-item"><dt>Supplier</dt><dd>@Model.Supplier.Name</dd></div>
@@ -18,7 +19,7 @@
         <div class="detail-item"><dt>Balance RMB</dt><dd>¥ @Model.BalanceRmb.ToString("N4")</dd></div>
     </div>
 
-    <h3 class="card-panel__title">Items</h3>
+    <h3 class="form-section__title">Items</h3>
     <div class="table-wrap">
         <table class="table-app">
             <thead><tr><th>SKU</th><th>Product</th><th>Qty</th><th>Unit RMB</th><th>Line RMB</th></tr></thead>
@@ -37,7 +38,7 @@
         </table>
     </div>
 
-    <h3 class="card-panel__title">Update status</h3>
+    <h3 class="form-section__title">Update status</h3>
     <form asp-action="ChangeStatus" method="post" class="table-toolbar">
         @Html.AntiForgeryToken()
         <input type="hidden" name="id" value="@Model.Id" />

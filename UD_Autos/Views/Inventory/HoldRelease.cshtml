@@ -9,11 +9,7 @@
     @Html.AntiForgeryToken()
     <input type="hidden" asp-for="Mode" value="@mode" />
 
-    <p class="hint">
-        @(mode == "hold"
-            ? "Hold reduces Available for sales without removing physical stock. Use when a customer asks you to keep goods."
-            : "Release returns held quantity to Available for sales.")
-    </p>
+    <h3 class="form-section__title">@(mode == "hold" ? "Hold stock" : "Release stock")</h3>
     <p class="form-legend"><span class="req" aria-hidden="true">*</span> Required field</p>
 
     <div class="form-grid form-grid--3">

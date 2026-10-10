@@ -16,7 +16,6 @@
     <section class="form-section form-section--first">
         <div class="form-section__head">
             <h3 class="form-section__title">Product</h3>
-            <p class="form-section__text">Name and type come first. A single item is stocked on its own. A complete set is sold as one line and takes stock from its items.</p>
         </div>
         <div class="form-grid form-grid--3">
             <div class="field form-grid--full">
@@ -52,7 +51,6 @@
     <section id="set-editor" class="form-section" @(isSet ? null : "hidden")>
         <div class="form-section__head">
             <h3 class="form-section__title">Set items</h3>
-            <p class="form-section__text">Add each single item in this set and how many are required. The same item can still be sold on its own. A set cannot contain another set.</p>
         </div>
         <div class="table-toolbar">
             <input class="input-app" id="component-search" placeholder="Search by SKU or name" autocomplete="off" />
@@ -89,7 +87,6 @@
     <section class="form-section">
         <div class="form-section__head">
             <h3 class="form-section__title">Classification</h3>
-            <p class="form-section__text">Optional. Use these so the item is easy to find by vehicle or supplier.</p>
         </div>
         <div class="form-grid form-grid--3">
             <div class="field">
@@ -145,7 +142,6 @@
     <section class="form-section">
         <div class="form-section__head">
             <h3 class="form-section__title">Prices</h3>
-            <p class="form-section__text" id="price-section-text">Wholesale is the default price when this item is added to a sale. All amounts are in PKR.</p>
         </div>
         <div class="form-grid form-grid--3">
             <div class="field">
@@ -169,7 +165,6 @@
     <section class="form-section" id="stock-section" @(isSet ? "hidden" : null)>
         <div class="form-section__head">
             <h3 class="form-section__title">Stock alert</h3>
-            <p class="form-section__text">Optional. The low-stock list uses this level. A complete set does not keep its own quantity.</p>
         </div>
         <div class="form-grid form-grid--3">
             <div class="field">
@@ -182,7 +177,6 @@
     <section class="form-section" id="size-section">
         <div class="form-section__head">
             <h3 class="form-section__title">Size and weight</h3>
-            <p class="form-section__text">Optional. Used for cartons, shipping, and landed cost.</p>
         </div>
         <div class="form-grid form-grid--3">
             <div class="field"><label asp-for="Product.UnitWeightKg">Unit weight (kg)</label><input asp-for="Product.UnitWeightKg" class="input-app" /></div>
@@ -199,7 +193,6 @@
         <section class="form-section">
             <div class="form-section__head">
                 <h3 class="form-section__title">Cost</h3>
-                <p class="form-section__text">Optional. A reason is required only when wholesale, retail, or the minimum price changes.</p>
             </div>
             <div class="form-grid form-grid--3">
                 <div class="field">
@@ -245,7 +238,6 @@
   const save = document.getElementById('product-save');
   const priceLabel = document.getElementById('selling-price-label');
   const priceHint = document.getElementById('selling-price-hint');
-  const priceText = document.getElementById('price-section-text');
   const isEdit = @(isEdit ? "true" : "false");
   const search = document.getElementById('component-search');
   const results = document.getElementById('component-results');
@@ -265,9 +257,6 @@
     if (priceHint) priceHint.textContent = isSet
       ? 'Price charged for one complete set. You can still change it on the sale.'
       : 'Default price on a sale.';
-    if (priceText) priceText.textContent = isSet
-      ? 'Set price is what the customer pays for one complete set. Component prices are not added on top.'
-      : 'Wholesale is the default price when this item is added to a sale. All amounts are in PKR.';
     if (save) save.textContent = isEdit ? 'Save changes' : (isSet ? 'Create set' : 'Create product');
   }
 

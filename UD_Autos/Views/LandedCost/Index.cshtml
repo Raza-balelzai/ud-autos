@@ -31,7 +31,7 @@
             </div>
         </div>
 
-        <h3 class="card-panel__title">Allocation inputs</h3>
+        <h3 class="form-section__title">Allocation inputs</h3>
         <div class="table-wrap">
             <table class="table-app">
                 <thead>
@@ -74,7 +74,7 @@
 
     @if (Model.Preview is not null)
     {
-        <h3 class="card-panel__title">Cost breakdown</h3>
+        <h3 class="form-section__title">Cost breakdown</h3>
         <div class="detail-grid">
             <div class="detail-item"><dt>China product cost</dt><dd>Rs. @Model.Preview.ChinaProductCostPkr.ToString("N2")</dd></div>
             <div class="detail-item"><dt>Hawala direct charges</dt><dd>Rs. @Model.Preview.HawalaDirectChargesPkr.ToString("N2")</dd></div>
@@ -89,7 +89,7 @@
             <div class="detail-item"><dt>Method / FX</dt><dd>@Model.Preview.Method — rate @Model.Preview.CostingExchangeRate.ToString("N4")</dd></div>
         </div>
 
-        <h3 class="card-panel__title">Per-SKU allocation</h3>
+        <h3 class="form-section__title">Per-SKU allocation</h3>
         <div class="table-wrap">
             <table class="table-app">
                 <thead>

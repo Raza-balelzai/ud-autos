@@ -4,6 +4,7 @@
     @Html.AntiForgeryToken()
     <input type="hidden" asp-for="InvoiceId" />
     <p class="form-legend"><span class="req" aria-hidden="true">*</span> Required field</p>
+    <h3 class="form-section__title">Return</h3>
     <div class="form-grid form-grid--3">
         <div class="field">
             <label class="is-required">Return date <span class="req" aria-hidden="true">*</span></label>
@@ -23,6 +24,7 @@
         </div>
     </div>
 
+    <h3 class="form-section__title">Items</h3>
     <div class="table-wrap">
         <table class="table-app">
             <thead><tr><th>Product</th><th>Sold</th><th>Already returned</th><th>Return qty</th></tr></thead>

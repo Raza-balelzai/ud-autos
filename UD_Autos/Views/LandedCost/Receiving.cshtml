@@ -15,6 +15,7 @@
         <div class="alert-app alert-app--danger">Calculate &amp; save landed cost before finalization.</div>
     }
 
+    <h3 class="form-section__title">Final receiving</h3>
     <form asp-action="SaveActuals" method="post">
         @Html.AntiForgeryToken()
         <input type="hidden" name="shipmentId" value="@Model.Shipment.Id" />

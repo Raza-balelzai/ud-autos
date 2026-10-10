@@ -9,6 +9,7 @@
     @Html.AntiForgeryToken()
     <p class="hint">Stock return only — does not post supplier ledger credit. Qty cannot exceed batch remaining minus reserved.</p>
     <p class="form-legend"><span class="req" aria-hidden="true">*</span> Required field</p>
+    <h3 class="form-section__title">Return</h3>
 
     <div class="form-grid form-grid--3">
         <div class="field">
@@ -39,7 +40,7 @@
         </div>
     </div>
 
-    <h3 class="card-panel__title">Lines</h3>
+    <h3 class="form-section__title">Lines</h3>
     <div class="table-wrap">
         <table class="table-app" id="return-lines">
             <thead>

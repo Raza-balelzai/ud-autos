@@ -800,18 +800,34 @@ label.is-required .req {
   margin-bottom: var(--space-4);
 }
 
-.form-section__title {
-  margin: 0;
-  font-size: var(--fs-md);
-  font-weight: var(--fw-semibold);
+.form-section__head:not(:first-child) {
+  margin-top: var(--space-5);
 }
 
-.form-section__text {
-  margin: 0.3rem 0 0;
-  max-width: 42rem;
-  font-size: var(--fs-sm);
-  color: var(--color-text-muted);
-  line-height: 1.45;
+.form-section__title {
+  display: inline-block;
+  width: fit-content;
+  max-width: 100%;
+  justify-self: start;
+  margin: var(--space-5) 0 var(--space-4);
+  padding: 0.48rem 1.7rem 0.48rem 0.95rem;
+  background: var(--color-primary);
+  color: var(--color-text-inverse);
+  font-size: var(--fs-md);
+  font-weight: var(--fw-bold);
+  line-height: 1.2;
+  letter-spacing: 0.01em;
+  clip-path: polygon(0 0, calc(100% - 14px) 0, 100% 50%, calc(100% - 14px) 100%, 0 100%);
+}
+
+.form-section__head .form-section__title {
+  margin-bottom: 0;
+}
+
+.form-section--first > .form-section__head:first-child .form-section__title,
+.form-section__head:first-child .form-section__title,
+.card-panel > .form-section__title:first-child {
+  margin-top: 0;
 }
 
 .component-picks {

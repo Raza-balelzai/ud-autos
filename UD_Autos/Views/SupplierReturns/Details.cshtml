@@ -5,6 +5,7 @@
 }
 
 <div class="card-panel">
+    <h3 class="form-section__title">Return</h3>
     <div class="detail-grid">
         <div class="detail-item"><dt>Return #</dt><dd>@Model.ReturnNumber</dd></div>
         <div class="detail-item"><dt>Date</dt><dd>@Model.ReturnDate.ToString("dd MMM yyyy")</dd></div>
@@ -15,6 +16,7 @@
     </div>
     <p class="hint">This return adjusts inventory only. Supplier payment/balance is not auto-credited.</p>
 
+    <h3 class="form-section__title">Items</h3>
     <div class="table-wrap">
         <table class="table-app">
             <thead>
