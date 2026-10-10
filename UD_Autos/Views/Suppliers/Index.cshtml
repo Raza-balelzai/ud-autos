@@ -4,6 +4,10 @@
 }
 
 @section PageActions {
+    @if (User.IsInRole(AppRoles.Owner))
+    {
+        <a class="btn-app btn-app--outline" asp-controller="Archive" asp-action="Index" asp-route-tab="suppliers"><svg class="ico" aria-hidden="true"><use href="#i-ban"></use></svg> Inactive</a>
+    }
     <a class="btn-app btn-app--primary" asp-action="Create"><svg class="ico" aria-hidden="true"><use href="#i-plus"></use></svg> Add supplier</a>
 }
 

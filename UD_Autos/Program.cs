@@ -43,6 +43,7 @@ builder.Services.AddScoped<IProductService, ProductService>();
 builder.Services.AddScoped<ISupplierService, SupplierService>();
 builder.Services.AddScoped<ICustomerService, CustomerService>();
 builder.Services.AddScoped<ISettingsService, SettingsService>();
+builder.Services.AddScoped<IArchiveService, ArchiveService>();
 builder.Services.AddScoped<IFileStorageService, FileStorageService>();
 builder.Services.AddScoped<ISupplierBalanceService, SupplierBalanceService>();
 builder.Services.AddScoped<IPurchaseOrderService, PurchaseOrderService>();

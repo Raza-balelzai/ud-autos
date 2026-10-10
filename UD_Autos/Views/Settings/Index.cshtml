@@ -1,6 +1,17 @@
 @model SettingsIndexViewModel
+@{
+    var archiveTab = Model.ActiveTab switch
+    {
+        "units" => "units",
+        "expenses" => "expenses",
+        _ => "categories"
+    };
+}
 
 <div class="card-panel">
+    <div class="table-toolbar">
+        <a class="btn-app btn-app--outline" asp-controller="Archive" asp-action="Index" asp-route-tab="@archiveTab"><svg class="ico" aria-hidden="true"><use href="#i-ban"></use></svg> Inactive</a>
+    </div>
     <div class="tabs-app">
         <a class="@(Model.ActiveTab == "categories" ? "is-active" : null)" asp-action="Index" asp-route-tab="categories">Categories</a>
         <a class="@(Model.ActiveTab == "units" ? "is-active" : null)" asp-action="Index" asp-route-tab="units">Units</a>
