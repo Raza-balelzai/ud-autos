@@ -1,20 +1,55 @@
 @model PagerViewModel
-@if (Model.TotalPages > 1)
+@if (Model.TotalCount > 0)
 {
-    <div class="pagination-app">
-        <span>@Model.TotalCount records</span>
-        @for (var i = 1; i <= Model.TotalPages; i++)
+    var size = Model.PageSize <= 0 ? Model.TotalCount : Model.PageSize;
+    var from = Math.Min(Model.TotalCount, ((Math.Max(Model.Page, 1) - 1) * size) + 1);
+    var to = Math.Min(Model.Page * size, Model.TotalCount);
+    var start = Math.Max(1, Model.Page - 2);
+    var end = Model.TotalPages == 0 ? 0 : Math.Min(Model.TotalPages, start + 4);
+    start = Math.Max(1, end - 4);
+    <nav class="pagination-app" aria-label="Pagination">
+        <span class="pagination-app__summary">Showing @from to @to of @Model.TotalCount</span>
+        @if (Model.TotalPages > 1)
         {
-            if (i == Model.Page)
-            {
-                <span class="is-active">@i</span>
-            }
-            else
-            {
-                <a asp-action="@Model.Action" asp-all-route-data="@(ToRoute(i))">@i</a>
-            }
+            <div class="pagination-app__pages">
+                @if (Model.Page > 1)
+                {
+                    <a asp-action="@Model.Action" asp-all-route-data="@(ToRoute(Model.Page - 1))" aria-label="Previous page">‹</a>
+                }
+                @if (start > 1)
+                {
+                    <a asp-action="@Model.Action" asp-all-route-data="@(ToRoute(1))">1</a>
+                    @if (start > 2)
+                    {
+                        <span class="pagination-app__ellipsis" aria-hidden="true">…</span>
+                    }
+                }
+                @for (var i = start; i <= end; i++)
+                {
+                    if (i == Model.Page)
+                    {
+                        <span class="is-active" aria-current="page">@i</span>
+                    }
+                    else
+                    {
+                        <a asp-action="@Model.Action" asp-all-route-data="@(ToRoute(i))">@i</a>
+                    }
+                }
+                @if (end < Model.TotalPages)
+                {
+                    @if (end < Model.TotalPages - 1)
+                    {
+                        <span class="pagination-app__ellipsis" aria-hidden="true">…</span>
+                    }
+                    <a asp-action="@Model.Action" asp-all-route-data="@(ToRoute(Model.TotalPages))">@Model.TotalPages</a>
+                }
+                @if (Model.Page < Model.TotalPages)
+                {
+                    <a asp-action="@Model.Action" asp-all-route-data="@(ToRoute(Model.Page + 1))" aria-label="Next page">›</a>
+                }
+            </div>
         }
-    </div>
+    </nav>
 }
 
 @functions {

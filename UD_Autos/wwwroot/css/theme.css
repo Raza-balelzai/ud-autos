@@ -6,8 +6,8 @@
 
 :root {
   /* Brand / surfaces */
-  --color-sidebar: #1a2233;
-  --color-sidebar-muted: #8b95a8;
+  --color-sidebar: #0f172a;
+  --color-sidebar-muted: #94a3b8;
   --color-sidebar-hover: rgba(255, 255, 255, 0.06);
   --color-sidebar-active: #3b82f6;
   --color-bg: #f4f7fa;
