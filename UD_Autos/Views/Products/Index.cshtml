@@ -73,7 +73,8 @@
                             else
                             {
                                 var initial = string.IsNullOrWhiteSpace(item.Name) ? "?" : char.ToUpperInvariant(item.Name.Trim()[0]).ToString();
-                                <span class="thumb thumb-letter" aria-hidden="true">@initial</span>
+                                var tone = initial[0] % 6;
+                                <span class="thumb-letter" data-tone="@tone" role="img" aria-label="No photo for @item.Name">@initial</span>
                             }
                         </td>
                         <td>@item.Sku</td>

@@ -1315,14 +1315,64 @@ label.is-required .req {
   display: block;
 }
 
+.table-app .thumb.thumb-letter,
 .thumb-letter {
-  display: grid;
-  place-items: center;
-  background: var(--color-primary-soft);
-  color: var(--color-primary);
-  font-size: var(--fs-sm);
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  object-fit: unset;
+  color: #1e3a8a;
+  background: linear-gradient(165deg, #ffffff 0%, #e8f1fe 55%, #dbeafe 100%);
+  border: 1px solid #c9dbf5;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    0 1px 2px rgba(15, 23, 42, 0.06);
+  padding-top: 1px;
+  font-size: 0.95rem;
   font-weight: var(--fw-semibold);
+  letter-spacing: -0.03em;
   line-height: 1;
+  user-select: none;
+}
+
+.thumb-letter[data-tone="0"] {
+  color: #1e40af;
+  background: linear-gradient(180deg, #f8fbff 0%, #e7f0fe 100%);
+  border-color: #d4e3f8;
+}
+
+.thumb-letter[data-tone="1"] {
+  color: #334155;
+  background: linear-gradient(180deg, #f8fafc 0%, #e8eef5 100%);
+  border-color: #d8e0ea;
+}
+
+.thumb-letter[data-tone="2"] {
+  color: #0f766e;
+  background: linear-gradient(180deg, #f4fbfa 0%, #e3f5f2 100%);
+  border-color: #c9e8e3;
+}
+
+.thumb-letter[data-tone="3"] {
+  color: #5b21b6;
+  background: linear-gradient(180deg, #faf8ff 0%, #efe8fb 100%);
+  border-color: #ddd2f3;
+}
+
+.thumb-letter[data-tone="4"] {
+  color: #9a3412;
+  background: linear-gradient(180deg, #fffaf6 0%, #f8ebe3 100%);
+  border-color: #f0d8cb;
+}
+
+.thumb-letter[data-tone="5"] {
+  color: #155e75;
+  background: linear-gradient(180deg, #f5fbfd 0%, #e4f3f8 100%);
+  border-color: #cde4ee;
 }
 
 .thumb-btn {
@@ -2520,9 +2570,13 @@ body:has(.login-page) {
     padding: 0.55rem 0.65rem;
   }
 
-  .table-app .thumb {
-    width: 32px;
-    height: 32px;
+  .table-app .thumb,
+  .table-app .thumb.thumb-letter,
+  .thumb-letter {
+    width: 34px;
+    height: 34px;
+    border-radius: 8px;
+    font-size: 0.85rem;
   }
 
   .table-app .actions {
