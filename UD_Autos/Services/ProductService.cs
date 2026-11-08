@@ -66,7 +66,7 @@ public class ProductService : IProductService
             "sku" => sortDesc ? query.OrderByDescending(p => p.Sku) : query.OrderBy(p => p.Sku),
             "name" => sortDesc ? query.OrderByDescending(p => p.Name) : query.OrderBy(p => p.Name),
             "stock" => sortDesc ? query.OrderByDescending(p => p.CurrentStock) : query.OrderBy(p => p.CurrentStock),
-            "price" => sortDesc ? query.OrderByDescending(p => p.WholesalePrice) : query.OrderBy(p => p.WholesalePrice),
+            "price" => sortDesc ? query.OrderByDescending(p => p.RetailPrice) : query.OrderBy(p => p.RetailPrice),
             _ => sortDesc ? query.OrderByDescending(p => p.Id) : query.OrderBy(p => p.Name)
         };
 

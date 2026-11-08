@@ -28,7 +28,7 @@
             <option value="name" selected="@(Model.SortBy == "name" || string.IsNullOrEmpty(Model.SortBy))">Name</option>
             <option value="sku" selected="@(Model.SortBy == "sku")">SKU</option>
             <option value="stock" selected="@(Model.SortBy == "stock")">Stock</option>
-            <option value="price" selected="@(Model.SortBy == "price")">Wholesale</option>
+            <option value="price" selected="@(Model.SortBy == "price")">Retail price</option>
         </select>
         <label class="checkbox-row">
             <input type="checkbox" name="sortDesc" value="true" checked="@Model.SortDesc" /> Desc
@@ -44,7 +44,7 @@
                 <th>SKU</th>
                 <th>Product Name</th>
                 <th>Category</th>
-                <th>Price</th>
+                <th>Retail price</th>
                 <th>Stock</th>
                 <th>Status</th>
                 <th></th>
@@ -72,7 +72,8 @@
                             }
                             else
                             {
-                                <span class="badge-app badge-app--neutral">No img</span>
+                                var initial = string.IsNullOrWhiteSpace(item.Name) ? "?" : char.ToUpperInvariant(item.Name.Trim()[0]).ToString();
+                                <span class="thumb thumb-letter" aria-hidden="true">@initial</span>
                             }
                         </td>
                         <td>@item.Sku</td>
@@ -84,7 +85,7 @@
                             }
                         </td>
                         <td>@(item.Category?.Name ?? "—")</td>
-                        <td>Rs. @item.WholesalePrice.ToString("N2")</td>
+                        <td>Rs. @item.RetailPrice.ToString("N2")</td>
                         <td>
                             @if (item.ProductKind == ProductKind.CompleteSet)
                             {

@@ -1315,6 +1315,16 @@ label.is-required .req {
   display: block;
 }
 
+.thumb-letter {
+  display: grid;
+  place-items: center;
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-semibold);
+  line-height: 1;
+}
+
 .thumb-btn {
   display: inline-flex;
   padding: 0;
