@@ -251,3 +251,48 @@
         </ul>
     </div>
 </div>
+
+@{
+    var shopDownload = ViewData["UdShopDownload"] as UdShopDesktopDownloadInfo;
+}
+@if (shopDownload is not null)
+{
+    <section class="card-panel ud-shop-download" aria-labelledby="ud-shop-download-title">
+        <div class="ud-shop-download__layout">
+            <div class="ud-shop-download__mark" aria-hidden="true">
+                <svg viewBox="0 0 24 24"><path d="M3 5.2 10.6 4.1v7.2H3V5.2zm8.4-1.2L21 2.4v8.9h-9.6V4zm0 8.8H21v8.9l-9.6-1.4V12.8zM3 12.8h7.6v6.9L3 18.6v-5.8z"/></svg>
+            </div>
+            <div class="ud-shop-download__copy">
+                <h2 class="card-panel__title" id="ud-shop-download-title">UD Shop — Desktop Application</h2>
+                <p class="ud-shop-download__text">@shopDownload.Description</p>
+                @if (shopDownload.IsPublished)
+                {
+                    <p class="ud-shop-download__meta">Version @shopDownload.Version@(string.IsNullOrWhiteSpace(shopDownload.ReleasedAt) ? "" : $" · {shopDownload.ReleasedAt}")</p>
+                    @if (!string.IsNullOrWhiteSpace(shopDownload.Notes))
+                    {
+                        <p class="ud-shop-download__text">@shopDownload.Notes</p>
+                    }
+                }
+                else
+                {
+                    <p class="ud-shop-download__meta">No installer has been published yet.</p>
+                }
+                <p class="ud-shop-download__note">The installer link is public so installed copies can check for updates. It does not sign anyone in to UD Autos.</p>
+            </div>
+            @if (shopDownload.IsPublished)
+            {
+                <div class="ud-shop-download__actions">
+                    <a class="btn-app btn-app--primary" href="@shopDownload.AppInstallerUrl">
+                        <svg class="ico" aria-hidden="true"><use href="#i-download"></use></svg>
+                        Download / Install
+                    </a>
+                    <a class="btn-app btn-app--outline" href="@shopDownload.MsixUrl">MSIX package</a>
+                    @if (!string.IsNullOrWhiteSpace(shopDownload.CertificateUrl))
+                    {
+                        <a class="btn-app btn-app--outline" href="@shopDownload.CertificateUrl">Trust certificate</a>
+                    }
+                </div>
+            }
+        </div>
+    </section>
+}

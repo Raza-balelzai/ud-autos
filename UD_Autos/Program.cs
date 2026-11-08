@@ -87,7 +87,9 @@ else
 }
 
 app.UseHttpsRedirection();
-app.UseStaticFiles();
+// Installer files under wwwroot/downloads/ud-shop are public. Windows App Installer
+// cannot send the dashboard login cookie when it checks for updates.
+UdShopDesktopDownloads.UseAppStaticFiles(app);
 app.UseRouting();
 
 app.UseAuthentication();

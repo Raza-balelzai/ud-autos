@@ -2859,3 +2859,72 @@ body.is-modal-open {
 .error-page__id code {
   font-size: 0.8rem;
 }
+
+.ud-shop-download {
+  margin-top: var(--space-5);
+}
+
+.ud-shop-download__layout {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+.ud-shop-download__mark {
+  flex: 0 0 auto;
+  width: 52px;
+  height: 52px;
+  border-radius: var(--radius-md);
+  background: var(--color-primary);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ud-shop-download__mark svg {
+  width: 26px;
+  height: 26px;
+  fill: currentColor;
+}
+
+.ud-shop-download__copy {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.ud-shop-download__text,
+.ud-shop-download__meta,
+.ud-shop-download__note {
+  margin: 0.25rem 0 0;
+  color: var(--color-text-muted);
+  font-size: var(--fs-sm);
+}
+
+.ud-shop-download__meta {
+  color: var(--color-text);
+  font-weight: var(--fw-semibold);
+}
+
+.ud-shop-download__note {
+  font-size: var(--fs-xs);
+}
+
+.ud-shop-download__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  flex: 0 1 auto;
+}
+
+@media (max-width: 800px) {
+  .ud-shop-download__layout {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .ud-shop-download__actions {
+    justify-content: flex-start;
+  }
+}

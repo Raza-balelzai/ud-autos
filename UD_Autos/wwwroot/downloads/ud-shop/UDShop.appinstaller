@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<AppInstaller xmlns="http://schemas.microsoft.com/appx/appinstaller/2018" Uri="https://www.zen-ramanujan.66-165-248-146.plesk.page/downloads/ud-shop/UDShop.appinstaller" Version="1.0.0.0">
+  <MainPackage Name="com.udshop.truckparts" Publisher="CN=UD Shop" Version="1.0.0.0" ProcessorArchitecture="x64" Uri="https://www.zen-ramanujan.66-165-248-146.plesk.page/downloads/ud-shop/UDShop_1.0.0.0_x64.msix" />
+  <UpdateSettings>
+    <OnLaunch HoursBetweenUpdateChecks="0" ShowPrompt="false" UpdateBlocksActivation="false" />
+    <AutomaticBackgroundTask />
+  </UpdateSettings>
+</AppInstaller>

@@ -1,0 +1,6 @@
+{
+    "version":  "1.0.0.0",
+    "releasedAt":  "2026-10-17",
+    "notes":  "First Windows release.",
+    "packageFile":  "UDShop_1.0.0.0_x64.msix"
+}
