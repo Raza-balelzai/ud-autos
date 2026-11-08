@@ -17,7 +17,7 @@ public class Product : AuditableEntity
     [StringLength(64)]
     public string? Barcode { get; set; }
 
-    [Required, StringLength(250)]
+    [Required(ErrorMessage = "Product name is required."), StringLength(250)]
     public string Name { get; set; } = string.Empty;
 
     public int? CategoryId { get; set; }

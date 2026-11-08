@@ -1022,10 +1022,83 @@ label.is-required .req {
 }
 
 .field-error,
+.field-validation-error,
 .validation-summary-errors,
 .text-danger {
   color: var(--color-danger);
   font-size: var(--fs-xs);
+}
+
+.field-error:empty,
+.field-validation-valid:empty {
+  display: none;
+}
+
+.input-app.input-validation-error,
+.select-app.input-validation-error,
+.textarea-app.input-validation-error {
+  border-color: var(--color-danger);
+  box-shadow: 0 0 0 3px var(--color-danger-soft);
+}
+
+.label-row {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.label-row label {
+  width: auto;
+}
+
+.field-tip {
+  position: relative;
+  display: inline-flex;
+  flex: 0 0 auto;
+  color: var(--color-text-muted);
+  cursor: help;
+  outline: none;
+}
+
+.field-tip .ico {
+  width: 14px;
+  height: 14px;
+  display: block;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.field-tip__bubble {
+  display: none;
+  position: absolute;
+  z-index: 30;
+  top: calc(100% + 6px);
+  left: 0;
+  width: max-content;
+  max-width: 240px;
+  padding: 0.4rem 0.55rem;
+  border-radius: 6px;
+  background: #0f172a;
+  color: #fff;
+  font-size: var(--fs-xs);
+  font-weight: 400;
+  line-height: 1.4;
+  white-space: normal;
+}
+
+.field:hover,
+.field:focus-within {
+  position: relative;
+  z-index: 5;
+}
+
+.field-tip:hover .field-tip__bubble,
+.field-tip:focus .field-tip__bubble,
+.field-tip:focus-within .field-tip__bubble {
+  display: block;
 }
 
 .validation-summary-errors ul {

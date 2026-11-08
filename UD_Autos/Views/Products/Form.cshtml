@@ -2,6 +2,26 @@
 @{
     var isEdit = Model.Product.Id > 0;
     var isSet = Model.Product.ProductKind == ProductKind.CompleteSet;
+    var canViewCosts = User.IsInRole(AppRoles.Owner) || User.IsInRole(AppRoles.Manager) || User.IsInRole(AppRoles.Accountant);
+    var unitKey = (Model.Units.FirstOrDefault(u => u.Id == Model.Product.UnitId)?.Name ?? "").Trim().ToLowerInvariant();
+    var showQuantity = !isEdit && !isSet && unitKey is "piece" or "set" or "pair" or "kilogram" or "carton";
+    var showSize = unitKey == "carton";
+    var showUnitHint = !isSet && unitKey.Length == 0;
+    var showMeasure = !isSet && (showQuantity || showSize || showUnitHint);
+    var quantityNoun = unitKey switch
+    {
+        "kilogram" => "kg",
+        "carton" => "cartons",
+        "pair" => "pairs",
+        "set" => "sets",
+        _ => "pieces"
+    };
+    string Num(decimal? value) => value is null or 0m
+        ? ""
+        : value.Value.ToString("0.####", System.Globalization.CultureInfo.InvariantCulture);
+    string Invalid(string key) => ViewData.ModelState.TryGetValue(key, out var entry) && entry.Errors.Count > 0
+        ? "input-validation-error"
+        : "";
 }
 
 <form asp-action="@(isEdit ? "Edit" : "Create")" method="post" enctype="multipart/form-data" class="card-panel">
@@ -19,19 +39,29 @@
         </div>
         <div class="form-grid form-grid--3">
             <div class="field form-grid--full">
-                <label asp-for="Product.Name" class="is-required">Product name <span class="req" aria-hidden="true">*</span></label>
+                <div class="label-row">
+                    <label asp-for="Product.Name" class="is-required">Product name <span class="req" aria-hidden="true">*</span></label>
+                    <partial name="_FieldTip" model='@("Name shown on invoices and stock lists.")' />
+                </div>
                 <input asp-for="Product.Name" class="input-app" required aria-required="true" placeholder="e.g. Complete truck bumper set" />
                 <span asp-validation-for="Product.Name" class="field-error"></span>
             </div>
             <div class="field">
-                <label class="is-required">Product type <span class="req" aria-hidden="true">*</span></label>
+                <div class="label-row">
+                    <label class="is-required" for="product-kind">Product type <span class="req" aria-hidden="true">*</span></label>
+                    <partial name="_FieldTip" model='@("Single item is one part. Complete set is sold as one price but stock comes from its items.")' />
+                </div>
                 <select asp-for="Product.ProductKind" class="select-app" id="product-kind">
                     <option value="@((int)ProductKind.SingleItem)">Single item</option>
                     <option value="@((int)ProductKind.CompleteSet)">Complete set</option>
                 </select>
+                <span asp-validation-for="Product.ProductKind" class="field-error"></span>
             </div>
             <div class="field">
-                <label asp-for="Product.Sku">SKU @(isEdit ? Html.Raw("<span class=\"req\" aria-hidden=\"true\">*</span>") : null)</label>
+                <div class="label-row">
+                    <label asp-for="Product.Sku">SKU @(isEdit ? Html.Raw("<span class=\"req\" aria-hidden=\"true\">*</span>") : null)</label>
+                    <partial name="_FieldTip" model='@("Your product code. Leave blank and one is created on save.")' />
+                </div>
                 <input asp-for="Product.Sku" class="input-app" placeholder="@(isEdit ? "" : "Leave blank to auto-generate")" aria-required="@(isEdit ? "true" : "false")" />
                 @if (!isEdit)
                 {
@@ -40,7 +70,10 @@
                 <span asp-validation-for="Product.Sku" class="field-error"></span>
             </div>
             <div class="field">
-                <label asp-for="Product.Barcode">Barcode</label>
+                <div class="label-row">
+                    <label asp-for="Product.Barcode">Barcode</label>
+                    <partial name="_FieldTip" model='@("Scan code if you use a scanner. Optional.")' />
+                </div>
                 <input asp-for="Product.Barcode" class="input-app" placeholder="Scan code, if you use one" />
                 <span class="hint">Optional</span>
                 <span asp-validation-for="Product.Barcode" class="field-error"></span>
@@ -90,41 +123,72 @@
         </div>
         <div class="form-grid form-grid--3">
             <div class="field">
-                <label asp-for="Product.CategoryId">Category</label>
+                <div class="label-row">
+                    <label asp-for="Product.CategoryId">Category</label>
+                    <partial name="_FieldTip" model='@("Group used for filters, such as bumper or light.")' />
+                </div>
                 <select asp-for="Product.CategoryId" class="select-app" asp-items="@(new SelectList(Model.Categories, "Id", "Name"))">
                     <option value="">Select category</option>
                 </select>
+                <span asp-validation-for="Product.CategoryId" class="field-error"></span>
             </div>
             <div class="field">
-                <label asp-for="Product.UnitId">Unit</label>
+                <div class="label-row">
+                    <label asp-for="Product.UnitId">Unit</label>
+                    <partial name="_FieldTip" model='@("How you count this product. Piece shows a quantity. Carton shows carton size and weight.")' />
+                </div>
                 <select asp-for="Product.UnitId" class="select-app" asp-items="@(new SelectList(Model.Units, "Id", "Name"))">
                     <option value="">Select unit</option>
                 </select>
+                <span asp-validation-for="Product.UnitId" class="field-error"></span>
             </div>
             <div class="field">
-                <label asp-for="Product.DefaultSupplierId">Default supplier</label>
+                <div class="label-row">
+                    <label asp-for="Product.DefaultSupplierId">Default supplier</label>
+                    <partial name="_FieldTip" model='@("Who you usually buy this from. Optional.")' />
+                </div>
                 <select asp-for="Product.DefaultSupplierId" class="select-app" asp-items="@(new SelectList(Model.Suppliers, "Id", "Name"))">
                     <option value="">Select supplier</option>
                 </select>
+                <span asp-validation-for="Product.DefaultSupplierId" class="field-error"></span>
             </div>
             <div class="field">
-                <label asp-for="Product.Brand">Brand</label>
+                <div class="label-row">
+                    <label asp-for="Product.Brand">Brand</label>
+                    <partial name="_FieldTip" model='@("Maker of the part. Optional.")' />
+                </div>
                 <input asp-for="Product.Brand" class="input-app" />
+                <span asp-validation-for="Product.Brand" class="field-error"></span>
             </div>
             <div class="field">
-                <label asp-for="Product.VehicleBrand">Vehicle brand</label>
+                <div class="label-row">
+                    <label asp-for="Product.VehicleBrand">Vehicle brand</label>
+                    <partial name="_FieldTip" model='@("Vehicle make this part fits. Optional.")' />
+                </div>
                 <input asp-for="Product.VehicleBrand" class="input-app" />
+                <span asp-validation-for="Product.VehicleBrand" class="field-error"></span>
             </div>
             <div class="field">
-                <label asp-for="Product.VehicleModel">Vehicle model</label>
+                <div class="label-row">
+                    <label asp-for="Product.VehicleModel">Vehicle model</label>
+                    <partial name="_FieldTip" model='@("Vehicle model this part fits. Optional.")' />
+                </div>
                 <input asp-for="Product.VehicleModel" class="input-app" />
+                <span asp-validation-for="Product.VehicleModel" class="field-error"></span>
             </div>
             <div class="field">
-                <label asp-for="Product.VariantYear">Variant or year</label>
+                <div class="label-row">
+                    <label asp-for="Product.VariantYear">Variant or year</label>
+                    <partial name="_FieldTip" model='@("Year or variant this part fits. Optional.")' />
+                </div>
                 <input asp-for="Product.VariantYear" class="input-app" />
+                <span asp-validation-for="Product.VariantYear" class="field-error"></span>
             </div>
             <div class="field">
-                <label asp-for="ImageFile">Product image</label>
+                <div class="label-row">
+                    <label asp-for="ImageFile">Product image</label>
+                    <partial name="_FieldTip" model='@("Optional photo. JPG, PNG, WEBP, or GIF under 2 MB.")' />
+                </div>
                 <input asp-for="ImageFile" type="file" class="input-app" accept=".jpg,.jpeg,.png,.webp,.gif" />
                 @if (!string.IsNullOrEmpty(Model.Product.ImagePath))
                 {
@@ -135,6 +199,7 @@
                 {
                     <span class="hint">Optional. JPG, PNG, WEBP, or GIF under 2 MB.</span>
                 }
+                <span asp-validation-for="ImageFile" class="field-error"></span>
             </div>
         </div>
     </section>
@@ -145,21 +210,37 @@
         </div>
         <div class="form-grid form-grid--3">
             <div class="field">
-                <label asp-for="Product.WholesalePrice" id="selling-price-label">Wholesale price</label>
-                <input asp-for="Product.WholesalePrice" class="input-app" />
-                <span class="hint" id="selling-price-hint">Default price on a sale.</span>
+                <div class="label-row">
+                    <label for="Product_WholesalePrice" id="selling-price-label">@(isSet ? "Set price" : "Wholesale price")</label>
+                    <partial name="_FieldTip" model='@("Default price charged on a sale. Not your cost.")' />
+                </div>
+                <input id="Product_WholesalePrice" name="Product.WholesalePrice" class="input-app @Invalid("Product.WholesalePrice")" data-val="false" inputmode="decimal" value="@Num(Model.Product.WholesalePrice)" />
+                <span class="hint" id="selling-price-hint">@(isSet ? "Price charged for one complete set. You can still change it on the sale." : "Default price on a sale.")</span>
+                <span asp-validation-for="Product.WholesalePrice" class="field-error"></span>
             </div>
             <div class="field">
-                <label asp-for="Product.RetailPrice">Retail price</label>
-                <input asp-for="Product.RetailPrice" class="input-app" />
+                <div class="label-row">
+                    <label for="Product_RetailPrice">Retail price</label>
+                    <partial name="_FieldTip" model='@("Walk-in or counter price. Optional.")' />
+                </div>
+                <input id="Product_RetailPrice" name="Product.RetailPrice" class="input-app @Invalid("Product.RetailPrice")" data-val="false" inputmode="decimal" value="@Num(Model.Product.RetailPrice)" />
                 <span class="hint">Optional reference price.</span>
+                <span asp-validation-for="Product.RetailPrice" class="field-error"></span>
             </div>
             <div class="field">
-                <label asp-for="Product.MinimumSalePrice">Minimum sale price</label>
-                <input asp-for="Product.MinimumSalePrice" class="input-app" />
-                <span class="hint">Leave 0 if there is no minimum.</span>
+                <div class="label-row">
+                    <label for="Product_MinimumSalePrice">Minimum sale price</label>
+                    <partial name="_FieldTip" model='@("Lowest price allowed on a sale. Blank or 0 means no limit.")' />
+                </div>
+                <input id="Product_MinimumSalePrice" name="Product.MinimumSalePrice" class="input-app @Invalid("Product.MinimumSalePrice")" data-val="false" inputmode="decimal" value="@Num(Model.Product.MinimumSalePrice)" />
+                <span class="hint">Leave blank if there is no minimum.</span>
+                <span asp-validation-for="Product.MinimumSalePrice" class="field-error"></span>
             </div>
         </div>
+        @if (canViewCosts)
+        {
+            <p class="hint">These are selling prices. The price you paid goes in Purchase price under Cost.</p>
+        }
     </section>
 
     <section class="form-section" id="stock-section" @(isSet ? "hidden" : null)>
@@ -168,27 +249,91 @@
         </div>
         <div class="form-grid form-grid--3">
             <div class="field">
-                <label asp-for="Product.ReorderLevel">Reorder level</label>
-                <input asp-for="Product.ReorderLevel" class="input-app" />
+                <div class="label-row">
+                    <label for="Product_ReorderLevel">Reorder level</label>
+                    <partial name="_FieldTip" model='@("Warn when stock falls to this number. Optional.")' />
+                </div>
+                <input id="Product_ReorderLevel" name="Product.ReorderLevel" class="input-app @Invalid("Product.ReorderLevel")" data-val="false" inputmode="decimal" value="@Num(Model.Product.ReorderLevel)" />
+                <span asp-validation-for="Product.ReorderLevel" class="field-error"></span>
             </div>
         </div>
     </section>
 
-    <section class="form-section" id="size-section">
+    <section class="form-section" id="measure-section" @(showMeasure ? null : "hidden")>
         <div class="form-section__head">
-            <h3 class="form-section__title">Size and weight</h3>
+            <h3 class="form-section__title">Quantity and size</h3>
         </div>
-        <div class="form-grid form-grid--3">
-            <div class="field"><label asp-for="Product.UnitWeightKg">Unit weight (kg)</label><input asp-for="Product.UnitWeightKg" class="input-app" /></div>
-            <div class="field"><label asp-for="Product.CartonWeightKg">Carton weight (kg)</label><input asp-for="Product.CartonWeightKg" class="input-app" /></div>
-            <div class="field"><label asp-for="Product.PiecesPerCarton">Pieces per carton</label><input asp-for="Product.PiecesPerCarton" class="input-app" /></div>
-            <div class="field"><label asp-for="Product.LengthCm">Length (cm)</label><input asp-for="Product.LengthCm" class="input-app" /></div>
-            <div class="field"><label asp-for="Product.WidthCm">Width (cm)</label><input asp-for="Product.WidthCm" class="input-app" /></div>
-            <div class="field"><label asp-for="Product.HeightCm">Height (cm)</label><input asp-for="Product.HeightCm" class="input-app" /></div>
+        <p class="hint" id="unit-hint" @(showUnitHint ? null : "hidden")>Select a unit first.</p>
+        @if (!isEdit)
+        {
+            <div id="quantity-block" @(showQuantity ? null : "hidden")>
+                <div class="form-grid form-grid--3">
+                    <div class="field">
+                        <div class="label-row">
+                            <label for="Product_CurrentStock" id="quantity-label">Quantity (@quantityNoun)</label>
+                            <partial name="_FieldTip" model='@("How many you already have. Leave blank if stock will come in later.")' />
+                        </div>
+                        <input id="Product_CurrentStock" name="Product.CurrentStock" class="input-app @Invalid("Product.CurrentStock")" data-val="false" inputmode="decimal" value="@Num(Model.Product.CurrentStock)" disabled="@(showQuantity ? null : "disabled")" />
+                        <span asp-validation-for="Product.CurrentStock" class="field-error"></span>
+                    </div>
+                </div>
+            </div>
+        }
+        <div id="size-block" @(showSize ? null : "hidden")>
+            <div class="form-grid form-grid--3">
+                <div class="field">
+                    <div class="label-row">
+                        <label asp-for="Product.UnitWeightKg">Unit weight (kg)</label>
+                        <partial name="_FieldTip" model='@("Weight of one unit in kilograms. Optional.")' />
+                    </div>
+                    <input asp-for="Product.UnitWeightKg" class="input-app" data-val="false" disabled="@(showSize ? null : "disabled")" />
+                    <span asp-validation-for="Product.UnitWeightKg" class="field-error"></span>
+                </div>
+                <div class="field">
+                    <div class="label-row">
+                        <label asp-for="Product.CartonWeightKg">Carton weight (kg)</label>
+                        <partial name="_FieldTip" model='@("Weight of one full carton in kilograms.")' />
+                    </div>
+                    <input asp-for="Product.CartonWeightKg" class="input-app" data-val="false" disabled="@(showSize ? null : "disabled")" />
+                    <span asp-validation-for="Product.CartonWeightKg" class="field-error"></span>
+                </div>
+                <div class="field">
+                    <div class="label-row">
+                        <label asp-for="Product.PiecesPerCarton">Pieces per carton</label>
+                        <partial name="_FieldTip" model='@("How many pieces are packed in one carton.")' />
+                    </div>
+                    <input asp-for="Product.PiecesPerCarton" class="input-app" data-val="false" disabled="@(showSize ? null : "disabled")" />
+                    <span asp-validation-for="Product.PiecesPerCarton" class="field-error"></span>
+                </div>
+                <div class="field">
+                    <div class="label-row">
+                        <label asp-for="Product.LengthCm">Length (cm)</label>
+                        <partial name="_FieldTip" model='@("Carton length in centimetres. Used for shipping volume.")' />
+                    </div>
+                    <input asp-for="Product.LengthCm" class="input-app" data-val="false" disabled="@(showSize ? null : "disabled")" />
+                    <span asp-validation-for="Product.LengthCm" class="field-error"></span>
+                </div>
+                <div class="field">
+                    <div class="label-row">
+                        <label asp-for="Product.WidthCm">Width (cm)</label>
+                        <partial name="_FieldTip" model='@("Carton width in centimetres. Used for shipping volume.")' />
+                    </div>
+                    <input asp-for="Product.WidthCm" class="input-app" data-val="false" disabled="@(showSize ? null : "disabled")" />
+                    <span asp-validation-for="Product.WidthCm" class="field-error"></span>
+                </div>
+                <div class="field">
+                    <div class="label-row">
+                        <label asp-for="Product.HeightCm">Height (cm)</label>
+                        <partial name="_FieldTip" model='@("Carton height in centimetres. Used for shipping volume.")' />
+                    </div>
+                    <input asp-for="Product.HeightCm" class="input-app" data-val="false" disabled="@(showSize ? null : "disabled")" />
+                    <span asp-validation-for="Product.HeightCm" class="field-error"></span>
+                </div>
+            </div>
         </div>
     </section>
 
-    @if (User.IsInRole(AppRoles.Owner) || User.IsInRole(AppRoles.Manager) || User.IsInRole(AppRoles.Accountant))
+    @if (canViewCosts)
     {
         <section class="form-section">
             <div class="form-section__head">
@@ -196,18 +341,30 @@
             </div>
             <div class="form-grid form-grid--3">
                 <div class="field">
-                    <label asp-for="Product.LatestRmbPrice">Latest RMB price</label>
-                    <input asp-for="Product.LatestRmbPrice" class="input-app" />
-                    <span class="hint">History is kept when this changes.</span>
+                    <div class="label-row">
+                        <label asp-for="Product.LatestRmbPrice">Latest RMB price</label>
+                        <partial name="_FieldTip" model='@("China supplier price in yuan. Leave blank if you bought locally.")' />
+                    </div>
+                    <input asp-for="Product.LatestRmbPrice" class="input-app" data-val="false" />
+                    <span class="hint">Only for a China purchase. History is kept when this changes.</span>
+                    <span asp-validation-for="Product.LatestRmbPrice" class="field-error"></span>
                 </div>
                 <div class="field">
-                    <label asp-for="Product.LatestLandedCost">Latest landed cost (PKR)</label>
-                    <input asp-for="Product.LatestLandedCost" class="input-app" />
-                    <span class="hint">History is kept when this changes.</span>
+                    <div class="label-row">
+                        <label asp-for="Product.LatestLandedCost">Purchase price (PKR)</label>
+                        <partial name="_FieldTip" model='@("What you paid per unit in rupees. Use this for a local purchase. Leave RMB blank.")' />
+                    </div>
+                    <input asp-for="Product.LatestLandedCost" class="input-app" data-val="false" />
+                    <span class="hint">Local purchase price, or the final rupee cost after shipping for a China import.</span>
+                    <span asp-validation-for="Product.LatestLandedCost" class="field-error"></span>
                 </div>
                 <div class="field">
-                    <label asp-for="PriceChangeReason">Price change reason</label>
+                    <div class="label-row">
+                        <label asp-for="PriceChangeReason">Price change reason</label>
+                        <partial name="_FieldTip" model='@("Only when you change wholesale, retail, or minimum price on an existing product.")' />
+                    </div>
                     <input asp-for="PriceChangeReason" class="input-app" placeholder="Required only if a sale price changed" />
+                    <span asp-validation-for="PriceChangeReason" class="field-error"></span>
                 </div>
             </div>
         </section>
@@ -218,8 +375,12 @@
             <h3 class="form-section__title">Notes</h3>
         </div>
         <div class="field">
-            <label asp-for="Product.Description">Description</label>
+            <div class="label-row">
+                <label asp-for="Product.Description">Description</label>
+                <partial name="_FieldTip" model='@("Optional notes for the shop.")' />
+            </div>
             <textarea asp-for="Product.Description" class="textarea-app" placeholder="Optional notes for the shop"></textarea>
+            <span asp-validation-for="Product.Description" class="field-error"></span>
         </div>
     </section>
 
@@ -230,6 +391,9 @@
 </form>
 
 @section Scripts {
+<script src="~/lib/jquery/dist/jquery.js"></script>
+<script src="~/lib/jquery-validation/dist/jquery.validate.js"></script>
+<script src="~/lib/jquery-validation-unobtrusive/dist/jquery.validate.unobtrusive.js"></script>
 <script>
 (() => {
   const kind = document.getElementById('product-kind');
@@ -239,6 +403,13 @@
   const priceLabel = document.getElementById('selling-price-label');
   const priceHint = document.getElementById('selling-price-hint');
   const isEdit = @(isEdit ? "true" : "false");
+  const unit = document.getElementById('Product_UnitId');
+  const measure = document.getElementById('measure-section');
+  const quantityBlock = document.getElementById('quantity-block');
+  const sizeBlock = document.getElementById('size-block');
+  const unitHint = document.getElementById('unit-hint');
+  const qtyInput = document.getElementById('Product_CurrentStock');
+  const qtyLabel = document.getElementById('quantity-label');
   const search = document.getElementById('component-search');
   const results = document.getElementById('component-results');
   const tableBody = document.querySelector('#component-table tbody');
@@ -249,15 +420,54 @@
     emptyNote.hidden = tableBody.querySelectorAll('[data-component-row]').length > 0;
   }
 
+  function selectedUnit() {
+    const opt = unit && unit.selectedOptions ? unit.selectedOptions[0] : null;
+    if (!opt || !opt.value) return '';
+    return opt.text.trim().toLowerCase();
+  }
+
+  function syncMeasure() {
+    const key = selectedUnit();
+    const setSelected = kind && kind.value === '1';
+    const isCarton = key === 'carton';
+    const countable = key === 'piece' || key === 'set' || key === 'pair' || key === 'kilogram' || isCarton;
+    const showQty = !isEdit && !setSelected && countable;
+    const showSize = isCarton;
+    const showHint = !setSelected && !key;
+    if (quantityBlock) quantityBlock.hidden = !showQty;
+    if (sizeBlock) sizeBlock.hidden = !showSize;
+    if (unitHint) unitHint.hidden = !showHint;
+    if (measure) measure.hidden = !!setSelected || (!showQty && !showSize && !showHint);
+    if (qtyInput) qtyInput.disabled = !showQty;
+    if (sizeBlock) {
+      sizeBlock.querySelectorAll('input').forEach(input => { input.disabled = !showSize; });
+    }
+    if (qtyLabel) {
+      const noun = key === 'kilogram' ? 'kg'
+        : key === 'carton' ? 'cartons'
+        : key === 'pair' ? 'pairs'
+        : key === 'set' ? 'sets'
+        : 'pieces';
+      qtyLabel.textContent = 'Quantity (' + noun + ')';
+    }
+  }
+
   function syncKind() {
-    const isSet = kind && kind.value === '1';
-    if (editor) editor.hidden = !isSet;
-    if (stock) stock.hidden = !!isSet;
-    if (priceLabel) priceLabel.textContent = isSet ? 'Set price' : 'Wholesale price';
-    if (priceHint) priceHint.textContent = isSet
+    const setSelected = kind && kind.value === '1';
+    if (editor) editor.hidden = !setSelected;
+    if (stock) stock.hidden = !!setSelected;
+    if (priceLabel) priceLabel.textContent = setSelected ? 'Set price' : 'Wholesale price';
+    if (priceHint) priceHint.textContent = setSelected
       ? 'Price charged for one complete set. You can still change it on the sale.'
       : 'Default price on a sale.';
-    if (save) save.textContent = isEdit ? 'Save changes' : (isSet ? 'Create set' : 'Create product');
+    if (save) {
+      const icon = save.querySelector('.ico');
+      const label = isEdit ? 'Save changes' : (setSelected ? 'Create set' : 'Create product');
+      save.textContent = '';
+      if (icon) save.appendChild(icon);
+      save.append(document.createTextNode(' ' + label));
+    }
+    syncMeasure();
   }
 
   function reindex() {
@@ -318,6 +528,7 @@
   }
 
   kind?.addEventListener('change', syncKind);
+  unit?.addEventListener('change', syncMeasure);
   search?.addEventListener('input', () => { runSearch(); });
   search?.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') {

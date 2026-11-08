@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using UD_Autos.Data;
 using UD_Autos.Models.Common;
+using UD_Autos.Models.Inventory;
 using UD_Autos.Models.Products;
 using UD_Autos.Models.ViewModels;
 
@@ -208,6 +209,10 @@ public class ProductService : IProductService
             product.ReservedQuantity = 0;
             product.DamagedStock = 0;
         }
+        else if (product.CurrentStock < 0)
+        {
+            return (false, "Quantity cannot be negative.", null);
+        }
 
         RecalculateCbm(product);
         product.CreatedAt = DateTime.UtcNow;
@@ -258,6 +263,23 @@ public class ProductService : IProductService
                 SourceReference = "Initial",
                 CreatedBy = userId,
                 CreatedAt = DateTime.UtcNow
+            });
+        }
+
+        if (product.ProductKind != ProductKind.CompleteSet && product.CurrentStock > 0)
+        {
+            _db.StockMovements.Add(new StockMovement
+            {
+                Product = product,
+                MovementType = StockMovementType.Adjustment,
+                Quantity = product.CurrentStock,
+                UnitCostPkr = product.AverageCost ?? product.LatestLandedCost ?? 0,
+                QuantityAfter = product.CurrentStock,
+                ReferenceType = "Opening",
+                Reason = "Opening quantity",
+                OccurredAt = DateTime.UtcNow,
+                CreatedAt = DateTime.UtcNow,
+                CreatedBy = userId
             });
         }
 
@@ -510,6 +532,10 @@ public class ProductService : IProductService
             product.Cbm = Math.Round(
                 (product.LengthCm.Value * product.WidthCm.Value * product.HeightCm.Value) / 1_000_000m,
                 6);
+        }
+        else
+        {
+            product.Cbm = null;
         }
     }
 }

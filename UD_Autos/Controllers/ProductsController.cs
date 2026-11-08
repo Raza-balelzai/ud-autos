@@ -76,19 +76,31 @@ public class ProductsController : Controller
         if (string.IsNullOrWhiteSpace(model.Product.Sku))
             ModelState.Remove("Product.Sku");
 
+        IgnoreBlankOptionalNumbers();
+        await ShapeMeasureFieldsAsync(model.Product, isCreate: true, cancellationToken);
+        if (model.Product.ProductKind != ProductKind.CompleteSet && model.Product.CurrentStock < 0)
+            ModelState.AddModelError("Product.CurrentStock", "Quantity cannot be negative.");
+
         if (!ModelState.IsValid)
         {
             return View("Form", await BuildFormAsync(model.Product, cancellationToken, model.Components));
         }
 
         var uploaded = await ApplyImageAsync(model);
+        if (!ModelState.IsValid)
+        {
+            if (uploaded)
+                ProductImageFiles.TryDelete(_env, model.Product.ImagePath);
+            return View("Form", await BuildFormAsync(model.Product, cancellationToken, model.Components));
+        }
+
         var components = ComponentsOf(model);
         var (ok, error, product) = await _products.CreateAsync(model.Product, User.GetUserId(), cancellationToken, components);
         if (!ok)
         {
             if (uploaded)
                 ProductImageFiles.TryDelete(_env, model.Product.ImagePath);
-            ModelState.AddModelError(string.Empty, error ?? "Could not create product.");
+            AddServiceError(error);
             return View("Form", await BuildFormAsync(model.Product, cancellationToken, model.Components));
         }
 
@@ -111,6 +123,10 @@ public class ProductsController : Controller
     public async Task<IActionResult> Edit(int id, ProductFormViewModel model, CancellationToken cancellationToken = default)
     {
         if (id != model.Product.Id) return BadRequest();
+
+        IgnoreBlankOptionalNumbers();
+        await ShapeMeasureFieldsAsync(model.Product, isCreate: false, cancellationToken);
+
         if (!ModelState.IsValid)
         {
             return View("Form", await BuildFormAsync(model.Product, cancellationToken, model.Components));
@@ -126,13 +142,20 @@ public class ProductsController : Controller
         }
 
         var uploaded = await ApplyImageAsync(model);
+        if (!ModelState.IsValid)
+        {
+            if (uploaded)
+                ProductImageFiles.TryDelete(_env, model.Product.ImagePath);
+            return View("Form", await BuildFormAsync(model.Product, cancellationToken, model.Components));
+        }
+
         var components = ComponentsOf(model);
         var (ok, error) = await _products.UpdateAsync(model.Product, User.GetUserId(), model.PriceChangeReason, cancellationToken, components);
         if (!ok)
         {
             if (uploaded)
                 ProductImageFiles.TryDelete(_env, model.Product.ImagePath);
-            ModelState.AddModelError(string.Empty, error ?? "Could not update product.");
+            AddServiceError(error);
             return View("Form", await BuildFormAsync(model.Product, cancellationToken, model.Components));
         }
 
@@ -180,6 +203,82 @@ public class ProductsController : Controller
             })
             .ToListAsync(cancellationToken);
         return Json(rows);
+    }
+
+    private static readonly string[] OptionalNumberKeys =
+    [
+        "Product.WholesalePrice",
+        "Product.RetailPrice",
+        "Product.MinimumSalePrice",
+        "Product.ReorderLevel",
+        "Product.CurrentStock",
+        "Product.UnitWeightKg",
+        "Product.CartonWeightKg",
+        "Product.PiecesPerCarton",
+        "Product.LengthCm",
+        "Product.WidthCm",
+        "Product.HeightCm",
+        "Product.LatestRmbPrice",
+        "Product.LatestLandedCost",
+        "Product.CategoryId",
+        "Product.UnitId",
+        "Product.DefaultSupplierId"
+    ];
+
+    private void IgnoreBlankOptionalNumbers()
+    {
+        foreach (var key in OptionalNumberKeys)
+        {
+            if (!ModelState.TryGetValue(key, out var entry)) continue;
+            if (string.IsNullOrWhiteSpace(entry.AttemptedValue))
+                ModelState.Remove(key);
+        }
+    }
+
+    private async Task ShapeMeasureFieldsAsync(Product product, bool isCreate, CancellationToken cancellationToken)
+    {
+        var unitName = product.UnitId is int unitId
+            ? await _db.UnitsOfMeasure.AsNoTracking()
+                .Where(u => u.Id == unitId)
+                .Select(u => u.Name)
+                .FirstOrDefaultAsync(cancellationToken)
+            : null;
+        var key = (unitName ?? string.Empty).Trim().ToLowerInvariant();
+        if (key != "carton")
+        {
+            product.UnitWeightKg = null;
+            product.CartonWeightKg = null;
+            product.PiecesPerCarton = null;
+            product.LengthCm = null;
+            product.WidthCm = null;
+            product.HeightCm = null;
+        }
+
+        if (!isCreate) return;
+
+        var countable = key is "piece" or "set" or "pair" or "kilogram" or "carton";
+        if (product.ProductKind == ProductKind.CompleteSet || !countable)
+            product.CurrentStock = 0;
+    }
+
+    private void AddServiceError(string? error)
+    {
+        var message = error ?? "Could not save the product.";
+        var key = string.Empty;
+        if (message.Contains("Product name", StringComparison.OrdinalIgnoreCase))
+            key = "Product.Name";
+        else if (message.Contains("Barcode", StringComparison.OrdinalIgnoreCase))
+            key = "Product.Barcode";
+        else if (message.Contains("SKU", StringComparison.OrdinalIgnoreCase))
+            key = "Product.Sku";
+        else if (message.Contains("Minimum Sale Price", StringComparison.OrdinalIgnoreCase))
+            key = "Product.WholesalePrice";
+        else if (message.Contains("Price change reason", StringComparison.OrdinalIgnoreCase))
+            key = "PriceChangeReason";
+        else if (message.Contains("Quantity", StringComparison.OrdinalIgnoreCase))
+            key = "Product.CurrentStock";
+
+        ModelState.AddModelError(key, message);
     }
 
     private async Task<ProductFormViewModel> BuildFormAsync(Product product, CancellationToken cancellationToken, List<SetComponentFormRow>? posted = null)
