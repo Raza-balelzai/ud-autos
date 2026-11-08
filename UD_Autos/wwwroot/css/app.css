@@ -2098,12 +2098,22 @@ body:has(.login-page) {
 .login-card .login-remember {
   margin: 0;
   color: #334155;
+  align-items: flex-start;
 }
 
 .login-card .login-remember input {
   accent-color: var(--color-primary);
   width: 16px;
   height: 16px;
+  margin-top: 2px;
+}
+
+.login-card .login-remember small {
+  display: block;
+  margin-top: 0.1rem;
+  font-size: 0.75rem;
+  font-weight: 400;
+  color: #64748b;
 }
 
 .login-submit {
