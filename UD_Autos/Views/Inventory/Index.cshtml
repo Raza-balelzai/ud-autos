@@ -57,12 +57,16 @@
                         <td>@p.Sku</td>
                         <td>
                             @p.Name
-                            @if (p.ProductKind == ProductKind.CompleteSet && !string.IsNullOrEmpty(p.LimitingComponentName))
+                            @if (string.Equals(p.Unit?.Name, "Pair", StringComparison.OrdinalIgnoreCase) && !string.IsNullOrEmpty(p.CompositionNote))
+                            {
+                                <div class="hint">@p.CompositionNote</div>
+                            }
+                            else if (p.ProductKind == ProductKind.CompleteSet && !string.IsNullOrEmpty(p.LimitingComponentName))
                             {
                                 <div class="hint">Limited by @p.LimitingComponentName</div>
                             }
                         </td>
-                        <td>@(p.ProductKind == ProductKind.CompleteSet ? "Complete set" : "Single item")</td>
+                        <td>@(string.Equals(p.Unit?.Name, "Pair", StringComparison.OrdinalIgnoreCase) ? "Pair" : p.ProductKind == ProductKind.CompleteSet ? "Complete set" : "Single item")</td>
                         <td>@(p.ProductKind == ProductKind.CompleteSet ? "—" : p.CurrentStock.ToString("N2"))</td>
                         <td>@(p.ProductKind == ProductKind.CompleteSet ? (p.VirtualAvailableSets ?? 0).ToString("N0") : p.AvailableQuantity.ToString("N2"))</td>
                         <td>@p.ReservedQuantity.ToString("N2")</td>

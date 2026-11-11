@@ -2,6 +2,23 @@ using UD_Autos.Models.Products;
 
 namespace UD_Autos.Services;
 
+public sealed class ShortSetInput
+{
+    public string Name { get; set; } = string.Empty;
+    public decimal Quantity { get; set; }
+    public decimal WholesalePrice { get; set; }
+    public decimal RetailPrice { get; set; }
+    public List<int> IncludedProductIds { get; set; } = new();
+}
+
+public sealed class PairSideInput
+{
+    public int ComponentProductId { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public decimal Quantity { get; set; }
+    public decimal RetailPrice { get; set; }
+}
+
 public sealed class SetComponentInput
 {
     public int ComponentProductId { get; set; }

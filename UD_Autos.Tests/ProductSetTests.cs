@@ -478,6 +478,190 @@ public class ProductSetTests
     }
 
     [Fact]
+    public async Task SetsToAdd_IncreasesItemStockOnlyWhenEntered()
+    {
+        await using var db = CreateDb();
+        var svc = CreateServices(db);
+        var bumper = await SeedPartAsync(db, "BMP", "Main Bumper", 10);
+        var components = new[] { new SetComponentInput { ComponentProductId = bumper.Id, RequiredQuantity = 2 } };
+
+        var created = await svc.Products.CreateAsync(new Product
+        {
+            Name = "Bumper Set",
+            ProductKind = ProductKind.CompleteSet,
+            WholesalePrice = 100
+        }, "u1", components: components, setsToAdd: 2);
+        Assert.True(created.Ok, created.Error);
+        Assert.Equal(14m, (await db.Products.FindAsync(bumper.Id))!.CurrentStock);
+        Assert.Equal(4m, await db.StockMovements.Where(m => m.ProductId == bumper.Id && m.Reason == "Added from complete set").Select(m => m.Quantity).SingleAsync());
+
+        var unchanged = await svc.Products.UpdateAsync(new Product
+        {
+            Id = created.Product!.Id,
+            Sku = created.Product.Sku,
+            Name = created.Product.Name,
+            ProductKind = ProductKind.CompleteSet,
+            WholesalePrice = 100,
+            IsActive = true
+        }, "u1", components: components, setsToAdd: 0);
+        Assert.True(unchanged.Ok, unchanged.Error);
+        Assert.Equal(14m, (await db.Products.FindAsync(bumper.Id))!.CurrentStock);
+    }
+
+    [Fact]
+    public async Task ShortSet_KeepsItsOwnStock_AndAddsQuantityOnTheSameName()
+    {
+        await using var db = CreateDb();
+        var svc = CreateServices(db);
+        var bumper = await SeedPartAsync(db, "BMP", "Main Bumper", 10);
+        var bolt = await SeedPartAsync(db, "BLT", "Bolt", 40);
+        var components = new[]
+        {
+            new SetComponentInput { ComponentProductId = bumper.Id, RequiredQuantity = 1 },
+            new SetComponentInput { ComponentProductId = bolt.Id, RequiredQuantity = 1 }
+        };
+        var shortSet = new ShortSetInput
+        {
+            Name = "XYZ set short",
+            Quantity = 2,
+            WholesalePrice = 700,
+            RetailPrice = 800,
+            IncludedProductIds = new List<int> { bumper.Id }
+        };
+
+        var created = await svc.Products.CreateAsync(new Product
+        {
+            Name = "XYZ set",
+            ProductKind = ProductKind.CompleteSet,
+            WholesalePrice = 1000
+        }, "u1", components: components, shortSet: shortSet);
+        Assert.True(created.Ok, created.Error);
+        Assert.Equal(0m, created.Product!.CurrentStock);
+        Assert.Equal(10m, (await db.Products.FindAsync(bumper.Id))!.CurrentStock);
+
+        var stored = await db.Products.SingleAsync(p => p.Name == "XYZ set short");
+        Assert.Equal(ProductKind.SingleItem, stored.ProductKind);
+        Assert.Equal(2m, stored.CurrentStock);
+        Assert.Equal(700m, stored.WholesalePrice);
+        Assert.Equal(800m, stored.RetailPrice);
+        Assert.Contains("Main Bumper", stored.Description);
+        Assert.DoesNotContain("Bolt", stored.Description);
+        var listed = await svc.Products.SearchAsync("XYZ set short", null, "name", false, 1, 20);
+        Assert.Equal("Main Bumper", ShortSetNotes.Includes(Assert.Single(listed.Items).Description));
+
+        var again = await svc.Products.UpdateAsync(new Product
+        {
+            Id = created.Product.Id,
+            Sku = created.Product.Sku,
+            Name = created.Product.Name,
+            ProductKind = ProductKind.CompleteSet,
+            WholesalePrice = 1000,
+            IsActive = true
+        }, "u1", components: components, shortSet: new ShortSetInput
+        {
+            Name = "XYZ set short",
+            Quantity = 3,
+            WholesalePrice = 650,
+            RetailPrice = 0,
+            IncludedProductIds = new List<int> { bumper.Id }
+        });
+        Assert.True(again.Ok, again.Error);
+        var updated = await db.Products.SingleAsync(p => p.Name == "XYZ set short");
+        Assert.Equal(5m, updated.CurrentStock);
+        Assert.Equal(650m, updated.WholesalePrice);
+        Assert.Equal(800m, updated.RetailPrice);
+        Assert.Equal(3m, await db.StockMovements.Where(m => m.ProductId == updated.Id && m.Reason == "Added short set").Select(m => m.Quantity).SingleAsync());
+        Assert.Equal(10m, (await db.Products.FindAsync(bumper.Id))!.CurrentStock);
+    }
+
+    [Fact]
+    public async Task Pair_CreatesPricedSides_AndEditsTheDifference()
+    {
+        await using var db = CreateDb();
+        var svc = CreateServices(db);
+        var unit = new UD_Autos.Models.Settings.UnitOfMeasure { Name = "Pair", Abbreviation = "Pair" };
+        db.UnitsOfMeasure.Add(unit);
+        await db.SaveChangesAsync();
+
+        var created = await svc.Products.CreateAsync(new Product
+        {
+            Name = "Headlight pair",
+            ProductKind = ProductKind.CompleteSet,
+            UnitId = unit.Id,
+            WholesalePrice = 500
+        }, "u1", pairSides: new[]
+        {
+            new PairSideInput { Name = "Left", Quantity = 5, RetailPrice = 100 },
+            new PairSideInput { Name = "Right", Quantity = 3, RetailPrice = 80 }
+        });
+        Assert.True(created.Ok, created.Error);
+        Assert.Equal(0m, created.Product!.CurrentStock);
+
+        var page = await svc.Products.SearchAsync("Headlight", null, "name", false, 1, 20);
+        var pair = Assert.Single(page.Items, p => p.Id == created.Product.Id);
+        Assert.Equal(3m, pair.VirtualAvailableSets);
+        Assert.Contains("Left 5", pair.CompositionNote);
+        Assert.Contains("Right 3", pair.CompositionNote);
+
+        var sides = await svc.Products.SearchAsync(null, null, "name", false, 1, 20);
+        Assert.DoesNotContain(sides.Items, p => p.Name == "Left" || p.Name == "Right");
+        Assert.Contains(sides.Items, p => p.Id == created.Product.Id);
+
+        var links = await db.ProductSetComponents.Include(c => c.ComponentProduct)
+            .Where(c => c.SetProductId == created.Product.Id && c.IsActive)
+            .ToListAsync();
+        var left = links.Single(c => c.ComponentProduct.Name == "Left");
+        var right = links.Single(c => c.ComponentProduct.Name == "Right");
+        var edited = await svc.Products.UpdateAsync(new Product
+        {
+            Id = created.Product.Id,
+            Sku = created.Product.Sku,
+            Name = created.Product.Name,
+            ProductKind = ProductKind.CompleteSet,
+            UnitId = unit.Id,
+            WholesalePrice = 500,
+            IsActive = true
+        }, "u1", pairSides: new[]
+        {
+            new PairSideInput { ComponentProductId = left.ComponentProductId, Name = "Left", Quantity = 4, RetailPrice = 100 },
+            new PairSideInput { ComponentProductId = right.ComponentProductId, Name = "Right", Quantity = 3, RetailPrice = 80 }
+        });
+        Assert.True(edited.Ok, edited.Error);
+        Assert.Equal(4m, (await db.Products.FindAsync(left.ComponentProductId))!.CurrentStock);
+        Assert.Equal(3m, (await db.Products.FindAsync(right.ComponentProductId))!.CurrentStock);
+        Assert.Equal(-1m, await db.StockMovements.Where(m => m.ProductId == left.ComponentProductId && m.Reason == "Pair side quantity").Select(m => m.Quantity).SingleAsync());
+    }
+
+    [Fact]
+    public async Task Piece_EditQuantity_WritesOnlyTheDifference()
+    {
+        await using var db = CreateDb();
+        var (products, _, _) = CreateServices(db);
+        var created = await products.CreateAsync(new Product
+        {
+            Name = "Bolt",
+            ProductKind = ProductKind.SingleItem,
+            CurrentStock = 10,
+            RetailPrice = 20
+        }, "u1");
+        Assert.True(created.Ok, created.Error);
+
+        var edited = await products.UpdateAsync(new Product
+        {
+            Id = created.Product!.Id,
+            Sku = created.Product.Sku,
+            Name = "Bolt",
+            ProductKind = ProductKind.SingleItem,
+            CurrentStock = 14,
+            RetailPrice = 20
+        }, "u1", adjustStock: true);
+
+        Assert.True(edited.Ok, edited.Error);
+        Assert.Equal(14m, (await db.Products.FindAsync(created.Product.Id))!.CurrentStock);
+        Assert.Equal(4m, await db.StockMovements.Where(m => m.ProductId == created.Product.Id && m.Reason == "Quantity").Select(m => m.Quantity).SingleAsync());
+    }
+
+    [Fact]
     public async Task InventoryList_ShowsAvailableSets_AndOutOfStockFilter()
     {
         await using var db = CreateDb();

@@ -77,13 +77,21 @@ public class ProductsController : Controller
             ModelState.Remove("Product.Sku");
 
         IgnoreBlankOptionalNumbers();
-        await ShapeMeasureFieldsAsync(model.Product, isCreate: true, cancellationToken);
+        var unitKey = await ShapeMeasureFieldsAsync(model.Product, isCreate: true, cancellationToken);
+        var isPair = unitKey == "pair";
+        var isSet = UnitRoles.IsCompleteSet(unitKey);
+        if (!isSet)
+            model.SetsToAdd = 0;
+        if (model.SetsToAdd < 0)
+            ModelState.AddModelError(nameof(model.SetsToAdd), "Sets to add cannot be negative.");
+        if (isSet && model.ShortSetQuantity < 0)
+            ModelState.AddModelError(nameof(model.ShortSetQuantity), "Short set quantity cannot be negative.");
         if (model.Product.ProductKind != ProductKind.CompleteSet && model.Product.CurrentStock < 0)
             ModelState.AddModelError("Product.CurrentStock", "Quantity cannot be negative.");
 
         if (!ModelState.IsValid)
         {
-            return View("Form", await BuildFormAsync(model.Product, cancellationToken, model.Components));
+            return View("Form", await BuildFormAsync(model.Product, cancellationToken, model.Components, model.PairSides, usePostedSides: true, setsToAdd: model.SetsToAdd, carry: model));
         }
 
         var uploaded = await ApplyImageAsync(model);
@@ -91,23 +99,29 @@ public class ProductsController : Controller
         {
             if (uploaded)
                 ProductImageFiles.TryDelete(_env, model.Product.ImagePath);
-            return View("Form", await BuildFormAsync(model.Product, cancellationToken, model.Components));
+            return View("Form", await BuildFormAsync(model.Product, cancellationToken, model.Components, model.PairSides, usePostedSides: true, setsToAdd: model.SetsToAdd, carry: model));
         }
 
-        var components = ComponentsOf(model);
-        var (ok, error, product) = await _products.CreateAsync(model.Product, User.GetUserId(), cancellationToken, components);
+        var components = isSet ? ComponentsOf(model) : null;
+        var pairSides = isPair ? PairSidesOf(model) : null;
+        var shortSet = ShortSetOf(model, isSet);
+        var (ok, error, product) = await _products.CreateAsync(model.Product, User.GetUserId(), cancellationToken, components, isSet ? model.SetsToAdd : 0, pairSides, shortSet);
         if (!ok)
         {
             if (uploaded)
                 ProductImageFiles.TryDelete(_env, model.Product.ImagePath);
             AddServiceError(error);
-            return View("Form", await BuildFormAsync(model.Product, cancellationToken, model.Components));
+            return View("Form", await BuildFormAsync(model.Product, cancellationToken, model.Components, model.PairSides, usePostedSides: true, setsToAdd: model.SetsToAdd, carry: model));
         }
 
-        TempData["Success"] = product!.ProductKind == ProductKind.CompleteSet
-            ? $"Complete set {product.Sku} saved."
-            : $"Product {product.Sku} created.";
-        return RedirectToAction(nameof(Details), new { id = product.Id });
+        TempData["Success"] = isPair
+            ? $"Pair {product!.Sku} saved."
+            : isSet
+                ? shortSet is null
+                    ? $"Complete set {product!.Sku} saved."
+                    : $"Complete set {product!.Sku} saved. Short set stock updated."
+                : $"Product {product!.Sku} created.";
+        return RedirectToAction(nameof(Index));
     }
 
     public async Task<IActionResult> Edit(int id, CancellationToken cancellationToken = default)
@@ -124,12 +138,25 @@ public class ProductsController : Controller
     {
         if (id != model.Product.Id) return BadRequest();
 
+        var stockPosted = ModelState.TryGetValue("Product.CurrentStock", out var stockEntry)
+            && !string.IsNullOrWhiteSpace(stockEntry.AttemptedValue);
         IgnoreBlankOptionalNumbers();
-        await ShapeMeasureFieldsAsync(model.Product, isCreate: false, cancellationToken);
+        var unitKey = await ShapeMeasureFieldsAsync(model.Product, isCreate: false, cancellationToken);
+        var isPair = unitKey == "pair";
+        var isSet = UnitRoles.IsCompleteSet(unitKey);
+        var adjustStock = stockPosted && unitKey is "piece" or "kilogram" or "carton";
+        if (!isSet)
+            model.SetsToAdd = 0;
+        if (model.SetsToAdd < 0)
+            ModelState.AddModelError(nameof(model.SetsToAdd), "Sets to add cannot be negative.");
+        if (isSet && model.ShortSetQuantity < 0)
+            ModelState.AddModelError(nameof(model.ShortSetQuantity), "Short set quantity cannot be negative.");
+        if (adjustStock && model.Product.CurrentStock < 0)
+            ModelState.AddModelError("Product.CurrentStock", "Quantity cannot be negative.");
 
         if (!ModelState.IsValid)
         {
-            return View("Form", await BuildFormAsync(model.Product, cancellationToken, model.Components));
+            return View("Form", await BuildFormAsync(model.Product, cancellationToken, model.Components, model.PairSides, usePostedSides: true, setsToAdd: model.SetsToAdd, carry: model));
         }
 
         string? previousImage = null;
@@ -146,17 +173,19 @@ public class ProductsController : Controller
         {
             if (uploaded)
                 ProductImageFiles.TryDelete(_env, model.Product.ImagePath);
-            return View("Form", await BuildFormAsync(model.Product, cancellationToken, model.Components));
+            return View("Form", await BuildFormAsync(model.Product, cancellationToken, model.Components, model.PairSides, usePostedSides: true, setsToAdd: model.SetsToAdd, carry: model));
         }
 
-        var components = ComponentsOf(model);
-        var (ok, error) = await _products.UpdateAsync(model.Product, User.GetUserId(), model.PriceChangeReason, cancellationToken, components);
+        var components = isSet ? ComponentsOf(model) : null;
+        var pairSides = isPair ? PairSidesOf(model) : null;
+        var shortSet = ShortSetOf(model, isSet);
+        var (ok, error) = await _products.UpdateAsync(model.Product, User.GetUserId(), model.PriceChangeReason, cancellationToken, components, isSet ? model.SetsToAdd : 0, pairSides, shortSet, adjustStock);
         if (!ok)
         {
             if (uploaded)
                 ProductImageFiles.TryDelete(_env, model.Product.ImagePath);
             AddServiceError(error);
-            return View("Form", await BuildFormAsync(model.Product, cancellationToken, model.Components));
+            return View("Form", await BuildFormAsync(model.Product, cancellationToken, model.Components, model.PairSides, usePostedSides: true, setsToAdd: model.SetsToAdd, carry: model));
         }
 
         if (uploaded
@@ -166,8 +195,8 @@ public class ProductsController : Controller
             ProductImageFiles.TryDelete(_env, previousImage);
         }
 
-        TempData["Success"] = model.Product.ProductKind == ProductKind.CompleteSet ? "Complete set updated." : "Product updated.";
-        return RedirectToAction(nameof(Details), new { id });
+        TempData["Success"] = isPair ? "Pair updated." : isSet ? shortSet is null ? "Complete set updated." : "Complete set updated. Short set stock updated." : "Product updated.";
+        return RedirectToAction(nameof(Index));
     }
 
     [HttpPost]
@@ -222,7 +251,11 @@ public class ProductsController : Controller
         "Product.LatestLandedCost",
         "Product.CategoryId",
         "Product.UnitId",
-        "Product.DefaultSupplierId"
+        "Product.DefaultSupplierId",
+        "SetsToAdd",
+        "ShortSetQuantity",
+        "ShortSetWholesalePrice",
+        "ShortSetRetailPrice"
     ];
 
     private void IgnoreBlankOptionalNumbers()
@@ -233,9 +266,15 @@ public class ProductsController : Controller
             if (string.IsNullOrWhiteSpace(entry.AttemptedValue))
                 ModelState.Remove(key);
         }
+
+        foreach (var key in ModelState.Keys.Where(k => k.StartsWith("PairSides[", StringComparison.Ordinal) && (k.EndsWith(".Quantity", StringComparison.Ordinal) || k.EndsWith(".RetailPrice", StringComparison.Ordinal))).ToList())
+        {
+            if (ModelState.TryGetValue(key, out var entry) && string.IsNullOrWhiteSpace(entry.AttemptedValue))
+                ModelState.Remove(key);
+        }
     }
 
-    private async Task ShapeMeasureFieldsAsync(Product product, bool isCreate, CancellationToken cancellationToken)
+    private async Task<string> ShapeMeasureFieldsAsync(Product product, bool isCreate, CancellationToken cancellationToken)
     {
         var unitName = product.UnitId is int unitId
             ? await _db.UnitsOfMeasure.AsNoTracking()
@@ -243,7 +282,8 @@ public class ProductsController : Controller
                 .Select(u => u.Name)
                 .FirstOrDefaultAsync(cancellationToken)
             : null;
-        var key = (unitName ?? string.Empty).Trim().ToLowerInvariant();
+        var key = UnitRoles.Key(unitName);
+        product.ProductKind = UnitRoles.IsGrouped(unitName) ? ProductKind.CompleteSet : ProductKind.SingleItem;
         if (key != "carton")
         {
             product.UnitWeightKg = null;
@@ -254,11 +294,14 @@ public class ProductsController : Controller
             product.HeightCm = null;
         }
 
-        if (!isCreate) return;
+        if (isCreate)
+        {
+            var countable = key is "piece" or "kilogram" or "carton";
+            if (UnitRoles.IsGrouped(unitName) || !countable)
+                product.CurrentStock = 0;
+        }
 
-        var countable = key is "piece" or "set" or "pair" or "kilogram" or "carton";
-        if (product.ProductKind == ProductKind.CompleteSet || !countable)
-            product.CurrentStock = 0;
+        return key;
     }
 
     private void AddServiceError(string? error)
@@ -281,19 +324,32 @@ public class ProductsController : Controller
         ModelState.AddModelError(key, message);
     }
 
-    private async Task<ProductFormViewModel> BuildFormAsync(Product product, CancellationToken cancellationToken, List<SetComponentFormRow>? posted = null)
+    private async Task<ProductFormViewModel> BuildFormAsync(
+        Product product,
+        CancellationToken cancellationToken,
+        List<SetComponentFormRow>? posted = null,
+        List<PairSideFormRow>? postedSides = null,
+        bool usePostedSides = false,
+        decimal setsToAdd = 0,
+        ProductFormViewModel? carry = null)
     {
-        var components = posted ?? product.SetComponents
-            .Where(c => c.IsActive)
-            .Select(c => new SetComponentFormRow
-            {
-                ComponentProductId = c.ComponentProductId,
-                Sku = c.ComponentProduct?.Sku,
-                Name = c.ComponentProduct?.Name,
-                RequiredQuantity = c.RequiredQuantity,
-                AvailableStock = c.ComponentProduct is null ? 0 : c.ComponentProduct.CurrentStock - c.ComponentProduct.ReservedQuantity
-            })
-            .ToList();
+        var units = await _settings.GetUnitsAsync(cancellationToken: cancellationToken);
+        var unitName = units.FirstOrDefault(u => u.Id == product.UnitId)?.Name;
+        var isPair = UnitRoles.IsPair(unitName);
+
+        var components = posted ?? (isPair
+            ? new List<SetComponentFormRow>()
+            : product.SetComponents
+                .Where(c => c.IsActive)
+                .Select(c => new SetComponentFormRow
+                {
+                    ComponentProductId = c.ComponentProductId,
+                    Sku = c.ComponentProduct?.Sku,
+                    Name = c.ComponentProduct?.Name,
+                    RequiredQuantity = c.RequiredQuantity,
+                    AvailableStock = c.ComponentProduct is null ? 0 : c.ComponentProduct.CurrentStock - c.ComponentProduct.ReservedQuantity
+                })
+                .ToList());
 
         if (posted is not null)
         {
@@ -315,26 +371,88 @@ public class ProductsController : Controller
             }
         }
 
+        List<PairSideFormRow> sides;
+        if (isPair && usePostedSides)
+            sides = postedSides ?? new List<PairSideFormRow>();
+        else if (isPair)
+            sides = product.SetComponents
+                .Where(c => c.IsActive)
+                .Select(c => new PairSideFormRow
+                {
+                    ComponentProductId = c.ComponentProductId,
+                    Name = c.ComponentProduct?.Name,
+                    Quantity = c.ComponentProduct?.CurrentStock ?? 0,
+                    RetailPrice = c.ComponentProduct?.RetailPrice ?? 0
+                })
+                .ToList();
+        else
+            sides = new List<PairSideFormRow>();
+
+        if (!isPair || sides.Count == 0 && !usePostedSides)
+        {
+            if (sides.Count == 0)
+            {
+                sides = new List<PairSideFormRow>
+                {
+                    new() { Name = "Left" },
+                    new() { Name = "Right" }
+                };
+            }
+        }
+
         return new ProductFormViewModel
         {
             Product = product,
             Categories = await _settings.GetCategoriesAsync(cancellationToken: cancellationToken),
-            Units = await _settings.GetUnitsAsync(cancellationToken: cancellationToken),
+            Units = units,
             Suppliers = await _suppliers.GetActiveLookupAsync(cancellationToken),
-            Components = components
+            Components = components,
+            PairSides = sides,
+            SetsToAdd = setsToAdd,
+            ShortSetName = carry?.ShortSetName,
+            ShortSetQuantity = carry?.ShortSetQuantity ?? 0,
+            ShortSetWholesalePrice = carry?.ShortSetWholesalePrice ?? 0,
+            ShortSetRetailPrice = carry?.ShortSetRetailPrice ?? 0,
+            ShortSetItemIds = carry?.ShortSetItemIds ?? new List<int>(),
+            ShortSetPosted = carry is not null
         };
     }
 
     private static List<SetComponentInput>? ComponentsOf(ProductFormViewModel model)
     {
-        if (model.Product.ProductKind != ProductKind.CompleteSet)
-            return null;
         return model.Components
             .Where(c => c.ComponentProductId > 0)
             .Select(c => new SetComponentInput
             {
                 ComponentProductId = c.ComponentProductId,
                 RequiredQuantity = c.RequiredQuantity
+            })
+            .ToList();
+    }
+
+    private static ShortSetInput? ShortSetOf(ProductFormViewModel model, bool isSet)
+    {
+        if (!isSet || model.ShortSetQuantity == 0)
+            return null;
+        return new ShortSetInput
+        {
+            Name = model.ShortSetName ?? string.Empty,
+            Quantity = model.ShortSetQuantity,
+            WholesalePrice = model.ShortSetWholesalePrice,
+            RetailPrice = model.ShortSetRetailPrice,
+            IncludedProductIds = model.ShortSetItemIds ?? new List<int>()
+        };
+    }
+
+    private static List<PairSideInput> PairSidesOf(ProductFormViewModel model)
+    {
+        return model.PairSides
+            .Select(s => new PairSideInput
+            {
+                ComponentProductId = s.ComponentProductId,
+                Name = s.Name ?? string.Empty,
+                Quantity = s.Quantity,
+                RetailPrice = s.RetailPrice
             })
             .ToList();
     }

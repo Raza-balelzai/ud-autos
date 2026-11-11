@@ -1,8 +1,10 @@
 @model BillingPageViewModel
 @{
-    string SaleOption(Product p) => p.ProductKind == ProductKind.CompleteSet
-        ? $"{p.Sku} — {p.Name} (Complete set, {(p.VirtualAvailableSets ?? 0):N0} available)"
-        : $"{p.Sku} — {p.Name}";
+    string SaleOption(Product p) => string.Equals(p.Unit?.Name, "Pair", StringComparison.OrdinalIgnoreCase)
+        ? $"{p.Sku} — {p.Name} (Pair, {(p.VirtualAvailableSets ?? 0):N0} available)"
+        : p.ProductKind == ProductKind.CompleteSet
+            ? $"{p.Sku} — {p.Name} (Complete set, {(p.VirtualAvailableSets ?? 0):N0} available)"
+            : $"{p.Sku} — {p.Name}";
 }
 
 <form asp-action="Create" method="post" class="card-panel" id="billing-form">

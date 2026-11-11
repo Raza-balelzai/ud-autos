@@ -2,6 +2,11 @@
 @{
     var p = Model.Product;
     var canViewCosts = Model.CanViewCosts;
+    var isPair = string.Equals(p.Unit?.Name, "Pair", StringComparison.OrdinalIgnoreCase);
+    var isSet = p.ProductKind == ProductKind.CompleteSet && !isPair;
+    var shortIncludes = ShortSetNotes.Includes(p.Description);
+    var typeName = isPair ? "Pair" : isSet ? "Complete set" : shortIncludes is not null ? "Short set" : p.IsPairPart ? "Pair part" : "Single item";
+    var priceName = isPair ? "Pair price" : isSet ? "Set price" : "Wholesale price";
 }
 
 @section PageActions {
@@ -41,7 +46,11 @@
                 }
                 <div class="detail-grid">
                 <div class="detail-item"><dt>SKU</dt><dd>@p.Sku</dd></div>
-                <div class="detail-item"><dt>Type</dt><dd>@(p.ProductKind == ProductKind.CompleteSet ? "Complete set" : "Single item")</dd></div>
+                <div class="detail-item"><dt>Type</dt><dd>@typeName</dd></div>
+                @if (shortIncludes is not null)
+                {
+                    <div class="detail-item"><dt>Includes</dt><dd>@(string.IsNullOrEmpty(shortIncludes) ? "—" : shortIncludes)</dd></div>
+                }
                 <div class="detail-item"><dt>Barcode</dt><dd>@(p.Barcode ?? "—")</dd></div>
                 <div class="detail-item"><dt>Name</dt><dd>@p.Name</dd></div>
                 <div class="detail-item"><dt>Category</dt><dd>@(p.Category?.Name ?? "—")</dd></div>
@@ -57,7 +66,7 @@
                 <h3 class="form-section__title">Prices</h3>
             </div>
             <div class="detail-grid">
-                <div class="detail-item"><dt>@(p.ProductKind == ProductKind.CompleteSet ? "Set price" : "Wholesale price")</dt><dd>Rs. @p.WholesalePrice.ToString("N2")</dd></div>
+                <div class="detail-item"><dt>@priceName</dt><dd>Rs. @p.WholesalePrice.ToString("N2")</dd></div>
                 <div class="detail-item"><dt>Retail price</dt><dd>Rs. @p.RetailPrice.ToString("N2")</dd></div>
                 <div class="detail-item"><dt>Minimum sale price</dt><dd>Rs. @p.MinimumSalePrice.ToString("N2")</dd></div>
                 @if (canViewCosts)
@@ -84,7 +93,37 @@
     <div class="form-section__head">
         <h3 class="form-section__title">Stock</h3>
     </div>
-    @if (p.ProductKind == ProductKind.CompleteSet)
+    @if (isPair)
+    {
+        <div class="detail-grid">
+            <div class="detail-item"><dt>Complete pairs</dt><dd>@((p.VirtualAvailableSets ?? 0).ToString("N0"))</dd></div>
+            <div class="detail-item"><dt>Sides</dt><dd>@(string.IsNullOrEmpty(p.CompositionNote) ? "—" : p.CompositionNote)</dd></div>
+        </div>
+        <div class="form-section__head"><h3 class="form-section__title">Sides</h3></div>
+        <div class="table-wrap">
+            <table class="table-app">
+                <thead><tr><th>Side</th><th>Quantity</th><th>Retail price</th></tr></thead>
+                <tbody>
+                @if (!p.SetComponents.Any(c => c.IsActive))
+                {
+                    <tr><td colspan="3">No sides on this pair.</td></tr>
+                }
+                else
+                {
+                    foreach (var component in p.SetComponents.Where(c => c.IsActive))
+                    {
+                        <tr>
+                            <td>@component.ComponentProduct.Name</td>
+                            <td>@component.ComponentProduct.CurrentStock.ToString("N0")</td>
+                            <td>Rs. @component.ComponentProduct.RetailPrice.ToString("N2")</td>
+                        </tr>
+                    }
+                }
+                </tbody>
+            </table>
+        </div>
+    }
+    else if (isSet)
     {
         <div class="detail-grid">
             <div class="detail-item"><dt>Sets available</dt><dd>@((p.VirtualAvailableSets ?? 0).ToString("N0"))</dd></div>

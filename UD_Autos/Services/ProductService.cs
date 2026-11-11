@@ -12,8 +12,8 @@ public interface IProductService
     Task<PagedResult<Product>> SearchAsync(string? search, int? categoryId, string? sortBy, bool sortDesc, int page, int pageSize, CancellationToken cancellationToken = default);
     Task<Product?> GetByIdAsync(int id, bool includeHistory = false, CancellationToken cancellationToken = default);
     Task<(IReadOnlyList<ProductPurchaseHistoryRow> Purchases, IReadOnlyList<ProductShipmentHistoryRow> Shipments, IReadOnlyList<ProductSalesHistoryRow> Sales)> GetHistoryAsync(int productId, CancellationToken cancellationToken = default);
-    Task<(bool Ok, string? Error, Product? Product)> CreateAsync(Product product, string? userId, CancellationToken cancellationToken = default, IReadOnlyList<SetComponentInput>? components = null);
-    Task<(bool Ok, string? Error)> UpdateAsync(Product product, string? userId, string? priceChangeReason = null, CancellationToken cancellationToken = default, IReadOnlyList<SetComponentInput>? components = null);
+    Task<(bool Ok, string? Error, Product? Product)> CreateAsync(Product product, string? userId, CancellationToken cancellationToken = default, IReadOnlyList<SetComponentInput>? components = null, decimal setsToAdd = 0, IReadOnlyList<PairSideInput>? pairSides = null, ShortSetInput? shortSet = null);
+    Task<(bool Ok, string? Error)> UpdateAsync(Product product, string? userId, string? priceChangeReason = null, CancellationToken cancellationToken = default, IReadOnlyList<SetComponentInput>? components = null, decimal setsToAdd = 0, IReadOnlyList<PairSideInput>? pairSides = null, ShortSetInput? shortSet = null, bool adjustStock = false);
     Task<(bool Ok, string? Error)> SoftDeleteAsync(int id, string? userId, CancellationToken cancellationToken = default);
 }
 
@@ -61,6 +61,12 @@ public class ProductService : IProductService
             query = query.Where(p => p.CategoryId == categoryId);
         }
 
+        query = query.Where(p => !p.UsedInSets.Any(c =>
+            c.IsActive
+            && c.SetProduct.IsActive
+            && c.SetProduct.Unit != null
+            && c.SetProduct.Unit.Name == "Pair"));
+
         query = (sortBy?.ToLowerInvariant()) switch
         {
             "sku" => sortDesc ? query.OrderByDescending(p => p.Sku) : query.OrderBy(p => p.Sku),
@@ -73,6 +79,7 @@ public class ProductService : IProductService
         var total = await query.CountAsync(cancellationToken);
         var items = await query.Skip((page - 1) * pageSize).Take(pageSize).ToListAsync(cancellationToken);
         await ProductSetAvailability.AttachAsync(_db, items, cancellationToken);
+        await MarkPairPartsAsync(items, cancellationToken);
 
         return new PagedResult<Product>
         {
@@ -105,7 +112,10 @@ public class ProductService : IProductService
 
         var product = await query.FirstOrDefaultAsync(p => p.Id == id, cancellationToken);
         if (product is not null)
+        {
             await ProductSetAvailability.AttachAsync(_db, new[] { product }, cancellationToken);
+            await MarkPairPartsAsync(new[] { product }, cancellationToken);
+        }
         return product;
     }
 
@@ -169,7 +179,7 @@ public class ProductService : IProductService
     }
 
     public async Task<(bool Ok, string? Error, Product? Product)> CreateAsync(
-        Product product, string? userId, CancellationToken cancellationToken = default, IReadOnlyList<SetComponentInput>? components = null)
+        Product product, string? userId, CancellationToken cancellationToken = default, IReadOnlyList<SetComponentInput>? components = null, decimal setsToAdd = 0, IReadOnlyList<PairSideInput>? pairSides = null, ShortSetInput? shortSet = null)
     {
         if (string.IsNullOrWhiteSpace(product.Name))
         {
@@ -200,7 +210,13 @@ public class ProductService : IProductService
             return (false, "Wholesale/Retail price cannot be below Minimum Sale Price.", null);
         }
 
-        if (product.ProductKind == ProductKind.CompleteSet)
+        if (pairSides is not null)
+        {
+            var pairError = await PreparePairSidesAsync(product, pairSides, userId, cancellationToken);
+            if (pairError is not null)
+                return (false, pairError, null);
+        }
+        else if (product.ProductKind == ProductKind.CompleteSet)
         {
             var componentError = await ValidateComponentsAsync(null, components, cancellationToken);
             if (componentError is not null)
@@ -214,6 +230,13 @@ public class ProductService : IProductService
             return (false, "Quantity cannot be negative.", null);
         }
 
+        if (setsToAdd < 0)
+            return (false, "Sets to add cannot be negative.", null);
+
+        var shortSetError = ValidateShortSet(shortSet, components);
+        if (shortSetError is not null)
+            return (false, shortSetError, null);
+
         RecalculateCbm(product);
         product.CreatedAt = DateTime.UtcNow;
         product.CreatedBy = userId;
@@ -222,7 +245,7 @@ public class ProductService : IProductService
             ? 0
             : Math.Round(product.CurrentStock * (product.AverageCost ?? product.LatestLandedCost ?? 0), 2);
 
-        if (product.ProductKind == ProductKind.CompleteSet && components is not null)
+        if (pairSides is null && product.ProductKind == ProductKind.CompleteSet && components is not null)
         {
             foreach (var component in components)
             {
@@ -283,13 +306,23 @@ public class ProductService : IProductService
             });
         }
 
+        if (pairSides is null && setsToAdd > 0)
+        {
+            var stockError = await AddComponentStockAsync(components, setsToAdd, userId, cancellationToken);
+            if (stockError is not null)
+                return (false, stockError, null);
+        }
+
         await _db.SaveChangesAsync(cancellationToken);
+        var savedShortSetError = await SaveShortSetAsync(product, shortSet, userId, cancellationToken);
+        if (savedShortSetError is not null)
+            return (false, savedShortSetError, null);
         await _audit.LogAsync("Create", nameof(Product), product.Id.ToString(), product.Sku, newValues: new { product.Sku, product.Name }, cancellationToken: cancellationToken);
         return (true, null, product);
     }
 
     public async Task<(bool Ok, string? Error)> UpdateAsync(
-        Product product, string? userId, string? priceChangeReason = null, CancellationToken cancellationToken = default, IReadOnlyList<SetComponentInput>? components = null)
+        Product product, string? userId, string? priceChangeReason = null, CancellationToken cancellationToken = default, IReadOnlyList<SetComponentInput>? components = null, decimal setsToAdd = 0, IReadOnlyList<PairSideInput>? pairSides = null, ShortSetInput? shortSet = null, bool adjustStock = false)
     {
         var existing = await _db.Products.FirstOrDefaultAsync(p => p.Id == product.Id, cancellationToken);
         if (existing is null)
@@ -322,14 +355,27 @@ public class ProductService : IProductService
         }
 
         if (product.ProductKind == ProductKind.CompleteSet && existing.ProductKind != ProductKind.CompleteSet && existing.CurrentStock != 0)
-            return (false, "This item has stock. A complete set does not keep its own stock.");
+            return (false, "This item has stock of its own. A complete set or pair uses its items' stock.");
 
-        if (product.ProductKind == ProductKind.CompleteSet)
+        if (setsToAdd < 0)
+            return (false, "Sets to add cannot be negative.");
+
+        var shortSetError = ValidateShortSet(shortSet, components);
+        if (shortSetError is not null)
+            return (false, shortSetError);
+
+        if (pairSides is not null)
+        {
+            var pairError = await PreparePairSidesAsync(existing, pairSides, userId, cancellationToken);
+            if (pairError is not null)
+                return (false, pairError);
+        }
+        else if (product.ProductKind == ProductKind.CompleteSet)
         {
             var usedInSet = await _db.ProductSetComponents.AnyAsync(
                 c => c.IsActive && c.ComponentProductId == existing.Id && c.SetProductId != existing.Id, cancellationToken);
             if (usedInSet)
-                return (false, "This item is inside a complete set. Remove it there before making it a set.");
+                return (false, "This item is inside a complete set or pair. Remove it there before making it a set.");
 
             var componentError = await ValidateComponentsAsync(existing.Id, components, cancellationToken);
             if (componentError is not null)
@@ -408,18 +454,42 @@ public class ProductService : IProductService
             });
         }
 
+        if (adjustStock && existing.ProductKind == ProductKind.SingleItem)
+        {
+            if (product.CurrentStock < 0)
+                return (false, "Quantity cannot be negative.");
+            var delta = product.CurrentStock - existing.CurrentStock;
+            if (existing.CurrentStock + delta < existing.ReservedQuantity)
+                return (false, "Quantity cannot go below the reserved quantity.");
+            if (delta != 0)
+            {
+                existing.CurrentStock += delta;
+                AddMovement(existing, delta, existing.CurrentStock, "Quantity", "Adjustment", userId);
+            }
+        }
+
         existing.StockValue = existing.ProductKind == ProductKind.CompleteSet
             ? 0
             : Math.Round(existing.CurrentStock * (existing.AverageCost ?? existing.LatestLandedCost ?? 0), 2);
         existing.UpdatedAt = DateTime.UtcNow;
         existing.UpdatedBy = userId;
 
-        if (existing.ProductKind == ProductKind.CompleteSet)
+        if (pairSides is null && existing.ProductKind == ProductKind.CompleteSet)
             await ReplaceComponentsAsync(existing.Id, components ?? Array.Empty<SetComponentInput>(), userId, cancellationToken);
-        else if (existing.ProductKind == ProductKind.SingleItem)
+        else if (pairSides is null && existing.ProductKind == ProductKind.SingleItem)
             await DeactivateComponentsAsync(existing.Id, userId, cancellationToken);
 
+        if (pairSides is null && setsToAdd > 0)
+        {
+            var stockError = await AddComponentStockAsync(components, setsToAdd, userId, cancellationToken);
+            if (stockError is not null)
+                return (false, stockError);
+        }
+
         await _db.SaveChangesAsync(cancellationToken);
+        var savedShortSetError = await SaveShortSetAsync(existing, shortSet, userId, cancellationToken);
+        if (savedShortSetError is not null)
+            return (false, savedShortSetError);
         await _audit.LogAsync(
             salePriceChanged ? "PriceChange" : "Update",
             nameof(Product),
@@ -516,6 +586,337 @@ public class ProductService : IProductService
             row.UpdatedAt = DateTime.UtcNow;
             row.UpdatedBy = userId;
         }
+    }
+
+    private async Task MarkPairPartsAsync(IReadOnlyList<Product> items, CancellationToken cancellationToken)
+    {
+        var ids = items.Where(p => p.ProductKind == ProductKind.SingleItem).Select(p => p.Id).ToList();
+        if (ids.Count == 0)
+            return;
+
+        var partIds = await _db.ProductSetComponents.AsNoTracking()
+            .Where(c => c.IsActive
+                && ids.Contains(c.ComponentProductId)
+                && c.SetProduct.IsActive
+                && c.SetProduct.Unit != null
+                && c.SetProduct.Unit.Name == "Pair")
+            .Select(c => c.ComponentProductId)
+            .Distinct()
+            .ToListAsync(cancellationToken);
+
+        var parts = partIds.ToHashSet();
+        foreach (var item in items)
+            item.IsPairPart = parts.Contains(item.Id);
+    }
+
+    private async Task<string?> AddComponentStockAsync(
+        IReadOnlyList<SetComponentInput>? components, decimal setsToAdd, string? userId, CancellationToken cancellationToken)
+    {
+        var list = components?.Where(c => c.ComponentProductId > 0 && c.RequiredQuantity > 0).ToList() ?? new List<SetComponentInput>();
+        if (list.Count == 0)
+            return "Add at least one item before adding sets.";
+
+        var ids = list.Select(c => c.ComponentProductId).Distinct().ToList();
+        var products = await _db.Products.Where(p => ids.Contains(p.Id)).ToListAsync(cancellationToken);
+        foreach (var input in list)
+        {
+            var item = products.FirstOrDefault(p => p.Id == input.ComponentProductId);
+            if (item is null || !item.IsActive || item.ProductKind != ProductKind.SingleItem)
+                return "One of the set items is no longer available.";
+
+            var add = Math.Round(setsToAdd * input.RequiredQuantity, 4);
+            if (add == 0)
+                continue;
+
+            item.CurrentStock += add;
+            item.StockValue = Math.Round(item.CurrentStock * (item.AverageCost ?? item.LatestLandedCost ?? 0), 2);
+            item.UpdatedAt = DateTime.UtcNow;
+            item.UpdatedBy = userId;
+            AddMovement(item, add, item.CurrentStock, "Added from complete set", "SetReceipt", userId);
+        }
+
+        return null;
+    }
+
+    private async Task<string?> PreparePairSidesAsync(
+        Product pair, IReadOnlyList<PairSideInput> sides, string? userId, CancellationToken cancellationToken)
+    {
+        var rows = new List<PairSideInput>();
+        foreach (var side in sides)
+        {
+            var name = side.Name?.Trim() ?? string.Empty;
+            if (name.Length == 0)
+                continue;
+            if (name.Length > 250)
+                return "Side name is too long.";
+            if (side.Quantity < 0)
+                return "Side quantity cannot be negative.";
+            if (side.RetailPrice < 0)
+                return "Side price cannot be negative.";
+
+            rows.Add(new PairSideInput
+            {
+                ComponentProductId = side.ComponentProductId,
+                Name = name,
+                Quantity = side.Quantity,
+                RetailPrice = side.RetailPrice
+            });
+        }
+
+        if (rows.Count == 0)
+            return "Add at least one side, such as Left and Right.";
+        if (rows.Select(s => s.Name.ToLowerInvariant()).Distinct().Count() != rows.Count)
+            return "Each side needs its own name.";
+
+        var pieceUnitId = await _db.UnitsOfMeasure
+            .Where(u => u.Name == "Piece")
+            .Select(u => (int?)u.Id)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        var existingLinks = pair.Id == 0
+            ? new List<ProductSetComponent>()
+            : await _db.ProductSetComponents
+                .Include(c => c.ComponentProduct)
+                .Where(c => c.SetProductId == pair.Id)
+                .ToListAsync(cancellationToken);
+
+        var keep = new HashSet<int>();
+        var reserved = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        if (!string.IsNullOrWhiteSpace(pair.Sku))
+            reserved.Add(pair.Sku);
+        foreach (var local in _db.Products.Local)
+        {
+            if (!string.IsNullOrWhiteSpace(local.Sku))
+                reserved.Add(local.Sku);
+        }
+
+        string? cursor = null;
+        foreach (var side in rows)
+        {
+            if (side.ComponentProductId > 0)
+            {
+                var item = existingLinks.FirstOrDefault(l => l.ComponentProductId == side.ComponentProductId)?.ComponentProduct
+                    ?? await _db.Products.FirstOrDefaultAsync(p => p.Id == side.ComponentProductId, cancellationToken);
+                if (item is null || item.ProductKind != ProductKind.SingleItem)
+                    return "That side is not available.";
+                if (pair.Id > 0 && item.Id == pair.Id)
+                    return "A pair cannot contain itself.";
+
+                item.Name = side.Name;
+                item.RetailPrice = side.RetailPrice;
+                item.UpdatedAt = DateTime.UtcNow;
+                item.UpdatedBy = userId;
+                var delta = side.Quantity - item.CurrentStock;
+                if (item.CurrentStock + delta < 0)
+                    return "Side quantity cannot be negative.";
+                if (item.CurrentStock + delta < item.ReservedQuantity)
+                    return "Side quantity cannot go below the reserved quantity.";
+                if (delta != 0)
+                {
+                    item.CurrentStock += delta;
+                    item.StockValue = Math.Round(item.CurrentStock * (item.AverageCost ?? item.LatestLandedCost ?? 0), 2);
+                    AddMovement(item, delta, item.CurrentStock, "Pair side quantity", "Adjustment", userId);
+                }
+
+                keep.Add(item.Id);
+                var link = existingLinks.FirstOrDefault(l => l.ComponentProductId == item.Id);
+                if (link is null)
+                {
+                    _db.ProductSetComponents.Add(new ProductSetComponent
+                    {
+                        SetProductId = pair.Id,
+                        ComponentProductId = item.Id,
+                        RequiredQuantity = 1,
+                        IsActive = true,
+                        CreatedAt = DateTime.UtcNow,
+                        CreatedBy = userId
+                    });
+                }
+                else
+                {
+                    link.RequiredQuantity = 1;
+                    link.IsActive = true;
+                    link.UpdatedAt = DateTime.UtcNow;
+                    link.UpdatedBy = userId;
+                }
+
+                continue;
+            }
+
+            var created = new Product
+            {
+                Name = side.Name,
+                Sku = await TakeSkuAsync(),
+                RetailPrice = side.RetailPrice,
+                CurrentStock = side.Quantity,
+                ProductKind = ProductKind.SingleItem,
+                UnitId = pieceUnitId,
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow,
+                CreatedBy = userId,
+                StockValue = 0
+            };
+            _db.Products.Add(created);
+            if (side.Quantity > 0)
+                AddMovement(created, side.Quantity, side.Quantity, "Opening quantity", "Opening", userId);
+
+            var createdLink = new ProductSetComponent
+            {
+                ComponentProduct = created,
+                RequiredQuantity = 1,
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow,
+                CreatedBy = userId
+            };
+            if (pair.Id == 0)
+                pair.SetComponents.Add(createdLink);
+            else
+            {
+                createdLink.SetProductId = pair.Id;
+                _db.ProductSetComponents.Add(createdLink);
+            }
+        }
+
+        foreach (var link in existingLinks.Where(l => l.IsActive && !keep.Contains(l.ComponentProductId)))
+        {
+            link.IsActive = false;
+            link.UpdatedAt = DateTime.UtcNow;
+            link.UpdatedBy = userId;
+        }
+
+        pair.ProductKind = ProductKind.CompleteSet;
+        pair.CurrentStock = 0;
+        pair.ReservedQuantity = 0;
+        pair.DamagedStock = 0;
+        return null;
+
+        async Task<string> TakeSkuAsync()
+        {
+            cursor ??= await _codes.NextSkuAsync(cancellationToken);
+            while (!reserved.Add(cursor))
+                cursor = IncrementSku(cursor);
+            var sku = cursor;
+            cursor = IncrementSku(cursor);
+            return sku;
+        }
+    }
+
+    private static string IncrementSku(string sku)
+    {
+        var dash = sku.LastIndexOf('-');
+        if (dash < 0 || !int.TryParse(sku[(dash + 1)..], out var number))
+            return sku + "-2";
+
+        var width = Math.Max(5, sku.Length - dash - 1);
+        return sku[..(dash + 1)] + (number + 1).ToString("D" + width);
+    }
+
+    private void AddMovement(Product product, decimal quantity, decimal quantityAfter, string reason, string referenceType, string? userId)
+    {
+        var movement = new StockMovement
+        {
+            ProductId = product.Id,
+            MovementType = StockMovementType.Adjustment,
+            Quantity = quantity,
+            UnitCostPkr = product.AverageCost ?? product.LatestLandedCost ?? 0,
+            QuantityAfter = quantityAfter,
+            ReferenceType = referenceType,
+            Reason = reason,
+            OccurredAt = DateTime.UtcNow,
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = userId
+        };
+        if (product.Id == 0)
+            movement.Product = product;
+        _db.StockMovements.Add(movement);
+    }
+
+    private static string? ValidateShortSet(ShortSetInput? input, IReadOnlyList<SetComponentInput>? components)
+    {
+        if (input is null || input.Quantity == 0)
+            return null;
+        if (input.Quantity < 0)
+            return "Short set quantity cannot be negative.";
+        if (input.WholesalePrice < 0 || input.RetailPrice < 0)
+            return "Short set price cannot be negative.";
+        if (!string.IsNullOrWhiteSpace(input.Name) && input.Name.Trim().Length > 250)
+            return "Short set name is too long.";
+
+        var included = input.IncludedProductIds.Where(id => id > 0).Distinct().ToList();
+        if (included.Count == 0)
+            return "Choose the items that arrived in the short set.";
+
+        var componentIds = components?.Select(c => c.ComponentProductId).ToHashSet() ?? new HashSet<int>();
+        if (included.Any(id => !componentIds.Contains(id)))
+            return "A short set can only include items from this set.";
+
+        return null;
+    }
+
+    private async Task<string?> SaveShortSetAsync(Product parent, ShortSetInput? input, string? userId, CancellationToken cancellationToken)
+    {
+        if (input is null || input.Quantity <= 0 || parent.Id == 0)
+            return null;
+
+        var included = input.IncludedProductIds.Where(id => id > 0).Distinct().ToList();
+        var items = await _db.Products.AsNoTracking()
+            .Where(p => included.Contains(p.Id))
+            .Select(p => new { p.Id, p.Name })
+            .ToListAsync(cancellationToken);
+        var names = included
+            .Select(id => items.FirstOrDefault(p => p.Id == id)?.Name)
+            .Where(name => !string.IsNullOrWhiteSpace(name))
+            .Cast<string>()
+            .ToList();
+        if (names.Count == 0)
+            return "Choose the items that arrived in the short set.";
+
+        var name = string.IsNullOrWhiteSpace(input.Name) ? $"{parent.Name} short" : input.Name.Trim();
+        var description = ShortSetNotes.Build(parent.Id, names);
+        var marker = ShortSetNotes.Marker(parent.Id);
+        var existing = await _db.Products.FirstOrDefaultAsync(
+            p => p.IsActive && p.Name.ToLower() == name.ToLower() && p.Description != null && p.Description.StartsWith(marker),
+            cancellationToken);
+
+        if (existing is null)
+        {
+            var pieceUnitId = await _db.UnitsOfMeasure
+                .Where(u => u.Name == "Piece")
+                .Select(u => (int?)u.Id)
+                .FirstOrDefaultAsync(cancellationToken);
+            var created = new Product
+            {
+                Name = name,
+                Sku = await _codes.NextSkuAsync(cancellationToken),
+                WholesalePrice = input.WholesalePrice,
+                RetailPrice = input.RetailPrice,
+                CurrentStock = input.Quantity,
+                ProductKind = ProductKind.SingleItem,
+                UnitId = pieceUnitId,
+                CategoryId = parent.CategoryId,
+                Description = description,
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow,
+                CreatedBy = userId
+            };
+            _db.Products.Add(created);
+            AddMovement(created, input.Quantity, input.Quantity, "Opening quantity", "Opening", userId);
+            await _db.SaveChangesAsync(cancellationToken);
+            return null;
+        }
+
+        existing.CurrentStock += input.Quantity;
+        existing.Description = description;
+        existing.UpdatedAt = DateTime.UtcNow;
+        existing.UpdatedBy = userId;
+        if (input.WholesalePrice > 0)
+            existing.WholesalePrice = input.WholesalePrice;
+        if (input.RetailPrice > 0)
+            existing.RetailPrice = input.RetailPrice;
+        existing.StockValue = Math.Round(existing.CurrentStock * (existing.AverageCost ?? existing.LatestLandedCost ?? 0), 2);
+        AddMovement(existing, input.Quantity, existing.CurrentStock, "Added short set", "Adjustment", userId);
+        await _db.SaveChangesAsync(cancellationToken);
+        return null;
     }
 
     private static string? NormalizeBarcode(string? barcode)

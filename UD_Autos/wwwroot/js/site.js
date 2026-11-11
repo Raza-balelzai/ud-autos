@@ -409,20 +409,38 @@
         var root = document.getElementById("app-image-preview");
         if (!root) return;
         var img = document.getElementById("app-preview-image");
+        var letter = document.getElementById("app-preview-letter");
         var title = document.getElementById("app-preview-title");
 
         function close() {
             root.hidden = true;
             img.removeAttribute("src");
+            img.hidden = false;
+            if (letter) {
+                letter.hidden = true;
+                letter.textContent = "";
+            }
             var confirmModal = document.getElementById("app-confirm");
             if (!confirmModal || confirmModal.hidden) document.body.classList.remove("is-modal-open");
         }
 
-        function open(src, name) {
-            if (!src) return;
-            img.src = src;
-            img.alt = name || "Image preview";
+        function open(src, name, initial, tone) {
+            if (!src && !initial) return;
             title.textContent = name || "Image";
+            if (src) {
+                img.hidden = false;
+                if (letter) letter.hidden = true;
+                img.src = src;
+                img.alt = name || "Image preview";
+            } else {
+                img.hidden = true;
+                img.removeAttribute("src");
+                if (letter) {
+                    letter.hidden = false;
+                    letter.textContent = initial;
+                    letter.setAttribute("data-tone", tone || "0");
+                }
+            }
             root.hidden = false;
             document.body.classList.add("is-modal-open");
             var closeBtn = root.querySelector("[data-preview-close].btn-app");
@@ -430,10 +448,15 @@
         }
 
         document.addEventListener("click", function (e) {
-            var trigger = e.target.closest("[data-image-preview]");
+            var trigger = e.target.closest("[data-image-preview], [data-image-letter]");
             if (!trigger) return;
             e.preventDefault();
-            open(trigger.getAttribute("data-image-preview"), trigger.getAttribute("data-image-title"));
+            open(
+                trigger.getAttribute("data-image-preview"),
+                trigger.getAttribute("data-image-title"),
+                trigger.getAttribute("data-image-letter"),
+                trigger.getAttribute("data-image-tone")
+            );
         });
 
         root.querySelectorAll("[data-preview-close]").forEach(function (el) {

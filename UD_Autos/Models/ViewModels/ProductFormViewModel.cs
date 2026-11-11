@@ -15,6 +15,22 @@ public class ProductFormViewModel
     public string? PriceChangeReason { get; set; }
     public IFormFile? ImageFile { get; set; }
     public List<SetComponentFormRow> Components { get; set; } = new();
+    public decimal SetsToAdd { get; set; }
+    public List<PairSideFormRow> PairSides { get; set; } = new();
+    public string? ShortSetName { get; set; }
+    public decimal ShortSetQuantity { get; set; }
+    public decimal ShortSetWholesalePrice { get; set; }
+    public decimal ShortSetRetailPrice { get; set; }
+    public List<int> ShortSetItemIds { get; set; } = new();
+    public bool ShortSetPosted { get; set; }
+}
+
+public class PairSideFormRow
+{
+    public int ComponentProductId { get; set; }
+    public string? Name { get; set; }
+    public decimal Quantity { get; set; }
+    public decimal RetailPrice { get; set; }
 }
 
 public class SetComponentFormRow

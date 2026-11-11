@@ -27,6 +27,12 @@ public static class ProductSetAvailability
             .ToListAsync(cancellationToken);
 
         foreach (var set in sets)
-            ProductSetPlanner.ApplyAvailability(set, rows.Where(r => r.SetProductId == set.Id).ToList());
+        {
+            var components = rows.Where(r => r.SetProductId == set.Id).ToList();
+            ProductSetPlanner.ApplyAvailability(set, components);
+            set.CompositionNote = UnitRoles.IsPair(set.Unit?.Name)
+                ? string.Join(" · ", components.Select(c => $"{c.Name} {c.Available:N0}"))
+                : null;
+        }
     }
 }

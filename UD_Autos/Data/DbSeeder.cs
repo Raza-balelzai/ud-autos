@@ -74,11 +74,17 @@ public static class DbSeeder
         {
             db.UnitsOfMeasure.AddRange(
                 new UnitOfMeasure { Name = "Piece", Abbreviation = "Pcs" },
-                new UnitOfMeasure { Name = "Set", Abbreviation = "Set" },
+                new UnitOfMeasure { Name = "Complete set", Abbreviation = "Set" },
                 new UnitOfMeasure { Name = "Pair", Abbreviation = "Pair" },
                 new UnitOfMeasure { Name = "Kilogram", Abbreviation = "Kg" },
                 new UnitOfMeasure { Name = "Carton", Abbreviation = "Ctn" }
             );
+        }
+        else
+        {
+            var setUnit = await db.UnitsOfMeasure.FirstOrDefaultAsync(u => u.Name == "Set");
+            if (setUnit is not null)
+                setUnit.Name = "Complete set";
         }
 
         if (!await db.ProductCategories.AnyAsync())

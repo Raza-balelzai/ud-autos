@@ -1385,6 +1385,14 @@ label.is-required .req {
   line-height: 0;
 }
 
+.thumb-btn .thumb-letter {
+  line-height: 1;
+}
+
+.thumb-btn .thumb-letter {
+  line-height: 1;
+}
+
 .thumb-btn:focus-visible,
 .product-photo:focus-visible {
   outline: 2px solid var(--color-primary);
@@ -1427,11 +1435,24 @@ label.is-required .req {
   cursor: default;
 }
 
-.table-app .actions {
-  display: flex;
-  gap: 0.35rem;
-  flex-wrap: nowrap;
-  align-items: center;
+.table-app th.actions,
+.table-app td.actions {
+  width: 1%;
+  white-space: nowrap;
+  vertical-align: middle;
+  text-align: right;
+}
+
+.table-app td.actions > * {
+  vertical-align: middle;
+}
+
+.table-app td.actions > * + * {
+  margin-inline-start: 0.35rem;
+}
+
+.table-app .badge-app {
+  white-space: nowrap;
 }
 
 .table-app .btn-app--icon {
@@ -2589,8 +2610,8 @@ body:has(.login-page) {
     font-size: 0.85rem;
   }
 
-  .table-app .actions {
-    flex-wrap: nowrap;
+  .table-app td.actions {
+    white-space: nowrap;
   }
 
   .report-nav__label {
@@ -2973,6 +2994,14 @@ body:has(.login-page) {
   object-fit: contain;
   background: var(--color-bg);
   border-radius: var(--radius-sm);
+}
+
+.modal-app__preview-letter {
+  width: min(280px, 70vw);
+  height: min(280px, 70vw);
+  margin: 0 auto;
+  border-radius: 28px;
+  font-size: 6.5rem;
 }
 
 body.is-modal-open {

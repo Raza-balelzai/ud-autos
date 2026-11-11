@@ -119,6 +119,12 @@ public class Product : AuditableEntity
     [NotMapped]
     public string? LimitingComponentName { get; set; }
 
+    [NotMapped]
+    public string? CompositionNote { get; set; }
+
+    [NotMapped]
+    public bool IsPairPart { get; set; }
+
     public ICollection<ProductRmbPriceHistory> RmbPriceHistory { get; set; } = new List<ProductRmbPriceHistory>();
     public ICollection<ProductLandedCostHistory> LandedCostHistory { get; set; } = new List<ProductLandedCostHistory>();
     public ICollection<ProductSetComponent> SetComponents { get; set; } = new List<ProductSetComponent>();

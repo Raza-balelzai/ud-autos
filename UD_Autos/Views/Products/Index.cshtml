@@ -47,7 +47,7 @@
                 <th>Retail price</th>
                 <th>Stock</th>
                 <th>Status</th>
-                <th></th>
+                <th class="actions">Actions</th>
             </tr>
             </thead>
             <tbody>
@@ -59,7 +59,10 @@
             {
                 foreach (var item in Model.Items)
                 {
-                    var low = item.ProductKind == ProductKind.CompleteSet
+                    var isPair = string.Equals(item.Unit?.Name, "Pair", StringComparison.OrdinalIgnoreCase);
+                    var isSet = item.ProductKind == ProductKind.CompleteSet && !isPair;
+                    var shortIncludes = ShortSetNotes.Includes(item.Description);
+                    var low = isPair || isSet
                         ? (item.VirtualAvailableSets ?? 0) <= 0
                         : item.CurrentStock <= item.ReorderLevel;
                     <tr>
@@ -74,21 +77,47 @@
                             {
                                 var initial = string.IsNullOrWhiteSpace(item.Name) ? "?" : char.ToUpperInvariant(item.Name.Trim()[0]).ToString();
                                 var tone = initial[0] % 6;
-                                <span class="thumb-letter" data-tone="@tone" role="img" aria-label="No photo for @item.Name">@initial</span>
+                                <button type="button" class="thumb-btn" data-image-letter="@initial" data-image-tone="@tone" data-image-title="@item.Name" aria-label="Preview @item.Name">
+                                    <span class="thumb-letter" data-tone="@tone" aria-hidden="true">@initial</span>
+                                </button>
                             }
                         </td>
                         <td>@item.Sku</td>
                         <td>
                             @item.Name
-                            @if (item.ProductKind == ProductKind.CompleteSet)
+                            @if (isPair)
+                            {
+                                <span class="badge-app badge-app--neutral">Pair</span>
+                            }
+                            else if (isSet)
                             {
                                 <span class="badge-app badge-app--neutral">Complete set</span>
+                            }
+                            else if (item.IsPairPart)
+                            {
+                                <span class="badge-app badge-app--neutral">Pair part</span>
+                            }
+                            else if (shortIncludes is not null)
+                            {
+                                <span class="badge-app badge-app--neutral">Short set</span>
+                                @if (!string.IsNullOrEmpty(shortIncludes))
+                                {
+                                    <div class="hint">@shortIncludes</div>
+                                }
                             }
                         </td>
                         <td>@(item.Category?.Name ?? "—")</td>
                         <td>Rs. @item.RetailPrice.ToString("N2")</td>
                         <td>
-                            @if (item.ProductKind == ProductKind.CompleteSet)
+                            @if (isPair)
+                            {
+                                @((item.VirtualAvailableSets ?? 0).ToString("N0"))
+                                @if (!string.IsNullOrEmpty(item.CompositionNote))
+                                {
+                                    <div class="hint">@item.CompositionNote</div>
+                                }
+                            }
+                            else if (isSet)
                             {
                                 @((item.VirtualAvailableSets ?? 0).ToString("N0"))
                                 @if (!string.IsNullOrEmpty(item.LimitingComponentName))
@@ -102,7 +131,7 @@
                             }
                         </td>
                         <td>
-                            @if (item.ProductKind == ProductKind.CompleteSet && (item.VirtualAvailableSets ?? 0) <= 0)
+                            @if ((isPair || isSet) && (item.VirtualAvailableSets ?? 0) <= 0)
                             {
                                 <span class="badge-app badge-app--danger">Out of stock</span>
                             }

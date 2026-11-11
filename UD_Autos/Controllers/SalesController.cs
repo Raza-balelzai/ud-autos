@@ -229,7 +229,7 @@ public class SalesController : Controller
     private async Task<BillingPageViewModel> BuildBillingAsync(int? customerId, CancellationToken cancellationToken)
     {
         var customers = await _db.Customers.AsNoTracking().Where(c => c.IsActive).OrderBy(c => c.Name).ToListAsync(cancellationToken);
-        var products = await _db.Products.AsNoTracking().Where(p => p.IsActive).OrderBy(p => p.Name).Take(200).ToListAsync(cancellationToken);
+        var products = await _db.Products.AsNoTracking().Include(p => p.Unit).Where(p => p.IsActive).OrderBy(p => p.Name).Take(200).ToListAsync(cancellationToken);
         await ProductSetAvailability.AttachAsync(_db, products, cancellationToken);
         var customer = customerId.HasValue ? customers.FirstOrDefault(c => c.Id == customerId) : null;
         return new BillingPageViewModel
