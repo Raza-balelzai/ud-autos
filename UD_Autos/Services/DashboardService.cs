@@ -45,6 +45,10 @@ public class DashboardVm
     public int OverdueCustomers { get; set; }
     public decimal InTransitValue { get; set; }
     public int InTransitShipments { get; set; }
+    public decimal TotalInvestment { get; set; }
+    public decimal StockOnHandQty { get; set; }
+    public decimal ExpectedOutcome { get; set; }
+    public decimal ExpectedProfit { get; set; }
 }
 
 public class ChartPoint
@@ -231,6 +235,13 @@ public class DashboardService : IDashboardService
         var operationalAlerts = await _alerts.GetAlertsAsync(cancellationToken);
         var alerts = operationalAlerts.Select(a => a.Detail).ToList();
 
+        var stockRows = await _db.Products.AsNoTracking()
+            .Where(p => p.IsActive && p.ProductKind != ProductKind.CompleteSet && p.CurrentStock > 0)
+            .Select(p => new { p.CurrentStock, p.AverageCost, p.LatestLandedCost, p.WholesalePrice, p.RetailPrice })
+            .ToListAsync(cancellationToken);
+        var outlook = SummarizeStock(stockRows.Select(p =>
+            new StockOutlookRow(p.CurrentStock, p.AverageCost, p.LatestLandedCost, p.WholesalePrice, p.RetailPrice)));
+
         var todayGross = todayInvoices.Sum(i => i.GrossProfit);
         var monthGross = monthInvoices.Sum(i => i.GrossProfit);
 
@@ -272,8 +283,34 @@ public class DashboardService : IDashboardService
             ReceivableCustomers = receivableCustomers,
             OverdueCustomers = overdueCustomers,
             InTransitValue = inbound.Sum(s => s.ChinaProductCostPkr + s.TotalDirectCostPkr),
-            InTransitShipments = inbound.Count
+            InTransitShipments = inbound.Count,
+            TotalInvestment = outlook.Investment,
+            StockOnHandQty = outlook.Quantity,
+            ExpectedOutcome = outlook.Outcome,
+            ExpectedProfit = outlook.Profit
         };
+    }
+
+    public readonly record struct StockOutlookRow(decimal Quantity, decimal? AverageCost, decimal? LandedCost, decimal WholesalePrice, decimal RetailPrice);
+
+    public readonly record struct StockOutlook(decimal Investment, decimal Quantity, decimal Outcome, decimal Profit);
+
+    public static StockOutlook SummarizeStock(IEnumerable<StockOutlookRow> rows)
+    {
+        decimal investment = 0, quantity = 0, outcome = 0;
+        foreach (var row in rows)
+        {
+            if (row.Quantity <= 0) continue;
+            var cost = row.AverageCost ?? row.LandedCost ?? 0;
+            var sell = row.WholesalePrice > 0 ? row.WholesalePrice : row.RetailPrice;
+            quantity += row.Quantity;
+            investment += row.Quantity * cost;
+            outcome += row.Quantity * sell;
+        }
+
+        investment = Math.Round(investment, 2);
+        outcome = Math.Round(outcome, 2);
+        return new StockOutlook(investment, quantity, outcome, outcome - investment);
     }
 
     private static (decimal[] Bars, decimal Change) WeekChange(decimal[] days)

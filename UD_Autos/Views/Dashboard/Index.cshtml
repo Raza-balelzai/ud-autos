@@ -25,6 +25,39 @@
 }
 
 <div class="dash-kpis">
+    @if (Model.CanViewProfit)
+    {
+        <article class="dash-card dash-card--stat">
+            <span class="dash-card__icon dash-card__icon--amber" aria-hidden="true">
+                <svg viewBox="0 0 24 24"><path d="M3.2 7.2h17.6v10.2H3.2V7.2zm2.2 2.1v2.2h3.4V9.3H5.4zm0 3.6v2.2h3.4v-2.2H5.4z"/></svg>
+            </span>
+            <div class="dash-card__main">
+                <p class="dash-card__label">Total investment</p>
+                <p class="dash-card__value">Rs. @Model.TotalInvestment.ToString("N0")</p>
+                <p class="dash-card__meta">@Model.StockOnHandQty.ToString("N0") on hand</p>
+            </div>
+        </article>
+        <article class="dash-card dash-card--stat">
+            <span class="dash-card__icon dash-card__icon--blue" aria-hidden="true">
+                <svg viewBox="0 0 24 24"><path d="M4 16.5 9.2 11l3.1 3.2L20 6.2l1.4 1.4-9.1 9.4-3.1-3.2L5.4 18.5H4z"/></svg>
+            </span>
+            <div class="dash-card__main">
+                <p class="dash-card__label">Expected outcome</p>
+                <p class="dash-card__value">Rs. @Model.ExpectedOutcome.ToString("N0")</p>
+                <p class="dash-card__meta">If current stock sells</p>
+            </div>
+        </article>
+        <article class="dash-card dash-card--stat">
+            <span class="dash-card__icon dash-card__icon--green" aria-hidden="true">
+                <svg viewBox="0 0 24 24"><path d="M12 3.2a8.8 8.8 0 1 0 0 17.6 8.8 8.8 0 0 0 0-17.6zm.9 4.1v1.1a2.6 2.6 0 0 1 2.1 2.5h-1.7a1 1 0 0 0-1-.8c-.6 0-.9.3-.9.7 0 .5.3.7 1.3.9l.6.1c1.6.3 2.6 1 2.6 2.5 0 1.3-.9 2.3-2.3 2.6v1.1h-1.6v-1.1a2.8 2.8 0 0 1-2.4-2.6h1.7c.1.6.5.9 1.1.9.6 0 1-.3 1-.8s-.4-.7-1.4-1l-.6-.1c-1.5-.3-2.5-1.1-2.5-2.5 0-1.3.9-2.2 2.2-2.5V7.3h1.8z"/></svg>
+            </span>
+            <div class="dash-card__main">
+                <p class="dash-card__label">Expected profit</p>
+                <p class="dash-card__value">Rs. @Model.ExpectedProfit.ToString("N0")</p>
+                <p class="dash-card__meta">Outcome minus investment</p>
+            </div>
+        </article>
+    }
     <article class="dash-card">
         <span class="dash-card__icon dash-card__icon--solid dash-card__icon--blue" aria-hidden="true">
             <svg viewBox="0 0 24 24"><path d="M8.1 6.2h12.2l-1.4 6.3a1.7 1.7 0 0 1-1.7 1.3H9.2a1.7 1.7 0 0 1-1.7-1.4L6.3 4.6H3.2V2.8h4.2l.7 3.4z"/><circle cx="9.2" cy="19.3" r="1.8"/><circle cx="17.1" cy="19.3" r="1.8"/></svg>
